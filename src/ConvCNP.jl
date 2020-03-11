@@ -1,5 +1,15 @@
 module ConvCNP
 
-greet() = print("Hello World!")
+using Flux
+using Flux.Tracker
+using Printf
+using Random
+using Statistics
 
-end # module
+include("util.jl")
+include("discretisation.jl")
+include("setconv.jl")
+include("conv.jl")
+include("model.jl")
+
+end
