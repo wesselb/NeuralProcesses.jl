@@ -2,5 +2,7 @@ using ConvCNPs
 using Test
 
 @testset "ConvCNPs.jl" begin
-    # Write your own tests here.
+    include("util.jl")
+    include("setconv.jl")
+    include("discretisation.jl")
 end
