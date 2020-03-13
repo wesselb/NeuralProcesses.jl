@@ -1,3 +1,5 @@
+export Discretisation, UniformDiscretisation1d
+
 """
     Discretisation
 
