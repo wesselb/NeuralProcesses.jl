@@ -41,8 +41,8 @@ function (d::UniformDiscretisation1d)(xs::AbstractArray{T, 3}...) where T<:Real
     x = cat(xs...; dims=1)
     range_lower = minimum(x) - d.margin
     range_upper = maximum(x) + d.margin
-    num_points = Integer(round((range_upper - range_lower) * d.points_per_unit))
-    num_points = Integer(ceil(num_points / d.multiple) * d.multiple)
-    disc = gpu(LinRange{eltype(x)}(range_lower, range_upper, num_points))
+    num_points = ceil((range_upper - range_lower) * d.points_per_unit)
+    num_points = ceil(num_points / d.multiple) * d.multiple
+    disc = gpu(LinRange{eltype(x)}(range_lower, range_upper, Integer(num_points)))
     return repeat(disc, 1, 1, size(x, 3))
 end
