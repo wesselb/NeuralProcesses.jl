@@ -1,1 +1,1 @@
-# ConvCNP
+# ConvCNPs

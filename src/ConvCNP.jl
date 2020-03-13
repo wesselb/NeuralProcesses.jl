@@ -1,4 +1,4 @@
-module ConvCNP
+module ConvCNPs
 
 using Flux
 using Flux.Tracker

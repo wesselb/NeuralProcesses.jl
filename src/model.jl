@@ -1,7 +1,7 @@
-export CCNP, convcnp_1d
+export ConvCNP, convcnp_1d
 
 """
-    CCNP
+    ConvCNP
 
 Convolutional CNP model.
 
@@ -11,17 +11,17 @@ Convolutional CNP model.
 - `conv::Chain`: CNN that approximates rho.
 - `decoder::SetConv`: Decoder.
 """
-struct CCNP
+struct ConvCNP
     discretisation::Discretisation
     encoder::SetConv
     conv::Chain
     decoder::SetConv
 end
 
-@Flux.treelike CCNP
+@Flux.treelike ConvCNP
 
 """
-    (model::CCNP)(
+    (model::ConvCNP)(
         x_context::AbstractArray{T, 3},
         y_context::AbstractArray{T, 3},
         x_target::AbstractArray{T, 3}
@@ -32,7 +32,7 @@ end
 - `y_context::AbstractArray{T, 3}`: Observed values of shape `(n, channels, batch)`.
 - `x_target::AbstractArray{T, 3}`: Locations of target set of shape `(m, d, batch)`.
 """
-function (model::CCNP)(
+function (model::ConvCNP)(
     x_context::AbstractArray{T, 3},
     y_context::AbstractArray{T, 3},
     x_target::AbstractArray{T, 3}
@@ -69,7 +69,7 @@ function convcnp_1d(
     multiple::Integer=1
 )
     scale = 2 / conv.points_per_unit
-    return CCNP(
+    return ConvCNP(
         UniformDiscretisation1d(conv.points_per_unit, margin, multiple),
         set_conv(1, scale; density=true),
         conv.conv,
