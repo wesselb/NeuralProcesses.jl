@@ -1,4 +1,9 @@
-export build_conv
+export Architecture, build_conv
+
+const Architecture = NamedTuple{
+    (:conv, :points_per_unit, :multiple),
+    Tuple{U, S, T}
+} where U<:Chain where S<:Real where T<:Integer
 
 function _compute_kernel_size(receptive_field, points_per_unit, num_layers)
     receptive_points = receptive_field * points_per_unit
@@ -13,12 +18,13 @@ _compute_padding(kernel_size) = Integer(floor(kernel_size / 2))
         num_layers,
         num_channels;
         points_per_unit=64,
+        multiple=1,
         in_channels=2,
         out_channels=1,
         dimensionality=1,
     )
 
-Build a CNN with a specified receptive field.
+Build a CNN with a specified receptive field size.
 
 # Arguments
 - `receptive_field::Real`: Width of the receptive field.
@@ -26,21 +32,23 @@ Build a CNN with a specified receptive field.
 - `num_channels::Integer`: Number of channels of the CNN.
 
 # Keywords
-- `points_per_unit::Real=64`: Points per unit of the discretisation.
+- `points_per_unit::Real=64`: Points per unit for the discretisation. See
+     `UniformDiscretisation1d`.
+- `multiple::Integer=1`: Multiple for the discretisation. See `UniformDiscretisation1d`.
 - `in_channels::Integer=2`: Number of input channels.
 - `out_channels::Integer=1`: Number of output channels.
 - `dimensionality::Integer=1`: Dimensionality of the inputs. One corresponds to time series
     and two corresponds to images.
 
 # Returns
-- `NamedTuple{(:conv, :points_per_unit), Tuple{T, S}} where T<:Chain where S<:Real`:
-    Corresponding CNN bundled with the specified points per unit.
+- `Architecture`: Corresponding CNN bundled with the specified points per unit.
 """
 function build_conv(
     receptive_field::Real,
     num_layers::Integer,
     num_channels::Integer;
     points_per_unit::Real=64,
+    multiple::Integer=1,
     in_channels::Integer=2,
     out_channels::Integer=1,
     dimensionality::Integer=1
@@ -65,5 +73,9 @@ function build_conv(
     end
     push!(layers, Conv(kernel_sizes, num_channels=>out_channels, pad=padding, relu))
 
-    return (conv=Chain(layers...), points_per_unit=points_per_unit)
+    return (
+        conv=Chain(layers...),
+        points_per_unit=points_per_unit,
+        multiple=multiple
+    )
 end
