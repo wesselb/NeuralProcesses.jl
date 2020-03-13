@@ -9,7 +9,7 @@ abstract type Discretisation end
     UniformDiscretisation1d <: Discretisation
 
 Uniform discretisation for one-dimensional inputs. It computes the minimum and maximum
-input, and determines a discretisation uniformly spanning this range and a specified
+input and determines a discretisation uniformly spanning this range at a specified
 density.
 
 This type does not need to be performant, which is why it is abstractly typed.
