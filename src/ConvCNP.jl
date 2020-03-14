@@ -47,32 +47,23 @@ function (model::ConvCNP)(
 end
 
 """
-    convcnp_1d(
-        conv::NamedTuple{(:conv, :points_per_unit), Tuple{Chain, T}} where T<:Real;
-        margin::Real=0.1,
-        multiple::Integer=1
-    )
+    convcnp_1d(arch::Architecture, margin::Real=0.1)
 
 Construct a ConvCNP for one-dimensional data.
 
 # Arguments
-- `conv:NamedTuple{(:conv, :points_per_unit), Tuple{T, S}} where T<:Chain where S<:Real`:
-    CNN bundled with the points per units as constructed by `build_conv`.
+- `arch::Architecture`: CNN bundled with the points per units as constructed by
+    `build_conv`.
 
 # Keywords
 - `margin::Real`: Margin for the discretisation. See `UniformDiscretisation1d`.
-- `multiple::Integer`: Multiple for the discretisation. See `UniformDiscretisation1d`.
 """
-function convcnp_1d(
-    conv::NamedTuple{(:conv, :points_per_unit), Tuple{T, S}} where T<:Chain where S<:Real;
-    margin::Real=0.1,
-    multiple::Integer=1
-)
-    scale = 2 / conv.points_per_unit
+function convcnp_1d(arch::Architecture, margin::Real=0.1)
+    scale = 2 / arch.points_per_unit
     return ConvCNP(
-        UniformDiscretisation1d(conv.points_per_unit, margin, multiple),
+        UniformDiscretisation1d(arch.points_per_unit, margin, arch.multiple),
         set_conv(1, scale; density=true),
-        conv.conv,
+        arch.conv,
         set_conv(1, scale; density=false)
     )
 end
