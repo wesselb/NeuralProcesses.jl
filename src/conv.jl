@@ -50,7 +50,7 @@ function build_conv(
     points_per_unit::Real=64,
     multiple::Integer=1,
     in_channels::Integer=2,
-    out_channels::Integer=1,
+    out_channels::Integer=2,
     dimensionality::Integer=1
 )
     kernel_size = _compute_kernel_size(receptive_field, points_per_unit, num_layers)
