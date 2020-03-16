@@ -64,6 +64,6 @@ function convcnp_1d(arch::Architecture, margin::Real=0.1)
         UniformDiscretisation1d(arch.points_per_unit, margin, arch.multiple),
         set_conv(1, scale; density=true),
         arch.conv,
-        set_conv(1, scale; density=false)
+        set_conv(2, scale; density=false)
     )
 end
