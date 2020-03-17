@@ -1,3 +1,5 @@
+export gaussian_logpdf
+
 """
     ceil_odd(x::T) where T<:Real
 
@@ -74,3 +76,19 @@ function compute_dists2(
     y = permutedims(y, (2, 1, 3))
     return sum(x.^2; dims=2) .+ sum(y.^2; dims=1) .- 2 .* batched_mul(x, y)
 end
+
+"""
+    gaussian_logpdf(x::AbstractArray, μ::AbstractArray, σ::AbstractArray)
+
+Gaussian log-pdf.
+
+# Arguments
+- `x::AbstractArray`: Values to evaluate log-pdf at.
+- `μ::AbstractArray`: Means.
+- `σ::AbstractArray`: Standard deviations.
+
+# Returns
+- `AbstractArray`: Log-pdf at `x`.
+"""
+gaussian_logpdf(x::AbstractArray, μ::AbstractArray, σ::AbstractArray) =
+    -0.5(log(2π) .+ 2log.(σ) .+ (x .- μ).^2 ./ σ.^2)

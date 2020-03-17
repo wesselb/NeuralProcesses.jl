@@ -1,3 +1,5 @@
+using Distributions
+
 import ConvCNPs: ceil_odd, insert_dim, rbf, compute_dists2
 
 @testset "util.jl" begin
@@ -34,5 +36,10 @@ import ConvCNPs: ceil_odd, insert_dim, rbf, compute_dists2
             (x[:, 1:1, :] .- y_perm[1:1, :, :]).^2 .+
             (x[:, 2:2, :] .- y_perm[2:2, :, :]).^2
         @test compute_dists2(x, y) ≈ dists2
+    end
+
+    @testset "gaussian_logpdf" begin
+        dist = Normal(1, 2)
+        @test logpdf(dist, 3) ≈ gaussian_logpdf([3], [1], [2])[1]
     end
 end
