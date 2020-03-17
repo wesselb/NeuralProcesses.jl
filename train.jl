@@ -52,6 +52,7 @@ function plot_task(model, epoch)
         label=""
     )
 
+    mkpath("output")
     savefig(plt, "output/epoch$epoch.png")
 end
 
