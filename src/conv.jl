@@ -41,7 +41,7 @@ Build a CNN with a specified receptive field size.
     and two corresponds to images.
 
 # Returns
-- `Architecture`: Corresponding CNN bundled with the specified points per unit.
+- `Architecture`: Corresponding CNN bundled with the specified points per unit and margin.
 """
 function build_conv(
     receptive_field::Real,
