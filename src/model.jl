@@ -1,3 +1,5 @@
+using NNlib
+
 export ConvCNP, convcnp_1d
 
 """
@@ -41,9 +43,23 @@ function (model::ConvCNP)(
     encoding = model.encoder(x_context, y_context, x_discretisation)
     latent = model.conv(encoding)
     if size(encoding, 1) != size(latent, 1)
-        error("Conv net changed the discretisation size from $(size(encoding, 1)) to $(size(latent, 1)).")
+        error(
+            "Conv net changed the discretisation size from " *
+            "$(size(encoding, 1)) to $(size(latent, 1))."
+        )
     end
-    return model.decoder(x_discretisation, latent, x_target)
+    channels = model.decoder(x_discretisation, latent, x_target)
+
+    # Check that the number of channels is even.
+    mod(size(channels, 2), 2) != 0 && error("Number of channels must be even.")
+
+    # Half of the channels are used to determine the mean, and the other half are used to
+    # determine the standard deviation.
+    i_split = div(size(channels, 2), 2)
+    return (
+        channels[:, 1:i_split, :],                       # Mean
+        NNlib.softplus.(channels[:, i_split + 1:end, :])  # Standard deviation
+    )
 end
 
 """
@@ -58,7 +74,7 @@ Construct a ConvCNP for one-dimensional data.
 # Keywords
 - `margin::Real`: Margin for the discretisation. See `UniformDiscretisation1d`.
 """
-function convcnp_1d(arch::Architecture, margin::Real=0.1)
+function convcnp_1d(arch::Architecture; margin::Real=0.1)
     scale = 2 / arch.points_per_unit
     return ConvCNP(
         UniformDiscretisation1d(arch.points_per_unit, margin, arch.multiple),

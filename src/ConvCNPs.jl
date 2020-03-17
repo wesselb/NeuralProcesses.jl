@@ -10,6 +10,6 @@ include("util.jl")
 include("discretisation.jl")
 include("setconv.jl")
 include("conv.jl")
-include("convcnp.jl")
+include("model.jl")
 
 end
