@@ -53,7 +53,7 @@ function plot_task(model, epoch)
     )
 
     mkpath("output")
-    savefig(plt, "output/epoch$epoch.png")
+    savefig(plt, "output/epoch$epoch.pdf")
 end
 
 
