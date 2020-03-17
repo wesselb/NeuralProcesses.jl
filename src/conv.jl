@@ -58,20 +58,21 @@ function build_conv(
 
     # Repeat the kernel size `dimensionality` many times to construct the
     # convolution kernel.
-    kernel_sizes = ntuple(_ -> kernel_size, dimensionality)
+    kernel_pointwise = ntuple(_ -> 1, dimensionality)
+    kernel = ntuple(_ -> kernel_size, dimensionality)
 
     # Build layers of the conv net.
     layers = []
-    push!(layers, Conv(kernel_sizes, in_channels=>num_channels, pad=padding, relu))
+    push!(layers, Conv(kernel_pointwise, in_channels=>num_channels, relu))
     for i = 1:(num_layers - 2)
         push!(layers, DepthwiseConv(
-            kernel_sizes,
+            kernel,
             num_channels=>num_channels,
             pad=padding,
             relu
         ))
     end
-    push!(layers, Conv(kernel_sizes, num_channels=>out_channels, pad=padding, relu))
+    push!(layers, Conv(kernel_pointwise, num_channels=>out_channels))
 
     return (
         conv=Chain(layers...),
