@@ -5,4 +5,5 @@ using Test
     include("util.jl")
     include("setconv.jl")
     include("discretisation.jl")
+    include("data.jl")
 end
