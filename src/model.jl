@@ -1,5 +1,3 @@
-using NNlib
-
 export ConvCNP, convcnp_1d
 
 """
