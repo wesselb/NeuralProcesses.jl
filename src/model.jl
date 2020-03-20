@@ -37,29 +37,20 @@ function (model::ConvCNP)(
     y_context::AbstractArray,
     x_target::AbstractArray
 )
-    println("Disc")
-    println(typeof(x_context))
-    println(typeof(x_target))
     x_discretisation = model.discretisation(x_context, x_target)
-    println(typeof(x_discretisation))
-    println("Enc")
-    println(typeof(x_context))
-    println(typeof(y_context))
-    println(typeof(x_discretisation))
     encoding = model.encoder(x_context, y_context, x_discretisation)
-    println(typeof(encoding))
-    println("Conv")
-    println(typeof(encoding))
+
+    encoding = insert_dim(encoding; pos=2)
     latent = model.conv(encoding)
+    latent = dropdims(latent; dims=2)
     if size(encoding, 1) != size(latent, 1)
         error(
             "Conv net changed the discretisation size from " *
             "$(size(encoding, 1)) to $(size(latent, 1))."
         )
     end
-    println("Dec")
+
     channels = model.decoder(x_discretisation, latent, x_target)
-    println("Done")
 
     # Check that the number of channels is even.
     mod(size(channels, 2), 2) != 0 && error("Number of channels must be even.")

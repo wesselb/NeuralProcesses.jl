@@ -61,6 +61,9 @@ function build_conv(
     kernel_pointwise = ntuple(_ -> 1, dimensionality)
     kernel = ntuple(_ -> kernel_size, dimensionality)
 
+    kernel_pointwise = (1, 1)
+    kernel = (kernel_size, 1)
+
     # Build layers of the conv net.
     layers = []
     push!(layers, Conv(kernel_pointwise, in_channels=>num_channels, relu))

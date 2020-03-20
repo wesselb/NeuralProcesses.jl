@@ -99,12 +99,12 @@ data_gen = DataGenerator(
 
 # Use the SimpleConv architecture.
 conv = Chain(
-    Conv((1,), 2=>8, pad=0),
-    Conv((5,), 8=>16, pad=2, relu),
-    Conv((5,), 16=>32, pad=2, relu),
-    Conv((5,), 32=>16, pad=2, relu),
-    Conv((5,), 16=>8, pad=2, relu),
-    Conv((1,), 8=>2, pad=0),
+    Conv((1, 1), 2=>8, pad=0),
+    Conv((5, 1), 8=>16, pad=(2, 0), relu),
+    Conv((5, 1), 16=>32, pad=(2, 0), relu),
+    Conv((5, 1), 32=>16, pad=(2, 0), relu),
+    Conv((5, 1), 16=>8, pad=(2, 0), relu),
+    Conv((1, 1), 8=>2, pad=0),
 )
 arch = (conv=conv, points_per_unit=32, multiple=1)
 
@@ -114,9 +114,9 @@ arch = (conv=conv, points_per_unit=32, multiple=1)
 # Instantiate ConvCNP model.
 model = convcnp_1d(arch; margin = scale * 2)
 
+# Move to GPU and evaluate once.
 model = model |> gpu
-
-println(eval_model(model))
+eval_model(model)
 
 # Configure training.
 opt = ADAM(5e-4)
