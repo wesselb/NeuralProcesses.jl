@@ -38,7 +38,7 @@ end
 # Returns
 - `T`: RBF kernel evaluated at squared distance `dist2`.
 """
-rbf(dist2::AbstractArray) = NNlib.exp.(-0.5f0 * dist2)
+rbf(dist2::AbstractArray) = exp.(-0.5f0 * dist2)
 
 """
     compute_dists2(x::AbstractArray{T, 3}, y::AbstractArray{T, 3}) where T<:Real
@@ -90,5 +90,13 @@ Gaussian log-pdf.
 # Returns
 - `AbstractArray`: Log-pdf at `x`.
 """
-gaussian_logpdf(x::AbstractArray, μ::AbstractArray, σ::AbstractArray) =
-    -0.5f0(Float32(log(2π)) .+ 2f0log.(σ) .+ (x .- μ).^2 ./ σ.^2)
+function gaussian_logpdf(x::AbstractArray, μ::AbstractArray, σ::AbstractArray)
+    # Loop fusion was introducing indexing, so we roll out the computation
+    # like this.
+    z = (x .- μ) ./ σ
+    logconst = 1.837877f0
+    logdet = 2f0 .* log.(σ)
+    quad = z .* z
+    sum = logconst .+ logdet .+ quad
+    return -0.5f0 .* sum
+end

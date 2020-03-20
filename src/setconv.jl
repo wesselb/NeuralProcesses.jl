@@ -74,7 +74,7 @@ function (layer::SetConv)(
 
     # Apply length scales.
     # Shape: `(n, m, channels, batch)`.
-    scales = reshape(NNlib.exp.(layer.log_scales), 1, 1, length(layer.log_scales), 1)
+    scales = reshape(exp.(layer.log_scales), 1, 1, length(layer.log_scales), 1)
     dists2 = dists2 ./ scales.^2
 
     # Apply RBF to compute weights.
