@@ -13,7 +13,7 @@ using StatsBase
 using Distributions
 using Plots
 
-# GPUArrays.allowscalar(false)
+GPUArrays.allowscalar(false)
 
 
 function plot_task(model, epoch)
@@ -99,12 +99,12 @@ data_gen = DataGenerator(
 
 # Use the SimpleConv architecture.
 conv = Chain(
-    Conv((1, 1), 2=>8, pad=0),
-    Conv((5, 1), 8=>16, pad=(2, 0), relu),
-    Conv((5, 1), 16=>32, pad=(2, 0), relu),
-    Conv((5, 1), 32=>16, pad=(2, 0), relu),
-    Conv((5, 1), 16=>8, pad=(2, 0), relu),
-    Conv((1, 1), 8=>2, pad=0),
+    Conv((1, 1), 2=>8, pad=0; init=Flux.glorot_normal),
+    Conv((5, 1), 8=>16, pad=(2, 0), relu; init=Flux.glorot_normal),
+    Conv((5, 1), 16=>32, pad=(2, 0), relu; init=Flux.glorot_normal),
+    Conv((5, 1), 32=>16, pad=(2, 0), relu; init=Flux.glorot_normal),
+    Conv((5, 1), 16=>8, pad=(2, 0), relu; init=Flux.glorot_normal),
+    Conv((1, 1), 8=>2, pad=0; init=Flux.glorot_normal),
 )
 arch = (conv=conv, points_per_unit=32, multiple=1)
 
@@ -132,6 +132,7 @@ for epoch in 1:EPOCHS
         opt,
         cb = Flux.throttle(() -> eval_model(model), 10)
     )
+    println("Epoch done")
     eval_model(model; num_batches=128)
-    plot_task(model, epoch)
+    # plot_task(model, epoch)
 end
