@@ -2,7 +2,6 @@ module ConvCNPs
 
 using Distributions
 using Flux
-using Flux.Tracker
 using NNlib
 using Printf
 using Random
