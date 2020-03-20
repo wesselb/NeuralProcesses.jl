@@ -38,7 +38,7 @@ end
 # Returns
 - `T`: RBF kernel evaluated at squared distance `dist2`.
 """
-rbf(dist2::T) where T<:Real = exp(-0.5 * dist2)
+rbf(dist2::AbstractArray) = NNlib.exp.(-0.5f0 * dist2)
 
 """
     compute_dists2(x::AbstractArray{T, 3}, y::AbstractArray{T, 3}) where T<:Real
@@ -54,25 +54,25 @@ dimension is the last dimension.
 - `T`: Pairwise distances between and `x` and `y`.
 """
 function compute_dists2(
-    x::AbstractArray{T, 3},
-    y::AbstractArray{T, 3}
-) where T<:Real
+    x::AbstractArray,
+    y::AbstractArray
+)
     compute_dists2(x, y, Val(size(x, 2)))
 end
 
 function compute_dists2(
-    x::AbstractArray{T, 3},
-    y::AbstractArray{T, 3},
+    x::AbstractArray,
+    y::AbstractArray,
     ::Val{1}
-) where T<:Real
+)
     return (x .- permutedims(y, (2, 1, 3))).^2
 end
 
 function compute_dists2(
-    x::AbstractArray{T, 3},
-    y::AbstractArray{T, 3},
+    x::AbstractArray,
+    y::AbstractArray,
     d::Val
-) where T<:Real
+)
     y = permutedims(y, (2, 1, 3))
     return sum(x.^2; dims=2) .+ sum(y.^2; dims=1) .- 2 .* batched_mul(x, y)
 end
@@ -91,4 +91,4 @@ Gaussian log-pdf.
 - `AbstractArray`: Log-pdf at `x`.
 """
 gaussian_logpdf(x::AbstractArray, μ::AbstractArray, σ::AbstractArray) =
-    -0.5(log(2π) .+ 2log.(σ) .+ (x .- μ).^2 ./ σ.^2)
+    -0.5f0(Float32(log(2π)) .+ 2f0log.(σ) .+ (x .- μ).^2 ./ σ.^2)

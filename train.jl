@@ -4,20 +4,23 @@ Pkg.activate(".")
 Pkg.resolve()
 Pkg.instantiate()
 
-using Flux
 using ConvCNPs
+using Flux
+using GPUArrays
 using Random
 using Stheno
 using StatsBase
 using Distributions
 using Plots
 
+# GPUArrays.allowscalar(false)
+
 
 function plot_task(model, epoch)
     x = LinRange(-3, 3, 400)
     task = 1
 
-    batch = data_gen(1)[1]
+    batch = gpu(data_gen(1)[1])
     y_mean, y_std = model(batch.x_context, batch.y_context, repeat(x, 1, 1, 16))
     y_mean = y_mean[:, 1, task].data
     y_std = y_std[:, 1, task].data
@@ -65,8 +68,20 @@ function loss(model, x_context, y_context, x_target, y_target)
 end
 
 
+function data_to_gpu(data)
+    return [(
+        x_context=gpu(Array{Float32}(x.x_context)),
+        y_context=gpu(Array{Float32}(x.y_context)),
+        x_target=gpu(Array{Float32}(x.x_target)),
+        y_target=gpu(Array{Float32}(x.y_target))
+    ) for x in data]
+end
+
+
 function eval_model(model; num_batches=16)
-    loss_value = Flux.data(mean(map(x -> loss(model, x...), data_gen(num_batches))))
+    data = data_to_gpu(data_gen(num_batches))
+    res = mean(map(x -> loss(model, x...), data))
+    loss_value = Flux.data(res)
     println("Test loss: $loss_value ($num_batches batches)")
 end
 
@@ -82,22 +97,26 @@ data_gen = DataGenerator(
     max_target_points=50
 )
 
-# # Use the SimpleConv architecture.
-# conv = Chain(
-#     Conv((1,), 2=>8, pad=0),
-#     Conv((5,), 8=>16, pad=2, relu),
-#     Conv((5,), 16=>32, pad=2, relu),
-#     Conv((5,), 32=>16, pad=2, relu),
-#     Conv((5,), 16=>8, pad=2, relu),
-#     Conv((1,), 8=>2, pad=0),
-# )
-# arch = (conv=conv, points_per_unit=32, multiple=1)
+# Use the SimpleConv architecture.
+conv = Chain(
+    Conv((1,), 2=>8, pad=0),
+    Conv((5,), 8=>16, pad=2, relu),
+    Conv((5,), 16=>32, pad=2, relu),
+    Conv((5,), 32=>16, pad=2, relu),
+    Conv((5,), 16=>8, pad=2, relu),
+    Conv((1,), 8=>2, pad=0),
+)
+arch = (conv=conv, points_per_unit=32, multiple=1)
 
 # Use an architecture with depthwise separable convolutions.
-arch = build_conv(scale * 2, 4, 8)
+# arch = build_conv(scale * 2, 4, 8)
 
 # Instantiate ConvCNP model.
 model = convcnp_1d(arch; margin = scale * 2)
+
+model = model |> gpu
+
+println(eval_model(model))
 
 # Configure training.
 opt = ADAM(5e-4)
@@ -109,7 +128,7 @@ for epoch in 1:EPOCHS
     Flux.train!(
         (xs...) -> loss(model, xs...),
         Flux.params(model),
-        data_gen(TASKS_PER_EPOCH),
+        data_to_gpu(data_gen(TASKS_PER_EPOCH)),
         opt,
         cb = Flux.throttle(() -> eval_model(model), 10)
     )

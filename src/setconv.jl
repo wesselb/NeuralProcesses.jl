@@ -34,7 +34,8 @@ Construct a set convolution layer.
 function set_conv(in_channels::Integer, scale::Real; density::Bool=true)
     # Add one to `in_channels` to account for the density channel.
     density && (in_channels += 1)
-    return SetConv(param(log.(scale .* ones(in_channels))), density)
+    scales = Float32(scale) .* ones(Float32, in_channels)
+    return SetConv(param(log.(scales)), density)
 end
 
 """
@@ -50,11 +51,10 @@ end
 - `x_target::AbstractArray{T, 3}`: Discretisation locations of shape `(m, d, batch)`.
 """
 function (layer::SetConv)(
-    x_context::AbstractArray{T, 3},
-    y_context::AbstractArray{T, 3},
-    x_target::AbstractArray{T, 3},
-) where {T<:Real}
-
+    x_context::AbstractArray,
+    y_context::AbstractArray,
+    x_target::AbstractArray,
+)
     n_context = size(x_context, 1)
     dimensionality = size(x_context, 2)
     batch_size = size(x_context, 3)
@@ -74,16 +74,16 @@ function (layer::SetConv)(
 
     # Apply length scales.
     # Shape: `(n, m, channels, batch)`.
-    scales = reshape(exp.(layer.log_scales), 1, 1, length(layer.log_scales), 1)
+    scales = reshape(NNlib.exp.(layer.log_scales), 1, 1, length(layer.log_scales), 1)
     dists2 = dists2 ./ scales.^2
 
     # Apply RBF to compute weights.
-    weights = rbf.(dists2)
+    weights = rbf(dists2)
 
     if layer.density
         # Add density channel to `y`.
         # Shape: `(n, channels + 1, batch)`.
-        density = gpu(ones(eltype(y_context), n_context, 1, batch_size))
+        density = gpu(ones(Float32, n_context, 1, batch_size))
         channels = cat(density, y_context; dims=2)
     else
         channels = y_context
@@ -96,7 +96,7 @@ function (layer::SetConv)(
     if layer.density
         # Divide by the density channel.
         density = channels[:, 1:1, :]
-        others = channels[:, 2:end, :] ./ (density .+ 1e-8)
+        others = channels[:, 2:end, :] ./ (density .+ Float32(1e-8))
         channels = cat(density, others; dims=2)
     end
 

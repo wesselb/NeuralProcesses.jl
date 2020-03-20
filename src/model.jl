@@ -33,12 +33,23 @@ end
 - `x_target::AbstractArray{T, 3}`: Locations of target set of shape `(m, d, batch)`.
 """
 function (model::ConvCNP)(
-    x_context::AbstractArray{T, 3},
-    y_context::AbstractArray{T, 3},
-    x_target::AbstractArray{T, 3}
-) where T<:Real
+    x_context::AbstractArray,
+    y_context::AbstractArray,
+    x_target::AbstractArray
+)
+    println("Disc")
+    println(typeof(x_context))
+    println(typeof(x_target))
     x_discretisation = model.discretisation(x_context, x_target)
+    println(typeof(x_discretisation))
+    println("Enc")
+    println(typeof(x_context))
+    println(typeof(y_context))
+    println(typeof(x_discretisation))
     encoding = model.encoder(x_context, y_context, x_discretisation)
+    println(typeof(encoding))
+    println("Conv")
+    println(typeof(encoding))
     latent = model.conv(encoding)
     if size(encoding, 1) != size(latent, 1)
         error(
@@ -46,7 +57,9 @@ function (model::ConvCNP)(
             "$(size(encoding, 1)) to $(size(latent, 1))."
         )
     end
+    println("Dec")
     channels = model.decoder(x_discretisation, latent, x_target)
+    println("Done")
 
     # Check that the number of channels is even.
     mod(size(channels, 2), 2) != 0 && error("Number of channels must be even.")
