@@ -17,7 +17,7 @@ end
 @Flux.treelike SetConv
 
 """
-    set_conv(in_channels::Integer, scale::Float64; density::Bool=true)
+    set_conv(in_channels::Integer, scale::Float32; density::Bool=true)
 
 Construct a set convolution layer.
 
@@ -31,24 +31,24 @@ Construct a set convolution layer.
 # Returns
 - `SetConv`: Corresponding set convolution layer.
 """
-function set_conv(in_channels::Integer, scale::Real; density::Bool=true)
+function set_conv(in_channels::Integer, scale::Float32; density::Bool=true)
     # Add one to `in_channels` to account for the density channel.
     density && (in_channels += 1)
-    scales = Float32(scale) .* ones(Float32, in_channels)
+    scales = scale .* ones(Float32, in_channels)
     return SetConv(param(log.(scales)), density)
 end
 
 """
     (layer::SetConv)(
-        x_context::AbstractArray{T, 3},
-        y_context::AbstractArray{T, 3},
-        x_target::AbstractArray{T, 3},
-    ) where {T<:Real}
+        x_context::AbstractArray,
+        y_context::AbstractArray,
+        x_target::AbstractArray,
+    )
 
 # Arguments
-- `x_context::AbstractArray{T, 3}`: Locations of observed values of shape `(n, d, batch)`.
-- `y_context::AbstractArray{T, 3}`: Observed values of shape `(n, channels, batch)`.
-- `x_target::AbstractArray{T, 3}`: Discretisation locations of shape `(m, d, batch)`.
+- `x_context::AbstractArray`: Locations of observed values of shape `(n, d, batch)`.
+- `y_context::AbstractArray`: Observed values of shape `(n, channels, batch)`.
+- `x_target::AbstractArray`: Discretisation locations of shape `(m, d, batch)`.
 """
 function (layer::SetConv)(
     x_context::AbstractArray,
@@ -83,7 +83,7 @@ function (layer::SetConv)(
     if layer.density
         # Add density channel to `y`.
         # Shape: `(n, channels + 1, batch)`.
-        density = gpu(ones(Float32, n_context, 1, batch_size))
+        density = gpu(ones(eltype(y_context), n_context, 1, batch_size))
         channels = cat(density, y_context; dims=2)
     else
         channels = y_context
