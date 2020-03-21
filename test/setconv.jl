@@ -8,7 +8,7 @@ end
 
 @testset "setconv.jl" begin
     for density in [true, false]
-        scale = 0.1
+        scale = 0.1f0
         n_context = 5
         n_target = 10
         batch_size = 3
@@ -29,7 +29,7 @@ end
         batches = []
         for i in 1:batch_size
             dists2 = compute_dists2(x_target[:, :, i], x_context[:, :, i]) ./ scale.^2
-            weights = rbf.(dists2)
+            weights = rbf(dists2)
 
             channels = []
             if density
@@ -42,12 +42,12 @@ end
                 end
                 push!(channels, channel)
             end
-            
+
             push!(batches, hcat(channels...))
         end
         y_target_reference = cat(batches...; dims=3)
 
         # Check that the brute-force calculation lines up with the layer.
-        @test layer(x_context, y_context, x_target) ≈ y_target_reference
+        @test layer(x_context, y_context, x_target) ≈ Float32.(y_target_reference)
     end
 end
