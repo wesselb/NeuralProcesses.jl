@@ -30,18 +30,18 @@ function insert_dim(x::T; pos::Integer) where T<: AbstractArray
 end
 
 """
-    rbf(dist2::T) where T<:Real
+    rbf(dist2::AbstractArray)
 
 # Arguments
-- `dist2::T`: Squared distance.
+- `dist2::AbstractArray`: Squared distances.
 
 # Returns
-- `T`: RBF kernel evaluated at squared distance `dist2`.
+- `AbstractArray`: RBF kernel evaluated at squared distances `dist2`.
 """
-rbf(dist2::AbstractArray) = exp.(-0.5f0 * dist2)
+rbf(dist2::AbstractArray) = exp.(-0.5f0 .* dist2)
 
 """
-    compute_dists2(x::AbstractArray{T, 3}, y::AbstractArray{T, 3}) where T<:Real
+    compute_dists2(x::AbstractArray, y::AbstractArray)
 
 Compute batched pairwise squared distances between 3-tensors `x` and `y`. The batch
 dimension is the last dimension.
@@ -53,26 +53,12 @@ dimension is the last dimension.
 # Returns:
 - `T`: Pairwise distances between and `x` and `y`.
 """
-function compute_dists2(
-    x::AbstractArray,
-    y::AbstractArray
-)
-    compute_dists2(x, y, Val(size(x, 2)))
-end
+compute_dists2(x::AbstractArray, y::AbstractArray) = compute_dists2(x, y, Val(size(x, 2)))
 
-function compute_dists2(
-    x::AbstractArray,
-    y::AbstractArray,
-    ::Val{1}
-)
-    return (x .- permutedims(y, (2, 1, 3))).^2
-end
+compute_dists2(x::AbstractArray, y::AbstractArray, ::Val{1}) =
+    (x .- permutedims(y, (2, 1, 3))).^2
 
-function compute_dists2(
-    x::AbstractArray,
-    y::AbstractArray,
-    d::Val
-)
+function compute_dists2(x::AbstractArray, y::AbstractArray, d::Val)
     y = permutedims(y, (2, 1, 3))
     return sum(x.^2; dims=2) .+ sum(y.^2; dims=1) .- 2 .* batched_mul(x, y)
 end
@@ -91,8 +77,8 @@ Gaussian log-pdf.
 - `AbstractArray`: Log-pdf at `x`.
 """
 function gaussian_logpdf(x::AbstractArray, μ::AbstractArray, σ::AbstractArray)
-    # Loop fusion was introducing indexing, so we roll out the computation
-    # like this.
+    # Loop fusion was introducing indexing, which severly bottlenecks GPU computation, so
+    # we roll out the computation like this.
     z = (x .- μ) ./ σ
     logconst = 1.837877f0
     logdet = 2f0 .* log.(σ)
