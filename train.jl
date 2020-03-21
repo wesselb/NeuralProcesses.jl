@@ -13,17 +13,16 @@ using Distributions
 using Plots
 
 function plot_task(model, epoch)
-    x = LinRange(-3, 3, 400)
-    task = 1
+    x = gpu(collect(range(-3, 3, length=400)))
 
-    # Extract a task.
-    x_context, y_context, x_target, y_target = map(x -> cpu(x[:, 1, task]), data_gen(1)[1])
+    # Extract the first task.
+    x_context, y_context, x_target, y_target = map(x -> cpu(x[:, 1, 1]), data_gen(1)[1])
 
     # Run model. Take care of the dimensionality of all objects.
     expand(x) = reshape(x, length(x), 1, 1)
     y_mean, y_std = map(
         x -> Flux.data(cpu(x[:, 1, 1])),
-        model(expand.((x_context, y_context, x_target))...)
+        model(expand.((x_context, y_context, x))...)
     )
 
     plt = plot()
@@ -35,7 +34,7 @@ function plot_task(model, epoch)
     # Plot prediction
     plot!(plt, x, y_mean, c=:green, label="Model Output")
     plot!(plt, x, [y_mean y_mean],
-        fillrange=[y_mean .+ 2y_std y_mean .- y_std],
+        fillrange=[y_mean .+ 2y_std y_mean .- 2y_std],
         fillalpha=0.2,
         c=:green,
         label=""
