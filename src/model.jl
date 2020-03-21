@@ -22,34 +22,40 @@ end
 
 """
     (model::ConvCNP)(
-        x_context::AbstractArray{T, 3},
-        y_context::AbstractArray{T, 3},
-        x_target::AbstractArray{T, 3}
-    ) where T<:Real
+        x_context::AbstractArray,
+        y_context::AbstractArray,
+        x_target::AbstractArray
+    )
 
 # Arguments
-- `x_context::AbstractArray{T, 3}`: Locations of observed values of shape `(n, d, batch)`.
-- `y_context::AbstractArray{T, 3}`: Observed values of shape `(n, channels, batch)`.
-- `x_target::AbstractArray{T, 3}`: Locations of target set of shape `(m, d, batch)`.
+- `x_context::AbstractArray`: Locations of observed values of shape `(n, d, batch)`.
+- `y_context::AbstractArray`: Observed values of shape `(n, channels, batch)`.
+- `x_target::AbstractArray`: Locations of target set of shape `(m, d, batch)`.
 """
 function (model::ConvCNP)(
     x_context::AbstractArray,
     y_context::AbstractArray,
     x_target::AbstractArray
 )
+    # Compute discretisation of the functional embedding.
     x_discretisation = model.discretisation(x_context, x_target)
+
+    # Compute encoding.
     encoding = model.encoder(x_context, y_context, x_discretisation)
 
+    # Apply the CNN. It operates on images of height one, so we have to insert a
+    # dimension and pull it out afterwards.
     encoding = insert_dim(encoding; pos=2)
     latent = model.conv(encoding)
-    latent = dropdims(latent; dims=2)
-    if size(encoding, 1) != size(latent, 1)
+    if size(encoding, 1) != size(latent, 1) || size(latent, 2) != 1
         error(
             "Conv net changed the discretisation size from " *
             "$(size(encoding, 1)) to $(size(latent, 1))."
         )
     end
+    latent = dropdims(latent; dims=2)
 
+    # Perform decoding.
     channels = model.decoder(x_discretisation, latent, x_target)
 
     # Check that the number of channels is even.
@@ -65,7 +71,7 @@ function (model::ConvCNP)(
 end
 
 """
-    convcnp_1d(arch::Architecture, margin::Real=0.1)
+    convcnp_1d(arch::Architecture, margin::Float32=0.1f0)
 
 Construct a ConvCNP for one-dimensional data.
 
@@ -74,9 +80,9 @@ Construct a ConvCNP for one-dimensional data.
     `build_conv`.
 
 # Keywords
-- `margin::Real`: Margin for the discretisation. See `UniformDiscretisation1d`.
+- `margin::Float32=0.1f0`: Margin for the discretisation. See `UniformDiscretisation1d`.
 """
-function convcnp_1d(arch::Architecture; margin::Real=0.1)
+function convcnp_1d(arch::Architecture; margin::Float32=0.1f0)
     scale = 2 / arch.points_per_unit
     return ConvCNP(
         UniformDiscretisation1d(arch.points_per_unit, margin, arch.multiple),
