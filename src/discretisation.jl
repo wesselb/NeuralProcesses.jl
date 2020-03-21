@@ -17,14 +17,14 @@ density.
 This type does not need to be performant, which is why it is abstractly typed.
 
 # Fields
-- `poins_per_unit::Real`: Point per unit.
-- `margin::Real`: Keep this amount as a margin of both sides of the maximum and minimum
+- `poins_per_unit::Float32`: Points per unit.
+- `margin::Float32`: Keep this amount as a margin of both sides of the maximum and minimum
     input.
 - `multiple::Integer`: The number of discretisation points must be a multiple of this.
 """
 struct UniformDiscretisation1d <: Discretisation
-    points_per_unit::Real
-    margin::Real
+    points_per_unit::Float32
+    margin::Float32
     multiple::Integer
 end
 
@@ -43,7 +43,6 @@ function (d::UniformDiscretisation1d)(xs::AbstractArray...)
     range_upper = maximum(x) + d.margin
     num_points = (range_upper - range_lower) * d.points_per_unit + 1
     num_points = ceil(num_points / d.multiple) * d.multiple
-    disc = range(range_lower, range_upper, length=Integer(num_points))
-    disc = gpu(collect(disc))
+    disc = gpu(collect(range(range_lower, range_upper, length=Integer(num_points))))
     return repeat(disc, 1, 1, size(x, 3))
 end
