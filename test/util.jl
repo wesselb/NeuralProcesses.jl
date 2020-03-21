@@ -18,7 +18,7 @@ import ConvCNPs: ceil_odd, insert_dim, rbf, compute_dists2
     end
 
     @testset "rbf" begin
-        @test rbf(5) == exp(-2.5)
+        @test rbf([5]) ≈ [exp(-2.5)]
     end
 
     @testset "compute_dists2" begin
