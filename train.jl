@@ -36,7 +36,7 @@ function plot_task(model, epoch)
     # Plot prediction
     plot!(plt, x, y_mean, c=:green, label="Model Output", dpi=200)
     plot!(plt, x, [y_mean y_mean],
-        fillrange=[y_mean .+ 2 .* sqrt(y_var) y_mean .- 2 .* sqrt(y_var)],
+        fillrange=[y_mean .+ 2 .* sqrt.(y_var) y_mean .- 2 .* sqrt.(y_var)],
         fillalpha=0.2,
         c=:green,
         label="",
