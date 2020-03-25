@@ -71,18 +71,18 @@ Gaussian log-pdf.
 # Arguments
 - `x::AbstractArray`: Values to evaluate log-pdf at.
 - `μ::AbstractArray`: Means.
-- `σ::AbstractArray`: Standard deviations.
+- `σ2::AbstractArray`: Variances.
 
 # Returns
 - `AbstractArray`: Log-pdf at `x`.
 """
-function gaussian_logpdf(x::AbstractArray, μ::AbstractArray, σ::AbstractArray)
+function gaussian_logpdf(x::AbstractArray, μ::AbstractArray, σ2::AbstractArray)
     # Loop fusion was introducing indexing, which severly bottlenecks GPU computation, so
     # we roll out the computation like this.
-    z = (x .- μ) ./ σ
     logconst = 1.837877f0
-    logdet = 2f0 .* log.(σ)
-    quad = z .* z
+    logdet = log.(σ2)
+    z = x .- μ
+    quad = (z .* z) ./ σ2
     sum = logconst .+ logdet .+ quad
     return -0.5f0 .* sum
 end
