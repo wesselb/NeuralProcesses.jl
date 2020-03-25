@@ -33,7 +33,7 @@ end
 - `x_target::AbstractArray`: Locations of target set of shape `(m, d, batch)`.
 
 # Returns
-- `Tuple{AbstractArray, AbstractArray}`: Means and variances of shape `(???)`.
+- `Tuple{AbstractArray, AbstractArray}`: Tuple containing means and variances.
 """
 function (model::ConvCNP)(
     x_context::AbstractArray,
