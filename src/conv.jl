@@ -12,6 +12,11 @@ end
 
 _compute_padding(kernel_size) = Integer(floor(kernel_size / 2))
 
+_init_conv(k, ch) = (
+    Flux.param(Flux.glorot_normal(k..., ch...)),
+    Flux.param(fill(1f-3, ch[2]))
+)
+
 """
     build_conv(
         receptive_field::Float32,
@@ -51,30 +56,20 @@ function build_conv_1d(
 )
     # We use two-dimensional kernels: CUDNN does not support 1D convolutions.
     kernel = (_compute_kernel_size(receptive_field, points_per_unit, num_layers), 1)
-    padding = (_compute_padding(kernel_size), 0)
+    padding = (_compute_padding(kernel[1]), 0)
 
     # Build layers of the conv net.
     layers = []
-    push!(layers, Conv(
-        (1, 1),
-        in_channels=>num_channels,
-        relu;
-        init=Flux.glorot_normal
-    ))  # Pointwise matrix multiplication
+    push!(layers, Conv(_init_conv((1, 1), in_channels=>num_channels)..., sigmoid))
     for i = 1:(num_layers - 2)
         push!(layers, DepthwiseConv(
-            kernel,
-            num_channels=>num_channels,
-            pad=padding,
-            relu;
-            init=Flux.glorot_normal
+            _init_conv(kernel, num_channels=>num_channels)...,
+            # Use a sigmoid for the final activation function.
+            i == num_layers - 2 ? sigmoid : relu;
+            pad=padding
         ))
     end
-    push!(layers, Conv(
-        (1, 1),
-        num_channels=>out_channels;
-        init=Flux.glorot_normal
-    ))  # Pointwise matrix multiplication
+    push!(layers, Conv(_init_conv((1, 1), num_channels=>out_channels)...))  
 
     return (
         conv=Chain(layers...),
