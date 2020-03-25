@@ -79,9 +79,9 @@ Gaussian log-pdf.
 function gaussian_logpdf(x::AbstractArray, μ::AbstractArray, σ::AbstractArray)
     # Loop fusion was introducing indexing, which severly bottlenecks GPU computation, so
     # we roll out the computation like this.
-    z = (x .- μ) ./ (σ .+ 1.0f-4)
+    z = (x .- μ) ./ (σ .+ 1.0f-6)
     logconst = 1.837877f0
-    logdet = 2f0 .* log.(σ .+ 1.0f-4)
+    logdet = 2f0 .* log.(σ .+ 1.0f-6)
     quad = z .* z
     sum = logconst .+ logdet .+ quad
     return -0.5f0 .* sum
