@@ -40,6 +40,6 @@ import ConvCNPs: ceil_odd, insert_dim, rbf, compute_dists2
 
     @testset "gaussian_logpdf" begin
         dist = Normal(1, 2)
-        @test logpdf(dist, 3) ≈ gaussian_logpdf([3], [1], [2])[1]
+        @test logpdf(dist, 3) ≈ gaussian_logpdf([3], [1], [2^2])[1]
     end
 end
