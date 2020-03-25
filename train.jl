@@ -12,13 +12,16 @@ using StatsBase
 using Distributions
 using Plots
 
+pyplot()
 function plot_task(model, epoch)
+    x = gpu(collect(range(-3, 3, length=400)))
+
     # Extract the first task.
     x_context, y_context, x_target, y_target = map(x -> cpu(x[:, 1, 1]), data_gen(1)[1])
 
     # Run model. Take care of the dimensionality of all objects.
-    expand(x) = reshape(x, length(x), 1, 1)
-    y_mean, y_std = map(
+    expand(x) = gpu(reshape(x, length(x), 1, 1))
+    y_mean, y_var = map(
         x -> Flux.data(cpu(x[:, 1, 1])),
         model(expand.((x_context, y_context, x))...)
     )
@@ -26,20 +29,21 @@ function plot_task(model, epoch)
     plt = plot()
 
     # Scatter context set
-    scatter!(plt, x_context, y_context, c=:black, label="Context set")
-    scatter!(plt, x_target, y_target, c=:red, label="Target set")
+    scatter!(plt, x_context, y_context, c=:black, label="Context set", dpi=200)
+    scatter!(plt, x_target, y_target, c=:red, label="Target set", dpi=200)
 
     # Plot prediction
-    plot!(plt, x, y_mean, c=:green, label="Model Output")
+    plot!(plt, x, y_mean, c=:green, label="Model Output", dpi=200)
     plot!(plt, x, [y_mean y_mean],
-        fillrange=[y_mean .+ 2y_std y_mean .- 2y_std],
+        fillrange=[y_mean .+ 2 .* sqrt.(y_var) y_mean .- 2 .* sqrt.(y_var)],
         fillalpha=0.2,
         c=:green,
-        label=""
+        label="",
+        dpi=200
     )
 
     mkpath("output")
-    savefig(plt, "output/epoch$epoch.pdf")
+    savefig(plt, "output/epoch$epoch.png")
 end
 
 function loss(model, x_context, y_context, x_target, y_target)
@@ -53,7 +57,7 @@ end
 
 # Construct data generator.
 scale = 0.25f0
-k = stretch(matern52(), 1 / Float32(scale))  # Use `Float64`s for the data generation.
+k = stretch(matern52(), 1 / Float64(scale))  # Use `Float64`s for the data generation.
 data_gen = DataGenerator(
     k;
     batch_size=16,
@@ -62,14 +66,16 @@ data_gen = DataGenerator(
     max_target_points=50
 )
 
+init_conv(k, ch) = (Flux.param(Flux.glorot_normal(k..., ch...)), Flux.param(fill(1f-3, ch[2])))
+
 # Use the SimpleConv architecture.
 conv = Chain(
-    Conv((1, 1), 2=>8, pad=0, sigmoid; init=Flux.glorot_normal),
-    Conv((5, 1), 8=>16, pad=(2, 0), relu; init=Flux.glorot_normal),
-    Conv((5, 1), 16=>32, pad=(2, 0), relu; init=Flux.glorot_normal),
-    Conv((5, 1), 32=>16, pad=(2, 0), relu; init=Flux.glorot_normal),
-    Conv((5, 1), 16=>8, pad=(2, 0), relu; init=Flux.glorot_normal),
-    Conv((1, 1), 8=>2, pad=0; init=Flux.glorot_normal),
+    Conv(init_conv((1, 1), 2=>8)..., sigmoid; pad=0),
+    Conv(init_conv((5, 1), 8=>16)..., relu; pad=(2, 0)),
+    Conv(init_conv((5, 1), 16=>32)..., relu; pad=(2, 0)),
+    Conv(init_conv((5, 1), 32=>16)..., relu; pad=(2, 0)),
+    Conv(init_conv((5, 1), 16=>8)..., sigmoid; pad=(2, 0)),
+    Conv(init_conv((1, 1), 8=>2)...; pad=0)
 )
 arch = (conv=conv, points_per_unit=32f0, multiple=1)
 
@@ -83,7 +89,7 @@ model = convcnp_1d(arch; margin = scale * 2) |> gpu
 eval_model(model)
 
 # Configure training.
-opt = ADAM(3e-4)
+opt = ADAM(5e-4)
 EPOCHS = 100
 TASKS_PER_EPOCH = 512
 
@@ -98,5 +104,5 @@ for epoch in 1:EPOCHS
     )
     println("Epoch done")
     eval_model(model; num_batches=128)
-    # plot_task(model, epoch)
+    plot_task(model, epoch)
 end

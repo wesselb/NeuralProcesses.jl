@@ -96,7 +96,7 @@ function (layer::SetConv)(
     if layer.density
         # Divide by the density channel.
         density = channels[:, 1:1, :]
-        others = channels[:, 2:end, :] ./ (density .+ 1.0f-5)
+        others = channels[:, 2:end, :] ./ (density .+ 1f-8)
         channels = cat(density, others; dims=2)
     end
 
