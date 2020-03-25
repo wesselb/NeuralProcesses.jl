@@ -12,6 +12,8 @@ using StatsBase
 using Distributions
 using Plots
 
+pyplot()
+
 function plot_task(model, epoch)
     x = gpu(collect(range(-3, 3, length=400)))
 
@@ -28,20 +30,21 @@ function plot_task(model, epoch)
     plt = plot()
 
     # Scatter context set
-    scatter!(plt, x_context, y_context, c=:black, label="Context set")
-    scatter!(plt, x_target, y_target, c=:red, label="Target set")
+    scatter!(plt, x_context, y_context, c=:black, label="Context set", dpi=200)
+    scatter!(plt, x_target, y_target, c=:red, label="Target set", dpi=200)
 
     # Plot prediction
-    plot!(plt, x, y_mean, c=:green, label="Model Output")
+    plot!(plt, x, y_mean, c=:green, label="Model Output", dpi=200)
     plot!(plt, x, [y_mean y_mean],
         fillrange=[y_mean .+ 2 .* sqrt(y_var) y_mean .- 2 .* sqrt(y_var)],
         fillalpha=0.2,
         c=:green,
-        label=""
+        label="",
+        dpi=200
     )
 
     mkpath("output")
-    savefig(plt, "output/epoch$epoch.pdf")
+    savefig(plt, "output/epoch$epoch.png")
 end
 
 function loss(model, x_context, y_context, x_target, y_target)
