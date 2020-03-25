@@ -64,14 +64,16 @@ data_gen = DataGenerator(
     max_target_points=50
 )
 
+init_conv(k, ch) = (Flux.glorot_normal(k...), fill(0.001f0, ch[2]))
+
 # Use the SimpleConv architecture.
 conv = Chain(
-    Conv((1, 1), 2=>8, pad=0; init=Flux.glorot_normal),
-    Conv((5, 1), 8=>16, pad=(2, 0), relu; init=Flux.glorot_normal),
-    Conv((5, 1), 16=>32, pad=(2, 0), relu; init=Flux.glorot_normal),
-    Conv((5, 1), 32=>16, pad=(2, 0), relu; init=Flux.glorot_normal),
-    Conv((5, 1), 16=>8, pad=(2, 0), relu; init=Flux.glorot_normal),
-    Conv((1, 1), 8=>2, pad=0; init=Flux.glorot_normal),
+    Conv(init_conv((1, 1), 2=>8)..., relu; pad=0),
+    Conv(init_conv((5, 1), 8=>16)..., relu; pad=(2, 0)),
+    Conv(init_conv((5, 1), 16=>32)..., relu; pad=(2, 0)),
+    Conv(init_conv((5, 1), 32=>16)..., relu; pad=(2, 0)),
+    Conv(init_conv((5, 1), 16=>8)..., relu; pad=(2, 0)),
+    Conv(init_conv((1, 1), 8=>2)...; pad=0)
 )
 arch = (conv=conv, points_per_unit=32f0, multiple=1)
 
