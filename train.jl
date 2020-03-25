@@ -64,12 +64,11 @@ data_gen = DataGenerator(
     max_target_points=50
 )
 
-init_conv(k, ch) = (Flux.glorot_normal(k..., ch...), fill(1f-3, ch[2]))
+init_conv(k, ch) = (Flux.param(Flux.glorot_normal(k..., ch...)), Flux.param(fill(1f-3, ch[2])))
 
 # Use the SimpleConv architecture.
 conv = Chain(
-    x -> sigmoid.(x),
-    Conv(init_conv((1, 1), 2=>8)..., relu; pad=0),
+    Conv(init_conv((1, 1), 2=>8)..., sigmoid; pad=0),
     Conv(init_conv((5, 1), 8=>16)..., relu; pad=(2, 0)),
     Conv(init_conv((5, 1), 16=>32)..., relu; pad=(2, 0)),
     Conv(init_conv((5, 1), 32=>16)..., relu; pad=(2, 0)),
@@ -88,9 +87,9 @@ model = convcnp_1d(arch; margin = scale * 2) |> gpu
 eval_model(model)
 
 # Configure training.
-opt = ADAM(1e-3)
+opt = ADAM(5e-4)
 EPOCHS = 100
-TASKS_PER_EPOCH = 256
+TASKS_PER_EPOCH = 512
 
 for epoch in 1:EPOCHS
     println("Epoch: $epoch")
