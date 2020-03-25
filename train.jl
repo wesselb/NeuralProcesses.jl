@@ -21,7 +21,7 @@ function plot_task(model, epoch)
     x_context, y_context, x_target, y_target = map(x -> cpu(x[:, 1, 1]), data_gen(1)[1])
 
     # Run model. Take care of the dimensionality of all objects.
-    expand(x) = reshape(x, length(x), 1, 1)
+    expand(x) = gpu(reshape(x, length(x), 1, 1))
     y_mean, y_var = map(
         x -> Flux.data(cpu(x[:, 1, 1])),
         model(expand.((x_context, y_context, x))...)
@@ -105,5 +105,5 @@ for epoch in 1:EPOCHS
     )
     println("Epoch done")
     eval_model(model; num_batches=128)
-    # plot_task(model, epoch)
+    plot_task(model, epoch)
 end
