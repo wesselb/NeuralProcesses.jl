@@ -31,6 +31,9 @@ end
 - `x_context::AbstractArray`: Locations of observed values of shape `(n, d, batch)`.
 - `y_context::AbstractArray`: Observed values of shape `(n, channels, batch)`.
 - `x_target::AbstractArray`: Locations of target set of shape `(m, d, batch)`.
+
+# Returns
+- `Tuple{AbstractArray, AbstractArray}`: Tuple containing means and variances.
 """
 function (model::ConvCNP)(
     x_context::AbstractArray,
@@ -65,8 +68,8 @@ function (model::ConvCNP)(
     # determine the standard deviation.
     i_split = div(size(channels, 2), 2)
     return (
-        channels[:, 1:i_split, :],                       # Mean
-        NNlib.softplus.(channels[:, i_split + 1:end, :])  # Standard deviation
+        channels[:, 1:i_split, :],                        # Mean
+        NNlib.softplus.(channels[:, i_split + 1:end, :])  # Variance
     )
 end
 
