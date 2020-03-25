@@ -64,7 +64,7 @@ data_gen = DataGenerator(
     max_target_points=50
 )
 
-init_conv(k, ch) = (Flux.glorot_normal(k...), fill(0.001f0, ch[2]))
+init_conv(k, ch) = (Flux.glorot_normal(k..., ch...), fill(0.001f0, ch[2]))
 
 # Use the SimpleConv architecture.
 conv = Chain(
