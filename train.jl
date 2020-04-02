@@ -55,8 +55,12 @@ function plot_task(model, epoch, plot_true = (plt, x_context, y_context, x) -> n
     savefig(plt, "output/epoch$epoch.png")
 end
 
-function make_plot_gp(process)
-    function plot_gp(plt, x_context, y_context, x)
+function make_plot_true(process)
+    return (plt, x_context, y_context, x) -> nothing
+end
+
+function make_plot_true(process::GP)
+    function plot_true(plt, x_context, y_context, x)
         x_context, y_context, x = map(z -> Float64.(z), (x_context, y_context, x))
         posterior = process | Obs(process(x_context, 1e-10) ← y_context)
         margs = marginals(posterior(x))
@@ -80,7 +84,7 @@ function make_plot_gp(process)
             dpi=200
         )
     end
-    return plot_gp
+    return plot_true
 end
 
 function loss(model, x_context, y_context, x_target, y_target)
@@ -93,14 +97,16 @@ function eval_model(model; num_batches=16)
 end
 
 # Construct data generator.
-scale = 0.25f0
-k = stretch(matern52(), 1 / Float64(scale))  # Use `Float64`s for the data generation.
+# scale = 0.25f0
+# process = GP(stretch(matern52(), 1 / Float64(scale)), GPC())
+scale = 2f0
+process = Sawtooth()
 data_gen = DataGenerator(
-    k;
+    process;
     batch_size=16,
     x_dist=Uniform(-2, 2),
-    max_context_points=10,
-    max_target_points=10
+    max_context_points=50,
+    num_target_points=50
 )
 
 # Use the SimpleConv architecture.
@@ -115,10 +121,10 @@ data_gen = DataGenerator(
 # arch = (conv=conv, points_per_unit=32f0, multiple=1)
 
 # Use an architecture with depthwise separable convolutions.
-arch = build_conv_1d(scale * 2, 8, 16; points_per_unit=32f0)
+arch = build_conv_1d(scale * 4, 8, 32; points_per_unit=64f0)
 
 # Instantiate ConvCNP model.
-model = convcnp_1d(arch; margin = scale * 2) |> gpu
+model = convcnp_1d(arch; margin = scale * 4) |> gpu
 
 # Evaluate once before training.
 eval_model(model)
@@ -126,7 +132,7 @@ eval_model(model)
 # Configure training.
 opt = ADAM(1e-3)
 EPOCHS = 100
-TASKS_PER_EPOCH = 128
+TASKS_PER_EPOCH = 2048
 
 for epoch in 1:EPOCHS
     println("Epoch: $epoch")
@@ -135,9 +141,9 @@ for epoch in 1:EPOCHS
         Flux.params(model),
         data_gen(TASKS_PER_EPOCH),
         opt,
-        cb = Flux.throttle(() -> eval_model(model), 10)
+        cb = Flux.throttle(() -> eval_model(model), 20)
     )
     println("Epoch done")
     # eval_model(model; num_batches=128)
-    plot_task(model, epoch, make_plot_gp(data_gen.process))
+    plot_task(model, epoch, make_plot_true(data_gen.process))
 end
