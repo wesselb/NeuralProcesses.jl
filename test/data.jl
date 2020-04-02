@@ -17,10 +17,10 @@ using Stheno
         @test length(epoch) == 500
 
         # Check minimum numbers of context and target points.
-        @test minimum([size(batch.x_context, 1) for batch in epoch]) == 3
-        @test minimum([size(batch.y_context, 1) for batch in epoch]) == 3
-        @test minimum([size(batch.x_target, 1) for batch in epoch]) == 3
-        @test minimum([size(batch.y_target, 1) for batch in epoch]) == 3
+        @test minimum([size(batch.x_context, 1) for batch in epoch]) == 0
+        @test minimum([size(batch.y_context, 1) for batch in epoch]) == 0
+        @test minimum([size(batch.x_target, 1) for batch in epoch]) == 1
+        @test minimum([size(batch.y_target, 1) for batch in epoch]) == 1
 
         # Check maximum numbers of context and target points.
         @test maximum([size(batch.x_context, 1) for batch in epoch]) == 5
@@ -31,8 +31,10 @@ using Stheno
         for batch in epoch
             # Check `x_dist`.
             for x in [batch.x_context, batch.x_target]
-                @test minimum(x) >= 0
-                @test maximum(x) <= 2
+                if !isempty(x)
+                    @test minimum(x) >= 0
+                    @test maximum(x) <= 2
+                end
             end
 
             # Check `batch_size`.
