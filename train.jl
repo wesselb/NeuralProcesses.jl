@@ -16,7 +16,6 @@ using GPUArrays
 GPUArrays.allowscalar(false)
 
 pyplot()
-
 function plot_task(model, epoch)
     x = gpu(collect(range(-3, 3, length=400)))
 
