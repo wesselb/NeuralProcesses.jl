@@ -1,3 +1,0 @@
-using IJulia
-
-notebook(dir=".")
