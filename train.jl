@@ -11,6 +11,9 @@ using Stheno
 using StatsBase
 using Distributions
 using Plots
+using GPUArrays
+
+GPUArrays.allowscalar(false)
 
 pyplot()
 
@@ -20,12 +23,14 @@ function plot_task(model, epoch)
     # Extract the first task.
     x_context, y_context, x_target, y_target = map(x -> cpu(x[:, 1, 1]), data_gen(1)[1])
 
-    # Run model. Take care of the dimensionality of all objects.
+    # Run model. Take care of the dimensionality of all objects and bringing
+    # them to the GPU and back.
     expand(x) = gpu(reshape(x, length(x), 1, 1))
     y_mean, y_var = map(
         x -> Flux.data(cpu(x[:, 1, 1])),
         model(expand.((x_context, y_context, x))...)
     )
+    x = cpu(x)
 
     plt = plot()
 
@@ -70,18 +75,18 @@ data_gen = DataGenerator(
 init_conv(k, ch) = (Flux.param(Flux.glorot_normal(k..., ch...)), Flux.param(fill(1f-3, ch[2])))
 
 # Use the SimpleConv architecture.
-conv = Chain(
-    Conv(init_conv((1, 1), 2=>8)..., sigmoid; pad=0),
-    Conv(init_conv((5, 1), 8=>16)..., relu; pad=(2, 0)),
-    Conv(init_conv((5, 1), 16=>32)..., relu; pad=(2, 0)),
-    Conv(init_conv((5, 1), 32=>16)..., relu; pad=(2, 0)),
-    Conv(init_conv((5, 1), 16=>8)..., sigmoid; pad=(2, 0)),
-    Conv(init_conv((1, 1), 8=>2)...; pad=0)
-)
-arch = (conv=conv, points_per_unit=32f0, multiple=1)
+# conv = Chain(
+    # Conv(init_conv((1, 1), 2=>8)..., sigmoid; pad=0),
+    # Conv(init_conv((5, 1), 8=>16)..., relu; pad=(2, 0)),
+    # Conv(init_conv((5, 1), 16=>32)..., relu; pad=(2, 0)),
+    # Conv(init_conv((5, 1), 32=>16)..., relu; pad=(2, 0)),
+    # Conv(init_conv((5, 1), 16=>8)..., sigmoid; pad=(2, 0)),
+    # Conv(init_conv((1, 1), 8=>2)...; pad=0)
+# )
+# arch = (conv=conv, points_per_unit=32f0, multiple=1)
 
 # Use an architecture with depthwise separable convolutions.
-# arch = build_conv(scale * 2, 4, 8)
+arch = build_conv_1d(scale * 2, 6, 16; points_per_unit=32f0)
 
 # Instantiate ConvCNP model.
 model = convcnp_1d(arch; margin = scale * 2) |> gpu
@@ -90,7 +95,7 @@ model = convcnp_1d(arch; margin = scale * 2) |> gpu
 eval_model(model)
 
 # Configure training.
-opt = ADAM(5e-4)
+opt = ADAM(1e-3)
 EPOCHS = 100
 TASKS_PER_EPOCH = 512
 
