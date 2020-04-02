@@ -65,7 +65,7 @@ function build_conv_1d(
 
     # Build layers of the conv net.
     layers = []
-    push!(layers, Conv(_init_conv((1, 1), in_channels=>num_channels)..., sigmoid))
+    push!(layers, Conv(_init_conv((1, 1), in_channels=>num_channels)..., leakyrelu))
     for i = 1:(num_layers - 2)
         push!(layers, DepthwiseConv(
             _init_depthwiseconv(kernel, num_channels=>num_channels)...,
@@ -73,8 +73,7 @@ function build_conv_1d(
         ))
         push!(layers, Conv(
             _init_conv((1, 1), num_channels=>num_channels)...,
-            # Use a sigmoid for the final activation function.
-            i == num_layers - 2 ? sigmoid : relu;
+            leakyrelu
         ))
     end
     push!(layers, Conv(_init_conv((1, 1), num_channels=>out_channels)...))  
