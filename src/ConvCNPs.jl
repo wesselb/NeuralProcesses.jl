@@ -18,4 +18,8 @@ include("conv.jl")
 include("model.jl")
 include("data.jl")
 
+if Flux.has_cuarrays()
+    include("gpu.jl")
+end
+
 end
