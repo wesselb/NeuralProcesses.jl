@@ -17,6 +17,11 @@ _init_conv(k, ch) = (
     Flux.param(fill(1f-3, ch[2]))
 )
 
+_init_depthwiseconv(k, ch) = (
+    Flux.param(Flux.glorot_normal(k..., div(ch[2], ch[1]), ch[1])),
+    Flux.param(fill(1f-3, ch[2]))
+)
+
 """
     build_conv(
         receptive_field::Float32,
@@ -63,10 +68,13 @@ function build_conv_1d(
     push!(layers, Conv(_init_conv((1, 1), in_channels=>num_channels)..., sigmoid))
     for i = 1:(num_layers - 2)
         push!(layers, DepthwiseConv(
-            _init_conv(kernel, num_channels=>num_channels)...,
+            _init_depthwiseconv(kernel, num_channels=>num_channels)...,
+            pad=padding
+        ))
+        push!(layers, Conv(
+            _init_conv((1, 1), num_channels=>num_channels)...,
             # Use a sigmoid for the final activation function.
             i == num_layers - 2 ? sigmoid : relu;
-            pad=padding
         ))
     end
     push!(layers, Conv(_init_conv((1, 1), num_channels=>out_channels)...))  
