@@ -4,7 +4,7 @@ using Stheno
 @testset "data.jl" begin
     @testset "Generate from a GP" begin
         gen = DataGenerator(
-            eq();
+            GP(eq(), GPC());
             batch_size=10,
             x_dist=Uniform(-1, 3),
             max_context_points=5,

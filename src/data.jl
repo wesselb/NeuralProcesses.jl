@@ -1,4 +1,4 @@
-export DataGenerator
+export DataGenerator, Sawtooth
 
 """
     DataGenerator
@@ -7,10 +7,10 @@ export DataGenerator
 - `process`: Something that can be called at inputs `x` and a noise level `noise` and gives
     back a distribution that can be fed to `randn` to sample values corresponding to those
     inputs `x` at observation noise `noise`.
-- `batch_size::Integer`: Number of tasks in a batch.
-- `x_dist::Distribution`: Distribution to sample inputs from.
-- `max_context_points::Integer`: Maximum number of context points in a task.
-- `num_target_points::Integer`: Number of target points in a task.
+- `batch_size::Integer=16`: Number of tasks in a batch.
+- `x_dist::Distribution=Uniform(-2, 2)`: Distribution to sample inputs from.
+- `max_context_points::Integer=10`: Maximum number of context points in a task.
+- `num_target_points::Integer=100`: Number of target points in a task.
 """
 struct DataGenerator
     process
@@ -18,41 +18,22 @@ struct DataGenerator
     x_dist::Distribution
     max_context_points::Integer
     num_target_points::Integer
-end
 
-"""
-    DataGenerator(
-        k::Stheno.Kernel;
+    function DataGenerator(
+        process;
         batch_size::Integer=16,
         x_dist::Distribution=Uniform(-2, 2),
         max_context_points::Integer=10,
         num_target_points::Integer=100,
     )
-
-# Arguments
-- `k::Stheno.Kernel`: Kernel of a Gaussian process to sample from.
-
-# Fields
-- `batch_size::Integer`: Number of tasks in a batch.
-- `x_dist::Distribution`: Distribution to sample inputs from.
-- `max_context_points::Integer`: Maximum number of context points in a task.
-- `num_target_points::Integer`: Number of target points in a task.
-"""
-function DataGenerator(
-    k::Stheno.Kernel;
-    batch_size::Integer=16,
-    x_dist::Distribution=Uniform(-2, 2),
-    max_context_points::Integer=10,
-    num_target_points::Integer=100,
-)
-    gp = GP(k, GPC())
-    return DataGenerator(
-        gp,
-        batch_size,
-        x_dist,
-        max_context_points,
-        num_target_points
-    )
+        return new(
+            process,
+            batch_size,
+            x_dist,
+            max_context_points,
+            num_target_points
+        )
+    end
 end
 
 """
@@ -108,4 +89,77 @@ function _make_batch(generator::DataGenerator, num_context::Integer, num_target:
         x_target=batch[3],
         y_target=batch[4]
     )
+end
+
+"""
+    Sawtooth
+
+Random truncated Fourier expansion of a sawtooth wave.
+
+# Fields
+- `freq_dist=Uniform(3, 5)`: Distribution of the frequency.
+- `shift_dist=Uniform(3, 5)`: Distribution of the shift.
+- `trunc_dist=10:20`: Distribution of the truncation of the Fourier expansion.
+"""
+struct Sawtooth
+    freq_dist
+    shift_dist
+    trunc_dist
+
+    function Sawtooth(
+        freq_dist=Uniform(3, 5),
+        shift_dist=Uniform(-5, 5),
+        trunc_dist=10:20
+    )
+        return new(freq_dist, shift_dist, trunc_dist)
+    end
+end
+
+"""
+    FiniteSawtooth{T<:Real}
+
+Finite-dimensional distribution of a `Sawtooth` at particular inputs.
+
+# Fields
+- `x::Vector{T}`: Inputs.
+- `noise::T`: Noise variance.
+- `sawtooth::Sawtooth`: Corresponding sawtooth.
+"""
+struct FiniteSawtooth{T<:Real}
+    x::Vector{T}
+    noise::T
+    sawtooth::Sawtooth
+end
+
+"""
+    (s::Sawtooth)(x, noise)
+
+Construct the finite-dimensional distribution of a `Sawtooth` at inputs `x` and observation
+noise variance `noise`.
+
+# Arguments
+- `x`: Inputs.
+- `noise`: Noise variance.
+
+# Returns
+- `FiniteSawtooth`: Corresponding finite-dimensional distribution.
+"""
+(s::Sawtooth)(x, noise) = FiniteSawtooth(x, noise, s)
+
+function Base.rand(fs::FiniteSawtooth)
+    # Sample parameters for particular sawtooth wave.
+    amp = 1
+    freq = rand(fs.sawtooth.freq_dist)
+    shift = rand(fs.sawtooth.shift_dist)
+    trunc = rand(fs.sawtooth.trunc_dist)
+
+    # Apply shift.
+    x = fs.x .+ shift
+
+    # Construct expansion.
+    k = collect(range(1, trunc + 1, step=1))'
+    f = 0.5amp .- (amp / pi) .* sum((-1).^k .* sin.(2pi .* k .* freq .* x) ./ k, dims=2)
+
+    # Add noise and return.
+    return f .+ sqrt(fs.noise) .* randn(eltype(x), size(x)...)
 end
