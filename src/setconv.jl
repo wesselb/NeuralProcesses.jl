@@ -49,6 +49,10 @@ end
 - `x_context::AbstractArray`: Locations of observed values of shape `(n, d, batch)`.
 - `y_context::AbstractArray`: Observed values of shape `(n, channels, batch)`.
 - `x_target::AbstractArray`: Discretisation locations of shape `(m, d, batch)`.
+
+# Returns
+- `AbstractArray`: Output of layer of shape `(n, channels, batch)` or
+    `(n, channels + 1, batch)`.
 """
 function (layer::SetConv)(
     x_context::AbstractArray,

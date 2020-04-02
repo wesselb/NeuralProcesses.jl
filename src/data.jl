@@ -65,9 +65,13 @@ end
     in that order.
 """
 function (generator::DataGenerator)(num_batches::Integer)
-    n_context = 3:generator.max_context_points
-    n_target = 3:generator.max_target_points
-    return [_make_batch(generator, rand(n_context), rand(n_target)) for i in 1:num_batches]
+    nums_context = 0:generator.max_context_points  # It is important to include zero here!
+    nums_target = 1:generator.max_target_points
+    return [_make_batch(
+        generator,
+        rand(nums_context),
+        rand(nums_target)
+    ) for i in 1:num_batches]
 end
 
 _float32_gpu(x) = gpu(Float32.(x))

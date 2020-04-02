@@ -40,11 +40,23 @@ function (model::ConvCNP)(
     y_context::AbstractArray,
     x_target::AbstractArray
 )
+    n_context = size(x_context, 1)
+
     # Compute discretisation of the functional embedding.
     x_discretisation = model.discretisation(x_context, x_target)
 
-    # Compute encoding.
-    encoding = model.encoder(x_context, y_context, x_discretisation)
+    if n_context > 0
+        # The context set is non-empty. Compute encoding as usual.
+        encoding = model.encoder(x_context, y_context, x_discretisation)
+    else
+        # The context set is empty. Set the encoding to all zeros.
+        encoding = gpu(zeros(
+            eltype(y_context),
+            size(x_discretisation, 1),
+            size(y_context, 2) + model.encoder.density,  # Account for density channel.
+            size(y_context, 3)
+        ))
+    end
 
     # Apply the CNN. It operates on images of height one, so we have to insert a
     # dimension and pull it out afterwards.
