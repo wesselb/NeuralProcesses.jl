@@ -10,14 +10,14 @@ export DataGenerator
 - `batch_size::Integer`: Number of tasks in a batch.
 - `x_dist::Distribution`: Distribution to sample inputs from.
 - `max_context_points::Integer`: Maximum number of context points in a task.
-- `max_target_points::Integer`: Maximum number of target points in a task.
+- `num_target_points::Integer`: Number of target points in a task.
 """
 struct DataGenerator
     process
     batch_size::Integer
     x_dist::Distribution
     max_context_points::Integer
-    max_target_points::Integer
+    num_target_points::Integer
 end
 
 """
@@ -25,8 +25,8 @@ end
         k::Stheno.Kernel;
         batch_size::Integer=16,
         x_dist::Distribution=Uniform(-2, 2),
-        max_context_points::Integer=50,
-        max_target_points::Integer=50,
+        max_context_points::Integer=10,
+        num_target_points::Integer=100,
     )
 
 # Arguments
@@ -36,14 +36,14 @@ end
 - `batch_size::Integer`: Number of tasks in a batch.
 - `x_dist::Distribution`: Distribution to sample inputs from.
 - `max_context_points::Integer`: Maximum number of context points in a task.
-- `max_target_points::Integer`: Maximum number of target points in a task.
+- `num_target_points::Integer`: Number of target points in a task.
 """
 function DataGenerator(
     k::Stheno.Kernel;
     batch_size::Integer=16,
     x_dist::Distribution=Uniform(-2, 2),
-    max_context_points::Integer=50,
-    max_target_points::Integer=50,
+    max_context_points::Integer=10,
+    num_target_points::Integer=100,
 )
     gp = GP(k, GPC())
     return DataGenerator(
@@ -51,7 +51,7 @@ function DataGenerator(
         batch_size,
         x_dist,
         max_context_points,
-        max_target_points
+        num_target_points
     )
 end
 
@@ -66,12 +66,10 @@ end
     in that order.
 """
 function (generator::DataGenerator)(num_batches::Integer)
-    nums_context = 0:generator.max_context_points  # It is important to include zero here!
-    nums_target = 1:generator.max_target_points
     return [_make_batch(
         generator,
-        rand(nums_context),
-        rand(nums_target)
+        rand(0:generator.max_context_points),
+        generator.num_target_points
     ) for i in 1:num_batches]
 end
 
@@ -81,12 +79,23 @@ function _make_batch(generator::DataGenerator, num_context::Integer, num_target:
     # Sample tasks.
     tasks = []
     for i in 1:generator.batch_size
-        x = rand(generator.x_dist, num_context + num_target)
+        # Determine context set.
+        x_context = rand(generator.x_dist, num_context)
+
+        # Determine target set.
+        dx = (maximum(generator.x_dist) - minimum(generator.x_dist)) / num_target
+        offset = rand() * dx
+        steps = collect(range(0, num_target - 1, step=1))
+        x_target = minimum(generator.x_dist) .+ offset .+ steps .* dx
+
+        # Concatenate inputs and sample.
+        x = vcat(x_context, x_target)
         y = rand(generator.process(x, 1e-10))
+
         push!(tasks, _float32_gpu.((
-            x[1:num_context],
+            x_context,
             y[1:num_context],
-            x[num_context + 1:end],
+            x_target,
             y[num_context + 1:end]
         )))
     end
