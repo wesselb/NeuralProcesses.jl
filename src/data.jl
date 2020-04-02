@@ -4,8 +4,9 @@ export DataGenerator
     DataGenerator
 
 # Fields
-- `process`: Something that can be called at inputs `x` and gives back a distribution that
-    can be fed to `randn` to sample values corresponding to those inputs `x`.
+- `process`: Something that can be called at inputs `x` and a noise level `noise` and gives
+    back a distribution that can be fed to `randn` to sample values corresponding to those
+    inputs `x` at observation noise `noise`.
 - `batch_size::Integer`: Number of tasks in a batch.
 - `x_dist::Distribution`: Distribution to sample inputs from.
 - `max_context_points::Integer`: Maximum number of context points in a task.
@@ -46,7 +47,7 @@ function DataGenerator(
 )
     gp = GP(k, GPC())
     return DataGenerator(
-        x -> gp(x, 1e-10),
+        gp,
         batch_size,
         x_dist,
         max_context_points,
@@ -81,7 +82,7 @@ function _make_batch(generator::DataGenerator, num_context::Integer, num_target:
     tasks = []
     for i in 1:generator.batch_size
         x = rand(generator.x_dist, num_context + num_target)
-        y = rand(generator.process(x))
+        y = rand(generator.process(x, 1e-10))
         push!(tasks, _float32_gpu.((
             x[1:num_context],
             y[1:num_context],
