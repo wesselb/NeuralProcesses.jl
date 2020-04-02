@@ -18,8 +18,8 @@ function cudnnGetConvolutionGroupCount(convDesc, count)
         cudnnStatus_t,
         (cudnnConvolutionDescriptor_t, Ptr{Cint}),
         convDesc,
-		count
-	)
+        count
+    )
 end
 
 function cudnnSetConvolutionGroupCount(convDesc, count)
@@ -28,8 +28,8 @@ function cudnnSetConvolutionGroupCount(convDesc, count)
         cudnnStatus_t,
         (cudnnConvolutionDescriptor_t, Cint),
         convDesc,
-		count
-	)
+        count
+    )
 end
 
 function ConvDesc(T, cdims::DepthwiseConvDims)
