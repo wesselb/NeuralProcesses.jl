@@ -14,7 +14,7 @@ import NNlib: depthwiseconv!, ∇depthwiseconv_filter!, ∇depthwiseconv_data!
 
 function cudnnGetConvolutionGroupCount(convDesc, count)
     @check ccall(
-		(:cudnnGetConvolutionGroupCount, @libcudnn),
+        (:cudnnGetConvolutionGroupCount, @libcudnn),
         cudnnStatus_t,
         (cudnnConvolutionDescriptor_t, Ptr{Cint}),
         convDesc,
@@ -24,7 +24,7 @@ end
 
 function cudnnSetConvolutionGroupCount(convDesc, count)
     @check ccall(
-		(:cudnnSetConvolutionGroupCount, @libcudnn),
+        (:cudnnSetConvolutionGroupCount, @libcudnn),
         cudnnStatus_t,
         (cudnnConvolutionDescriptor_t, Cint),
         convDesc,
