@@ -204,7 +204,7 @@ function depthwiseconv!(
             y,
             x,
             w,
-            cdims:
+            cdims;
             alpha=alpha,
             algo=algo,
             workspace=workspace,
