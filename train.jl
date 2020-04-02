@@ -17,7 +17,7 @@ GPUArrays.allowscalar(false)
 
 pyplot()
 
-function plot_task(model, epoch)
+function plot_task(model, epoch, plot_true = (plt, x_context, y_context, x) -> nothing)
     x = gpu(collect(range(-3, 3, length=400)))
 
     # Extract the first task.
@@ -38,8 +38,11 @@ function plot_task(model, epoch)
     scatter!(plt, x_context, y_context, c=:black, label="Context set", dpi=200)
     scatter!(plt, x_target, y_target, c=:red, label="Target set", dpi=200)
 
+    # Plot prediction of true, underlying model.
+    plot_true(plt, x_context, y_context, x)
+
     # Plot prediction.
-    plot!(plt, x, y_mean, c=:green, label="Model Output", dpi=200)
+    plot!(plt, x, y_mean, c=:green, label="Model output", dpi=200)
     plot!(plt, x, [y_mean y_mean],
         fillrange=[y_mean .+ 2 .* sqrt.(y_var) y_mean .- 2 .* sqrt.(y_var)],
         fillalpha=0.2,
@@ -50,6 +53,18 @@ function plot_task(model, epoch)
 
     mkpath("output")
     savefig(plt, "output/epoch$epoch.png")
+end
+
+function make_plot_gp(process)
+    function plot_gp(plt, x_context, y_context, x)
+        x_context, y_context, x = map(z -> Float64.(z), (x_context, y_context, x))
+        posterior = process | Obs(process(x_context, 1e-10) ← y_context)
+        margs = marginals(posterior(x))
+        plot!(plt, x, mean.(margs); c=:blue, label="GP", dpi=200)
+        plot!(plt, x, mean.(margs) .- 2 .* std.(margs); c=:blue, label="", dpi=200)
+        plot!(plt, x, mean.(margs) .+ 2 .* std.(margs); c=:blue, label="", dpi=200)
+    end
+    return plot_gp
 end
 
 function loss(model, x_context, y_context, x_target, y_target)
@@ -108,5 +123,5 @@ for epoch in 1:EPOCHS
     )
     println("Epoch done")
     # eval_model(model; num_batches=128)
-    plot_task(model, epoch)
+    plot_task(model, epoch, make_plot_gp(data_gen.process))
 end
