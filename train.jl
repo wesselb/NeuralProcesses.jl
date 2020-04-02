@@ -61,8 +61,24 @@ function make_plot_gp(process)
         posterior = process | Obs(process(x_context, 1e-10) ← y_context)
         margs = marginals(posterior(x))
         plot!(plt, x, mean.(margs); c=:blue, label="GP", dpi=200)
-        plot!(plt, x, mean.(margs) .- 2 .* std.(margs); c=:blue, label="", dpi=200)
-        plot!(plt, x, mean.(margs) .+ 2 .* std.(margs); c=:blue, label="", dpi=200)
+        plot!(
+            plt,
+            x,
+            mean.(margs) .- 2 .* std.(margs);
+            c=:blue,
+            linestyle=:dash,
+            label="",
+            dpi=200
+        )
+        plot!(
+            plt,
+            x,
+            mean.(margs) .+ 2 .* std.(margs);
+            c=:blue,
+            linestyle=:dash,
+            label="",
+            dpi=200
+        )
     end
     return plot_gp
 end
