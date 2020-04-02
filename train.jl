@@ -16,6 +16,7 @@ using GPUArrays
 GPUArrays.allowscalar(false)
 
 pyplot()
+
 function plot_task(model, epoch)
     x = gpu(collect(range(-3, 3, length=400)))
 
@@ -33,11 +34,11 @@ function plot_task(model, epoch)
 
     plt = plot()
 
-    # Scatter context set
+    # Scatter context set.
     scatter!(plt, x_context, y_context, c=:black, label="Context set", dpi=200)
     scatter!(plt, x_target, y_target, c=:red, label="Target set", dpi=200)
 
-    # Plot prediction
+    # Plot prediction.
     plot!(plt, x, y_mean, c=:green, label="Model Output", dpi=200)
     plot!(plt, x, [y_mean y_mean],
         fillrange=[y_mean .+ 2 .* sqrt.(y_var) y_mean .- 2 .* sqrt.(y_var)],
@@ -67,25 +68,23 @@ data_gen = DataGenerator(
     k;
     batch_size=16,
     x_dist=Uniform(-2, 2),
-    max_context_points=50,
-    max_target_points=50
+    max_context_points=10,
+    max_target_points=10
 )
-
-init_conv(k, ch) = (Flux.param(Flux.glorot_normal(k..., ch...)), Flux.param(fill(1f-3, ch[2])))
 
 # Use the SimpleConv architecture.
 # conv = Chain(
-    # Conv(init_conv((1, 1), 2=>8)..., sigmoid; pad=0),
-    # Conv(init_conv((5, 1), 8=>16)..., relu; pad=(2, 0)),
-    # Conv(init_conv((5, 1), 16=>32)..., relu; pad=(2, 0)),
-    # Conv(init_conv((5, 1), 32=>16)..., relu; pad=(2, 0)),
-    # Conv(init_conv((5, 1), 16=>8)..., sigmoid; pad=(2, 0)),
-    # Conv(init_conv((1, 1), 8=>2)...; pad=0)
+    # Conv(ConvCNPs._init_conv((1, 1), 2=>8)..., sigmoid; pad=0),
+    # Conv(ConvCNPs._init_conv((5, 1), 8=>16)..., relu; pad=(2, 0)),
+    # Conv(ConvCNPs._init_conv((5, 1), 16=>32)..., relu; pad=(2, 0)),
+    # Conv(ConvCNPs._init_conv((5, 1), 32=>16)..., relu; pad=(2, 0)),
+    # Conv(ConvCNPs._init_conv((5, 1), 16=>8)..., sigmoid; pad=(2, 0)),
+    # Conv(ConvCNPs._init_conv((1, 1), 8=>2)...; pad=0)
 # )
 # arch = (conv=conv, points_per_unit=32f0, multiple=1)
 
 # Use an architecture with depthwise separable convolutions.
-arch = build_conv_1d(scale * 2, 6, 16; points_per_unit=32f0)
+arch = build_conv_1d(scale * 2, 8, 16; points_per_unit=32f0)
 
 # Instantiate ConvCNP model.
 model = convcnp_1d(arch; margin = scale * 2) |> gpu
@@ -96,7 +95,7 @@ eval_model(model)
 # Configure training.
 opt = ADAM(1e-3)
 EPOCHS = 100
-TASKS_PER_EPOCH = 512
+TASKS_PER_EPOCH = 128
 
 for epoch in 1:EPOCHS
     println("Epoch: $epoch")
@@ -108,6 +107,6 @@ for epoch in 1:EPOCHS
         cb = Flux.throttle(() -> eval_model(model), 10)
     )
     println("Epoch done")
-    eval_model(model; num_batches=128)
+    # eval_model(model; num_batches=128)
     plot_task(model, epoch)
 end
