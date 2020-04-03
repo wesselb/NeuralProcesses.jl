@@ -27,7 +27,7 @@ _init_depthwiseconv(k, ch) = (
         receptive_field::Float32,
         num_layers::Integer,
         num_channels::Integer;
-        points_per_unit::Float32=64f0,
+        points_per_unit::Float32=30f0,
         multiple::Integer=1,
         in_channels::Integer=2,
         out_channels::Integer=2
@@ -43,7 +43,7 @@ Build a 1D CNN with a specified receptive field size.
 - `num_channels::Integer`: Number of channels of the CNN.
 
 # Keywords
-- `points_per_unit::Float32=64f0`: Points per unit for the discretisation. See
+- `points_per_unit::Float32=30f0`: Points per unit for the discretisation. See
      `UniformDiscretisation1d`.
 - `multiple::Integer=1`: Multiple for the discretisation. See `UniformDiscretisation1d`.
 - `in_channels::Integer=2`: Number of input channels.
@@ -56,7 +56,7 @@ function build_conv_1d(
     receptive_field::Float32,
     num_layers::Integer,
     num_channels::Integer;
-    points_per_unit::Float32=64f0,
+    points_per_unit::Float32=30f0,
     multiple::Integer=1,
     in_channels::Integer=2,
     out_channels::Integer=2,
@@ -65,9 +65,11 @@ function build_conv_1d(
     kernel = (_compute_kernel_size(receptive_field, points_per_unit, num_layers), 1)
     padding = (_compute_padding(kernel[1]), 0)
 
+    act(x) = leakyrelu(x, 0.1f0)
+
     # Build layers of the conv net.
     layers = []
-    push!(layers, Conv(_init_conv((1, 1), in_channels=>num_channels)..., leakyrelu))
+    push!(layers, Conv(_init_conv((1, 1), in_channels=>num_channels)..., act))
     for i = 1:num_layers
         push!(layers, DepthwiseConv(
             _init_depthwiseconv(kernel, num_channels=>num_channels)...,
@@ -75,7 +77,7 @@ function build_conv_1d(
         ))
         push!(layers, Conv(
             _init_conv((1, 1), num_channels=>num_channels)...,
-            leakyrelu
+            act
         ))
     end
     push!(layers, Conv(_init_conv((1, 1), num_channels=>out_channels)...))  
