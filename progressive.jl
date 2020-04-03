@@ -20,7 +20,7 @@ function predict(x_context, y_context, x_target)
 end
 
 s = Sawtooth()
-x = collect(range(-2, 2, length=301))
+x = collect(range(-2, 2, length=501))
 y = rand(s(x, 1e-10))
 
 inds = randperm(length(x))
