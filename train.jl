@@ -22,7 +22,7 @@ function plot_task(model, epoch, plot_true = (plt, x_context, y_context, x) -> n
     x = gpu(collect(range(-3, 3, length=400)))
 
     # Extract the first task.
-    x_context, y_context, x_target, y_target = map(x -> cpu(x[:, 1, 1]), data_gen(1)[1])
+    x_context, y_context, x_target, y_target = map(x -> x[:, 1, 1], data_gen(1)[1])
 
     # Run model. Take care of the dimensionality of all objects and bringing
     # them to the GPU and back.
@@ -93,7 +93,7 @@ function loss(model, x_context, y_context, x_target, y_target)
 end
 
 function eval_model(model; num_batches=16)
-    loss_value = Flux.data(mean(map(x -> loss(model, x...), data_gen(num_batches))))
+    loss_value = Flux.data(mean(map(x -> loss(model, gpu.(x)...), data_gen(num_batches))))
     @printf("Test loss: %.3f (%d batches)\n", loss_value, num_batches)
 end
 
@@ -104,14 +104,14 @@ function train!(model, data_gen, opt, epochs=100, batches_per_epoch=2048)
     for epoch in 1:epochs
         println("Epoch: $epoch")
         Flux.train!(
-            (xs...) -> loss(model, xs...),
+            (xs...) -> loss(model, gpu.(xs)...),
             Flux.params(model),
             data_gen(batches_per_epoch),
             opt,
             cb = Flux.throttle(() -> eval_model(model), 20)
         )
         
-        eval_model(model; num_batches=256)
+        eval_model(model; num_batches=128)
         plot_task(model, epoch, make_plot_true(data_gen.process))
 
         model_cpu = model |> cpu
@@ -121,35 +121,24 @@ function train!(model, data_gen, opt, epochs=100, batches_per_epoch=2048)
     return model
 end
 
-# Construct data generator. The models predictive extent is twice the scale.
+# Construct data generator. The model's effective predictive extent is the scale.
 # scale = 0.25f0
 # process = GP(stretch(matern52(), 1 / Float64(scale)), GPC())
-scale = 0.5f0
+scale = 4f0
 process = Sawtooth()
 data_gen = DataGenerator(
     process;
-    batch_size=16,
+    batch_size=8,
     x_dist=Uniform(-2, 2),
     max_context_points=50,
     num_target_points=50
 )
 
-# Use the SimpleConv architecture.
-# conv = Chain(
-    # Conv(ConvCNPs._init_conv((1, 1), 2=>8)..., sigmoid; pad=0),
-    # Conv(ConvCNPs._init_conv((5, 1), 8=>16)..., relu; pad=(2, 0)),
-    # Conv(ConvCNPs._init_conv((5, 1), 16=>32)..., relu; pad=(2, 0)),
-    # Conv(ConvCNPs._init_conv((5, 1), 32=>16)..., relu; pad=(2, 0)),
-    # Conv(ConvCNPs._init_conv((5, 1), 16=>8)..., sigmoid; pad=(2, 0)),
-    # Conv(ConvCNPs._init_conv((1, 1), 8=>2)...; pad=0)
-# )
-# arch = (conv=conv, points_per_unit=32f0, multiple=1)
-
 # Use an architecture with depthwise separable convolutions.
-arch = build_conv_1d(4scale, 6, 8; points_per_unit=50f0)
+arch = build_conv_1d(4scale, 6, 16; points_per_unit=30f0)
 
 # Instantiate ConvCNP model.
-model = convcnp_1d(arch; margin=4scale) |> gpu
+model = convcnp_1d(arch; margin=2scale) |> gpu
 
 # Configure training.
 opt = ADAM(1e-3)
