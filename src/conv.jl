@@ -37,7 +37,9 @@ Build a 1D CNN with a specified receptive field size.
 
 # Arguments
 - `receptive_field::Float32`: Width of the receptive field.
-- `num_layers::Integer`: Number of layers of the CNN.
+- `num_layers::Integer`: Number of layers of the CNN, excluding an initial
+    and final pointwise convolutional layer to change the number of channels
+    appropriately.
 - `num_channels::Integer`: Number of channels of the CNN.
 
 # Keywords
@@ -66,7 +68,7 @@ function build_conv_1d(
     # Build layers of the conv net.
     layers = []
     push!(layers, Conv(_init_conv((1, 1), in_channels=>num_channels)..., leakyrelu))
-    for i = 1:(num_layers - 2)
+    for i = 1:num_layers
         push!(layers, DepthwiseConv(
             _init_depthwiseconv(kernel, num_channels=>num_channels)...,
             pad=padding
