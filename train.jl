@@ -4,6 +4,7 @@ Pkg.activate(".")
 Pkg.resolve()
 Pkg.instantiate()
 
+using BSON: @save
 using ConvCNPs
 using Flux
 using Random
@@ -11,10 +12,10 @@ using Stheno
 using StatsBase
 using Distributions
 using Plots
+using Printf
 using GPUArrays
 
 GPUArrays.allowscalar(false)
-
 pyplot()
 
 function plot_task(model, epoch, plot_true = (plt, x_context, y_context, x) -> nothing)
@@ -93,13 +94,37 @@ end
 
 function eval_model(model; num_batches=16)
     loss_value = Flux.data(mean(map(x -> loss(model, x...), data_gen(num_batches))))
-    println("Test loss: $loss_value ($num_batches batches)")
+    @printf("Test loss: %.3f (%d batches)\n", loss_value, num_batches)
 end
 
-# Construct data generator.
+function train!(model, data_gen, opt, epochs=100, batches_per_epoch=2048)
+    # Evaluate once before training.
+    eval_model(model)
+
+    for epoch in 1:epochs
+        println("Epoch: $epoch")
+        Flux.train!(
+            (xs...) -> loss(model, xs...),
+            Flux.params(model),
+            data_gen(batches_per_epoch),
+            opt,
+            cb = Flux.throttle(() -> eval_model(model), 20)
+        )
+        
+        eval_model(model; num_batches=256)
+        plot_task(model, epoch, make_plot_true(data_gen.process))
+
+        model_cpu = model |> cpu
+        @save "model.bson" model_cpu
+    end
+
+    return model
+end
+
+# Construct data generator. The models predictive extent is twice the scale.
 # scale = 0.25f0
 # process = GP(stretch(matern52(), 1 / Float64(scale)), GPC())
-scale = 2f0
+scale = 0.5f0
 process = Sawtooth()
 data_gen = DataGenerator(
     process;
@@ -121,29 +146,12 @@ data_gen = DataGenerator(
 # arch = (conv=conv, points_per_unit=32f0, multiple=1)
 
 # Use an architecture with depthwise separable convolutions.
-arch = build_conv_1d(scale * 4, 8, 32; points_per_unit=64f0)
+arch = build_conv_1d(4scale, 6, 8; points_per_unit=50f0)
 
 # Instantiate ConvCNP model.
-model = convcnp_1d(arch; margin = scale * 4) |> gpu
-
-# Evaluate once before training.
-eval_model(model)
+model = convcnp_1d(arch; margin=4scale) |> gpu
 
 # Configure training.
 opt = ADAM(1e-3)
-EPOCHS = 100
-TASKS_PER_EPOCH = 2048
 
-for epoch in 1:EPOCHS
-    println("Epoch: $epoch")
-    Flux.train!(
-        (xs...) -> loss(model, xs...),
-        Flux.params(model),
-        data_gen(TASKS_PER_EPOCH),
-        opt,
-        cb = Flux.throttle(() -> eval_model(model), 20)
-    )
-    println("Epoch done")
-    # eval_model(model; num_batches=128)
-    plot_task(model, epoch, make_plot_true(data_gen.process))
-end
+model = train!(model, data_gen, opt)
