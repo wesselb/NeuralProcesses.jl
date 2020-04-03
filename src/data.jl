@@ -54,7 +54,7 @@ function (generator::DataGenerator)(num_batches::Integer)
     ) for i in 1:num_batches]
 end
 
-_float32_gpu(x) = gpu(Float32.(x))
+_float32(x) = Float32.(x)
 
 function _make_batch(generator::DataGenerator, num_context::Integer, num_target::Integer)
     # Sample tasks.
@@ -73,7 +73,7 @@ function _make_batch(generator::DataGenerator, num_context::Integer, num_target:
         x = vcat(x_context, x_target)
         y = rand(generator.process(x, 1e-10))
 
-        push!(tasks, _float32_gpu.((
+        push!(tasks, _float32.((
             x_context,
             y[1:num_context],
             x_target,
@@ -82,13 +82,7 @@ function _make_batch(generator::DataGenerator, num_context::Integer, num_target:
     end
 
     # Collect as a batch and return.
-    batch = map(x -> cat(x...; dims=3), zip(tasks...))
-    return (
-        x_context=batch[1],
-        y_context=batch[2],
-        x_target=batch[3],
-        y_target=batch[4]
-    )
+    return map(x -> cat(x...; dims=3), zip(tasks...))
 end
 
 """
