@@ -6,7 +6,6 @@ using NNlib
 using Printf
 using Random
 using Statistics
-using Stheno
 
 include("util.jl")
 include("discretisation.jl")
