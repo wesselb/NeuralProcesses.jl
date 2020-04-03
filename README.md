@@ -1,4 +1,4 @@
-![Demonstration of a ConvCNP](https://github.com/wesselb/ConvCNPs.jl/raw/master/loop.gif)
+<img src="https://github.com/wesselb/ConvCNPs.jl/raw/master/loop.gif" width="500px" />
 
 # ConvCNPs.jl
 
