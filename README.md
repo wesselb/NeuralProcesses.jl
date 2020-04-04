@@ -2,4 +2,4 @@
 
 # ConvCNPs.jl
 
-Implementation of the [Convolutional Convolutional Neural Process](https://openreview.net/forum?id=Skey4eBYPS).
+Implementation of the [Convolutional Conditional Neural Process](https://openreview.net/forum?id=Skey4eBYPS).
