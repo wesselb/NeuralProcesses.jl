@@ -110,35 +110,33 @@ function train!(model, data_gen, opt, epochs=100, batches_per_epoch=2048)
             opt,
             cb = Flux.throttle(() -> eval_model(model), 20)
         )
-        
+
         eval_model(model; num_batches=128)
         plot_task(model, epoch, make_plot_true(data_gen.process))
 
         model_cpu = model |> cpu
-        @save "model.bson" model_cpu
+        @save "matern52.bson" model_cpu
     end
 
     return model
 end
 
 # Construct data generator. The model's effective predictive extent is the scale.
-# scale = 0.25f0
-# process = GP(stretch(matern52(), 1 / Float64(scale)), GPC())
-scale = 4f0
-process = Sawtooth()
+scale = 0.25f0
+process = GP(stretch(matern52(), 1 / Float64(scale)), GPC())
 data_gen = DataGenerator(
     process;
     batch_size=8,
     x_dist=Uniform(-2, 2),
-    max_context_points=50,
+    max_context_points=10,
     num_target_points=50
 )
 
 # Use an architecture with depthwise separable convolutions.
-arch = build_conv_1d(4scale, 6, 16; points_per_unit=30f0)
+arch = build_conv_1d(6scale, 6, 16; points_per_unit=30f0)
 
 # Instantiate ConvCNP model.
-model = convcnp_1d(arch; margin=2scale) |> gpu
+model = convcnp_1d(arch; margin=4scale) |> gpu
 
 # Configure training.
 opt = ADAM(1e-3)
