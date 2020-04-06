@@ -110,20 +110,18 @@ function train!(model, data_gen, opt, epochs=100, batches_per_epoch=2048)
             opt,
             cb = Flux.throttle(() -> eval_model(model), 20)
         )
-        
+
         eval_model(model; num_batches=128)
         plot_task(model, epoch, make_plot_true(data_gen.process))
 
         model_cpu = model |> cpu
-        @save "model.bson" model_cpu
+        @save "sawtooth.bson" model_cpu
     end
 
     return model
 end
 
 # Construct data generator. The model's effective predictive extent is the scale.
-# scale = 0.25f0
-# process = GP(stretch(matern52(), 1 / Float64(scale)), GPC())
 scale = 4f0
 process = Sawtooth()
 data_gen = DataGenerator(
