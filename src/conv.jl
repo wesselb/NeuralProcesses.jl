@@ -87,7 +87,7 @@ function build_conv_1d(
             act
         ))
     end
-    push!(layers, Conv(_init_conv((1, 1), num_channels=>out_channels)...))
+    push!(layers, Conv(init_conv((1, 1), num_channels=>out_channels)...))
 
     return (
         conv=Chain(layers...),
