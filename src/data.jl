@@ -164,23 +164,19 @@ end
 Bayesian ConvCNP.
 
 # Fields
-- `receptive_field::Float32=1f0`: Width of the receptive field.
-- `num_layers::Integer=4`: Number of layers of the CNN, excluding an initial
+- `receptive_field::Float32`: Width of the receptive field.
+- `num_layers::Integer`: Number of layers of the CNN, excluding an initial
     and final pointwise convolutional layer to change the number of channels
     appropriately.
-- `num_channels::Integer=6`: Number of channels of the CNN.
+- `num_channels::Integer`: Number of channels of the CNN.
 - `points_per_unit::Float32=30f0`: Points per unit for the discretisation. See
      `UniformDiscretisation1d`.
-- `μ::Float32`: Estimate of the marginal mean.
-- `σ²::Float32`: Estimate of the marginal variance.
 """
 struct BayesianConvCNP
     receptive_field::Float32
     num_layers::Integer
     num_channels::Integer
     points_per_unit::Float32
-    μ::Float32
-    σ²::Float32
 
     function BayesianConvCNP(;
         receptive_field::Float32=1f0,
@@ -188,31 +184,7 @@ struct BayesianConvCNP
         num_channels::Integer=6,
         points_per_unit::Float32=30f0
     )
-        # Construct uncalibrated model.
-        uncalibrated = new(
-            receptive_field,
-            num_layers,
-            num_channels,
-            points_per_unit,
-            0f0,
-            1f0
-        )
-
-        # Perform calibration.
-        x = collect(range(0f0, 10receptive_field, length=200))
-        samples = [rand(uncalibrated(x, 1f-10)) for i = 1:1000]
-        μ = mean(mean.(samples))
-        σ² = mean(var.(samples))
-
-        # Return calibrated model.
-        return new(
-            receptive_field,
-            num_layers,
-            num_channels,
-            points_per_unit,
-            μ,
-            σ²
-        )
+        new(receptive_field, num_layers, num_channels, points_per_unit)
     end
 end
 
@@ -295,8 +267,8 @@ function Base.rand(fconvcnp::FiniteBayesianConvCNP)
     x_target = reshape(fconvcnp.x, length(fconvcnp.x), 1, 1)
     sample = decoder(x_discretisation, latent, x_target)[:, 1, 1]
 
-    # Normalise sample according to calibration.
-    sample = (sample .- fconvcnp.convcnp.μ) ./ sqrt(fconvcnp.convcnp.σ²)
+    # Normalise sample.
+    sample = (sample .- mean(sample)) ./ std(sample)
 
     # Return with noise.
     return sample .+ sqrt(fconvcnp.noise) .* randn(Float32, size(sample)...)
