@@ -205,7 +205,7 @@ struct FiniteBayesianConvCNP{T<:Real}
 end
 
 """
-    (s::BayesianConvCNP)(x, noise)
+    (convcnp::BayesianConvCNP)(x, noise)
 
 Construct the finite-dimensional distribution of a `BayesianConvCNP` at inputs `x` and
 observation noise variance `noise`.
