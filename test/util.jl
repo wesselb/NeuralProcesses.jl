@@ -39,7 +39,29 @@ import ConvCNPs: ceil_odd, insert_dim, rbf, compute_dists2
     end
 
     @testset "gaussian_logpdf" begin
+        # Test one-dimensional logpdf.
         dist = Normal(1, 2)
         @test logpdf(dist, 3) ≈ gaussian_logpdf([3], [1], [2^2])[1]
+
+        # Test multi-dimensional logpdf.
+        function dummy(x, μ, L)
+            Σ = L * L' .+ Matrix{Float64}(I, 3, 3)
+            return gaussian_logpdf(x, μ, Σ)
+        end
+
+        x = randn(3)
+        μ = randn(3)
+        L = randn(3, 3)
+        grad = Tracker.gradient(dummy, x, μ, L)
+        grad_estimate = FiniteDifferences.grad(
+            central_fdm(5, 1, adapt=1),
+            (xs...) -> Tracker.data(dummy(xs...)),
+            x,
+            μ,
+            L
+        )
+
+        # Check that gradient matches estimate.
+        @test all(Tracker.data.(grad) .≈ grad_estimate)
     end
 end

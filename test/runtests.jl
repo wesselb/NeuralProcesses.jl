@@ -1,4 +1,7 @@
 using ConvCNPs
+using FiniteDifferences
+using Flux.Tracker
+using LinearAlgebra
 using Test
 
 @testset "ConvCNPs.jl" begin

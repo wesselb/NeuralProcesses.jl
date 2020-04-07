@@ -2,6 +2,7 @@ module ConvCNPs
 
 using Distributions
 using Flux
+using LinearAlgebra
 using NNlib
 using Printf
 using Random

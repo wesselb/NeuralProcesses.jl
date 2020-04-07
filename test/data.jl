@@ -17,20 +17,20 @@ using Stheno
         @test length(epoch) == 500
 
         # Check minimum numbers of context points.
-        @test minimum([size(batch.x_context, 1) for batch in epoch]) == 0
-        @test minimum([size(batch.y_context, 1) for batch in epoch]) == 0
+        @test minimum([size(batch[1], 1) for batch in epoch]) == 0
+        @test minimum([size(batch[2], 1) for batch in epoch]) == 0
 
         # Check maximum numbers of context points.
-        @test maximum([size(batch.x_context, 1) for batch in epoch]) == 5
-        @test maximum([size(batch.y_context, 1) for batch in epoch]) == 5
+        @test maximum([size(batch[1], 1) for batch in epoch]) == 5
+        @test maximum([size(batch[2], 1) for batch in epoch]) == 5
 
         # Check the numbers of target points.
-        @test all([size(batch.x_target, 1) == 8 for batch in epoch])
-        @test all([size(batch.y_target, 1) == 8 for batch in epoch])
+        @test all([size(batch[3], 1) == 8 for batch in epoch])
+        @test all([size(batch[4], 1) == 8 for batch in epoch])
 
         for batch in epoch
             # Check `x_dist`.
-            for x in [batch.x_context, batch.x_target]
+            for x in [batch[1], batch[3]]
                 if !isempty(x)
                     @test minimum(x) >= -1
                     @test maximum(x) <= 3
@@ -43,8 +43,8 @@ using Stheno
             end
 
             # Check consistency of context and target set.
-            @test size(batch.x_context, 1) == size(batch.y_context, 1)
-            @test size(batch.x_target, 1) == size(batch.y_target, 1)
+            @test size(batch[1], 1) == size(batch[2], 1)
+            @test size(batch[3], 1) == size(batch[4], 1)
         end
     end
 end

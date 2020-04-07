@@ -1,4 +1,4 @@
-export ConvCNP, convcnp_1d
+export ConvCNP, convcnp_1d_factorised, convcnp_1d_lowrank
 
 """
     ConvCNP
@@ -10,12 +10,14 @@ Convolutional CNP model.
 - `encoder::SetConv`: Encoder.
 - `conv::Chain`: CNN that approximates rho.
 - `decoder::SetConv`: Decoder.
+- `predict::Function`: Function that transforms the decoding into a predictive distribution.
 """
 struct ConvCNP
     discretisation::Discretisation
     encoder::SetConv
     conv::Chain
     decoder::SetConv
+    predict::Function
 end
 
 @Flux.treelike ConvCNP
@@ -73,22 +75,26 @@ function (model::ConvCNP)(
     # Perform decoding.
     channels = model.decoder(x_discretisation, latent, x_target)
 
+    # Return predictive distribution.
+    return model.predict(channels)
+end
+
+function _predict_gaussian_factorised(channels)
     # Check that the number of channels is even.
     mod(size(channels, 2), 2) != 0 && error("Number of channels must be even.")
 
     # Half of the channels are used to determine the mean, and the other half are used to
     # determine the standard deviation.
     i_split = div(size(channels, 2), 2)
-    return (
-        channels[:, 1:i_split, :],                        # Mean
-        NNlib.softplus.(channels[:, i_split + 1:end, :])  # Variance
-    )
+    μ = channels[:, 1:i_split, :]
+    σ² = NNlib.softplus.(channels[:, i_split + 1:end, :])
+    return μ, σ²
 end
 
 """
-    convcnp_1d(arch::Architecture, margin::Float32=0.1f0)
+    convcnp_1d_factorised(arch::Architecture, margin::Float32=0.1f0)
 
-Construct a ConvCNP for one-dimensional data.
+Construct a ConvCNP for one-dimensional data with a factorised predictive distribution.
 
 # Arguments
 - `arch::Architecture`: CNN bundled with the points per units as constructed by
@@ -97,12 +103,51 @@ Construct a ConvCNP for one-dimensional data.
 # Keywords
 - `margin::Float32=0.1f0`: Margin for the discretisation. See `UniformDiscretisation1d`.
 """
-function convcnp_1d(arch::Architecture; margin::Float32=0.1f0)
+function convcnp_1d_factorised(arch::Architecture; margin::Float32=0.1f0)
     scale = 2 / arch.points_per_unit
     return ConvCNP(
         UniformDiscretisation1d(arch.points_per_unit, margin, arch.multiple),
         set_conv(1, scale; density=true),
         arch.conv,
-        set_conv(2, scale; density=false)
+        set_conv(2, scale; density=false),
+        _predict_gaussian_factorised
+    )
+end
+
+function _predict_gaussian_lowrank(channels)
+    μ = channels[:, 1:1, :]
+    L = channels[:, 2:end, :]
+
+    # Unfortunately, batched matrix multiplication does not have a gradient.
+    n, _, b = size(channels)
+    Σ = zeros(Float64, n, n, b)
+    for i = 1:b
+        L = Float64.(channels[:, i, :])
+        Σ = Σ .+ reshape(L, n, 1, b) .* reshape(L, 1, n, b)
+    end
+    return μ, Σ
+end
+
+"""
+    convcnp_1d_lowrank(arch::Architecture, margin::Float32=0.1f0)
+
+Construct a ConvCNP for one-dimensional data with a low-rank predictive distribution.
+
+# Arguments
+- `arch::Architecture`: CNN bundled with the points per units as constructed by
+    `build_conv`.
+
+# Keywords
+- `margin::Float32=0.1f0`: Margin for the discretisation. See `UniformDiscretisation1d`.
+- `rank::Integer=rank`: Rank of the predictive covariance.
+"""
+function convcnp_1d_lowrank(arch::Architecture; margin::Float32=0.1f0, rank::Integer=10)
+    scale = 2 / arch.points_per_unit
+    return ConvCNP(
+        UniformDiscretisation1d(arch.points_per_unit, margin, arch.multiple),
+        set_conv(1, scale; density=true),
+        arch.conv,
+        set_conv(1 + rank, scale; density=false),
+        _predict_gaussian_lowrank
     )
 end

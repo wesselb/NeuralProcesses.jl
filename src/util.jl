@@ -64,9 +64,9 @@ function compute_dists2(x::AbstractArray, y::AbstractArray, d::Val)
 end
 
 """
-    gaussian_logpdf(x::AbstractArray, μ::AbstractArray, σ::AbstractArray)
+    gaussian_logpdf(x::AbstractArray, μ::AbstractArray, σ²::AbstractArray)
 
-Gaussian log-pdf.
+One-dimensional Gaussian log-pdf.
 
 # Arguments
 - `x::AbstractArray`: Values to evaluate log-pdf at.
@@ -85,4 +85,32 @@ function gaussian_logpdf(x::AbstractArray, μ::AbstractArray, σ²::AbstractArra
     quad = (z .* z) ./ σ²
     sum = logconst .+ logdet .+ quad
     return -0.5f0 .* sum
+end
+
+"""
+    gaussian_logpdf(x::AbstractVector, μ::AbstractVector, σ::AbstractArray)
+
+Multi-dimensional Gaussian log-pdf.
+
+# Arguments
+- `x::AbstractVector`: Value to evaluate log-pdf at.
+- `μ::AbstractVector`: Mean.
+- `σ²::AbstractMatrix`: Covariance matrix.
+
+# Returns
+- `Real`: Log-pdf at `x`.
+"""
+gaussian_logpdf(x::AbstractVector, μ::AbstractVector, Σ::AbstractMatrix) =
+    Tracker.track(gaussian_logpdf, x, μ, Σ)
+
+@Tracker.grad function gaussian_logpdf(x, μ, Σ)
+    x, μ, Σ = Tracker.data.((x, μ, Σ))
+    L = cholesky(Σ).U'
+    z = L \ (x .- μ)
+    logpdf = -(log(2π * length(x)) + 2sum(log.(diag(L))) + dot(z, z)) / 2
+    return logpdf, function (ȳ)
+        u = L' \ z
+        eye = Matrix{eltype(x)}(I, length(x), length(x))
+        return ȳ .* -u, ȳ .* u, ȳ .* (u * u' .- L' \ (L \ eye)) ./ 2
+    end
 end
