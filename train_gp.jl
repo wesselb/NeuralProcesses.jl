@@ -97,7 +97,7 @@ function eval_model(model; num_batches=16)
     @printf("Test loss: %.3f (%d batches)\n", loss_value, num_batches)
 end
 
-function train!(model, data_gen, opt, epochs=100, batches_per_epoch=2048)
+function train!(model, data_gen, opt; epochs=100, batches_per_epoch=2048)
     # Evaluate once before training.
     eval_model(model)
 
@@ -122,8 +122,8 @@ function train!(model, data_gen, opt, epochs=100, batches_per_epoch=2048)
 end
 
 # Construct data generator. The model's effective predictive extent is the scale.
-scale = 0.25f0
-process = GP(stretch(matern52(), 1 / Float64(scale)), GPC())
+scale = 0.5f0
+process = GP(stretch(matern52(), 1 / 0.25), GPC())
 data_gen = DataGenerator(
     process;
     batch_size=8,
@@ -133,12 +133,12 @@ data_gen = DataGenerator(
 )
 
 # Use an architecture with depthwise separable convolutions.
-arch = build_conv_1d(6scale, 6, 16; points_per_unit=30f0)
+arch = build_conv_1d(4scale, 8, 32; points_per_unit=30f0)
 
 # Instantiate ConvCNP model.
-model = convcnp_1d(arch; margin=4scale) |> gpu
+model = convcnp_1d(arch; margin=2scale) |> gpu
 
 # Configure training.
-opt = ADAM(1e-3)
+opt = ADAM(5e-4)
 
-model = train!(model, data_gen, opt)
+model = train!(model, data_gen, opt; epochs=350)
