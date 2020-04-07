@@ -115,16 +115,28 @@ function convcnp_1d_factorised(arch::Architecture; margin::Float32=0.1f0)
 end
 
 function _predict_gaussian_lowrank(channels)
-    μ = channels[:, 1:1, :]
-    L = channels[:, 2:end, :]
+    # We return `Float64`s in anticipation of the need of increased numerical precision for
+    # the Cholesky decomposition of the covariance.
 
-    # Unfortunately, batched matrix multiplication does not have a gradient.
-    n, _, b = size(channels)
-    Σ = zeros(Float64, n, n, b)
-    for i = 1:b
+    n, c, b = size(channels)
+    μ = Float64.(channels[:, 1:1, :])
+
+    # Initialise the covariance with diagonal matrices. This manipulation is hard to do on
+    # a GPU without causing indexing, so we do it on the CPU.
+    noise_channel = cpu(channels[:, 2, :])
+    noises = [diagm(NNlib.softplus.(noise_channel[:, i])) for i = 1:b]
+    Σ = gpu(Float64.(cat(noises...; dims=3)))
+
+    # Unfortunately, batched matrix multiplication does not have a gradient, so we do it 
+    # manually.
+    for i = 3:c
         L = Float64.(channels[:, i, :])
         Σ = Σ .+ reshape(L, n, 1, b) .* reshape(L, 1, n, b)
     end
+
+    # Divide by the number of components to keep the scale of the variance right.
+    Σ = Σ ./ (c - 1)  
+
     return μ, Σ
 end
 
@@ -147,7 +159,7 @@ function convcnp_1d_lowrank(arch::Architecture; margin::Float32=0.1f0, rank::Int
         UniformDiscretisation1d(arch.points_per_unit, margin, arch.multiple),
         set_conv(1, scale; density=true),
         arch.conv,
-        set_conv(1 + rank, scale; density=false),
+        set_conv(2 + rank, scale; density=false),
         _predict_gaussian_lowrank
     )
 end

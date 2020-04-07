@@ -105,12 +105,15 @@ gaussian_logpdf(x::AbstractVector, μ::AbstractVector, Σ::AbstractMatrix) =
 
 @Tracker.grad function gaussian_logpdf(x, μ, Σ)
     x, μ, Σ = Tracker.data.((x, μ, Σ))
-    L = cholesky(Σ).U'
+    U = cholesky(Σ).U
+    L = U'
     z = L \ (x .- μ)
-    logpdf = -(log(2π * length(x)) + 2sum(log.(diag(L))) + dot(z, z)) / 2
+    # Taking the diagonal of U' causes indexing on GPU, which is why we
+    # equivalently take the diagonal of U.
+    logpdf = -(log(2π * length(x)) + 2sum(log.(diag(U))) + dot(z, z)) / 2
     return logpdf, function (ȳ)
         u = L' \ z
-        eye = Matrix{eltype(x)}(I, length(x), length(x))
+        eye = gpu(Matrix{eltype(x)}(I, length(x), length(x)))
         return ȳ .* -u, ȳ .* u, ȳ .* (u * u' .- L' \ (L \ eye)) ./ 2
     end
 end

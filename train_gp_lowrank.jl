@@ -28,11 +28,12 @@ function plot_task(model, epoch, plot_true = (plt, x_context, y_context, x) -> n
     # Run model. Take care of the dimensionality of all objects and bringing
     # them to the GPU and back.
     expand(x) = gpu(reshape(x, length(x), 1, 1))
-    y_mean, y_var = map(
-        x -> Flux.data(cpu(x[:, 1, 1])),
-        model(expand.((x_context, y_context, x))...)
-    )
+    y_mean, y_var = model(expand.((x_context, y_context, x))...)
+    y_mean = cpu(Flux.data(y_mean[:, 1, 1]))
+    y_var = diag(cpu(Flux.data(y_var[:, :, 1])))
     x = cpu(x)
+
+    # Get marginal 
 
     plt = plot()
 
@@ -90,20 +91,12 @@ function make_plot_true(process::GP)
 end
 
 function loss(model, x_context, y_context, x_target, y_target)
-    n = size(x_target, 1)  # Number of data points
-    b = size(x_target, 3)  # Batch size
+    n, _, b = size(x_target)
 
     μ, Σ = model(x_context, y_context, x_target)
-
-    logpdf = 0f0
-    ridge = 1e-8 .* Matrix{Float64}(I, n, n)
-
+    logpdf = 0.0
     for i = 1:b
-        logpdf += gaussian_logpdf(
-            y_target[:, 1, i],
-            μ[:, 1, i],
-            Σ[:, :, i] .+ ridge
-        )
+        logpdf += gaussian_logpdf(y_target[:, 1, i], μ[:, 1, i], Σ[:, :, i])
     end
 
     return -logpdf / n / b
@@ -139,7 +132,7 @@ function train!(model, data_gen, opt; epochs=100, batches_per_epoch=2048)
 end
 
 # Construct data generator. The model's effective predictive extent is the scale.
-scale = 0.5f0
+scale = 0.25f0
 process = GP(stretch(matern52(), 1 / 0.25), GPC())
 data_gen = DataGenerator(
     process;
@@ -150,8 +143,8 @@ data_gen = DataGenerator(
 )
 
 # Build low-rank ConvCNP model.
-rank = 10
-arch = build_conv_1d(4scale, 4, 16; points_per_unit=30f0, out_channels=1 + rank)
+rank = 5
+arch = build_conv_1d(4scale, 4, 16; points_per_unit=30f0, out_channels=2 + rank)
 model = convcnp_1d_lowrank(arch; margin=2scale, rank=rank) |> gpu
 
 # Configure training.
