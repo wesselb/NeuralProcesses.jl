@@ -122,18 +122,18 @@ function train!(model, data_gen, opt; epochs=100, batches_per_epoch=2048)
 end
 
 # Construct data generator. The model's effective predictive extent is the scale.
-scale = 0.5f0
+scale = 1f0
 process = BayesianConvCNP(
-    receptive_field=2scale,
+    receptive_field=4scale,
     num_layers=4,
-    num_channels=6,
-    points_per_unit=30f0
+    num_channels=10,
+    points_per_unit=10f0
 )
 data_gen = DataGenerator(
     process;
-    batch_size=8,
+    batch_size=16,
     x_dist=Uniform(-2, 2),
-    max_context_points=10,
+    max_context_points=50,
     num_target_points=50
 )
 
