@@ -133,7 +133,7 @@ data_gen = DataGenerator(
     process;
     batch_size=16,
     x_dist=Uniform(-2, 2),
-    max_context_points=50,
+    max_context_points=10,
     num_target_points=50
 )
 
