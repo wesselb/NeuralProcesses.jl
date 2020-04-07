@@ -147,7 +147,7 @@ data_gen = DataGenerator(
 )
 
 # Build low-rank ConvCNP model.
-rank = 10
+rank = 3
 arch = build_conv_1d(4scale, 8, 32; points_per_unit=30f0, out_channels=2 + rank)
 model = convcnp_1d_lowrank(arch; margin=2scale, rank=rank) |> gpu
 
