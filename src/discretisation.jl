@@ -43,6 +43,6 @@ function (d::UniformDiscretisation1d)(xs::AbstractArray...)
     range_upper = maximum(x) + d.margin
     num_points = (range_upper - range_lower) * d.points_per_unit + 1
     num_points = ceil(num_points / d.multiple) * d.multiple
-    disc = gpu(collect(range(range_lower, range_upper, length=Integer(num_points))))
+    disc = collect(range(range_lower, range_upper, length=Integer(num_points)))
     return repeat(disc, 1, 1, size(x, 3))
 end

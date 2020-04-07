@@ -43,7 +43,7 @@ function (model::ConvCNP)(
     n_context = size(x_context, 1)
 
     # Compute discretisation of the functional embedding.
-    x_discretisation = model.discretisation(x_context, x_target)
+    x_discretisation = gpu(model.discretisation(x_context, x_target))
 
     if n_context > 0
         # The context set is non-empty. Compute encoding as usual.
