@@ -30,16 +30,18 @@ function plot_task(model, epoch, plot_true = (plt, x_context, y_context, x) -> n
     expand(x) = gpu(reshape(x, length(x), 1, 1))
     y_mean, y_var = model(expand.((x_context, y_context, x))...)
     y_mean = cpu(Flux.data(y_mean[:, 1, 1]))
-    y_var = diag(cpu(Flux.data(y_var[:, :, 1])))
+    y_cov = cpu(Flux.data(y_var[:, :, 1]))
+    y_var = diag(y_cov)
     x = cpu(x)
 
-    # Get marginal 
+    # Produce three posterior samples.
+    samples = cholesky(y_cov).U' * randn(length(x), 3) .+ y_mean
 
     plt = plot()
 
-    # Scatter context set.
-    scatter!(plt, x_context, y_context, c=:black, label="Context set", dpi=200)
+    # Scatter target and context set.
     scatter!(plt, x_target, y_target, c=:red, label="Target set", dpi=200)
+    scatter!(plt, x_context, y_context, c=:black, label="Context set", dpi=200)
 
     # Plot prediction of true, underlying model.
     plot_true(plt, x_context, y_context, x)
@@ -53,6 +55,8 @@ function plot_task(model, epoch, plot_true = (plt, x_context, y_context, x) -> n
         label="",
         dpi=200
     )
+    # Plot samples.
+    plot!(plt, x, samples, c=:green, lw=0.5, dpi=200, label="")
 
     mkpath("output")
     savefig(plt, "output/epoch$epoch.png")
@@ -132,7 +136,7 @@ function train!(model, data_gen, opt; epochs=100, batches_per_epoch=2048)
 end
 
 # Construct data generator. The model's effective predictive extent is the scale.
-scale = 0.25f0
+scale = 0.5f0
 process = GP(stretch(matern52(), 1 / 0.25), GPC())
 data_gen = DataGenerator(
     process;
@@ -143,11 +147,13 @@ data_gen = DataGenerator(
 )
 
 # Build low-rank ConvCNP model.
-rank = 5
-arch = build_conv_1d(4scale, 4, 16; points_per_unit=30f0, out_channels=2 + rank)
+rank = 10
+arch = build_conv_1d(4scale, 8, 32; points_per_unit=30f0, out_channels=2 + rank)
 model = convcnp_1d_lowrank(arch; margin=2scale, rank=rank) |> gpu
 
 # Configure training.
 opt = ADAM(1e-3)
 
-model = train!(model, data_gen, opt; epochs=100)
+plot_task(model, 0, make_plot_true(data_gen.process))
+
+# model = train!(model, data_gen, opt; epochs=100)
