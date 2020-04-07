@@ -154,6 +154,4 @@ model = convcnp_1d_lowrank(arch; margin=2scale, rank=rank) |> gpu
 # Configure training.
 opt = ADAM(1e-3)
 
-plot_task(model, 0, make_plot_true(data_gen.process))
-
-# model = train!(model, data_gen, opt; epochs=100)
+model = train!(model, data_gen, opt; epochs=300)
