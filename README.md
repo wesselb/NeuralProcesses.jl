@@ -1,4 +1,4 @@
-<img src="https://github.com/wesselb/ConvCNPs.jl/raw/master/loop.gif" width="500px" />
+<img src="https://github.com/wesselb/ConvCNPs.jl/raw/master/loop.gif" width="800px" />
 
 # ConvCNPs.jl
 
