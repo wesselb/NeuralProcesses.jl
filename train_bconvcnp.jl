@@ -122,8 +122,13 @@ function train!(model, data_gen, opt; epochs=100, batches_per_epoch=2048)
 end
 
 # Construct data generator. The model's effective predictive extent is the scale.
-receptive_field = 1f0
-process = BayesianConvCNP(receptive_field=receptive_field)
+scale = 0.5f0
+process = BayesianConvCNP(
+    receptive_field=2scale,
+    num_layers=4,
+    num_channels=6,
+    points_per_unit=30f0
+)
 data_gen = DataGenerator(
     process;
     batch_size=8,
@@ -133,12 +138,12 @@ data_gen = DataGenerator(
 )
 
 # Use an architecture with depthwise separable convolutions.
-arch = build_conv_1d(receptive_field, 6, 16; points_per_unit=30f0)
+arch = build_conv_1d(4scale, 6, 16; points_per_unit=30f0)
 
 # Instantiate ConvCNP model.
-model = convcnp_1d(arch; margin=receptive_field / 2) |> gpu
+model = convcnp_1d(arch; margin=2scale) |> gpu
 
 # Configure training.
 opt = ADAM(1e-3)
 
-model = train!(model, data_gen, opt; epochs=100)
+model = train!(model, data_gen, opt)
