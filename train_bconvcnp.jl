@@ -125,15 +125,15 @@ end
 scale = 1f0
 process = BayesianConvCNP(
     receptive_field=4scale,
-    num_layers=4,
-    num_channels=10,
+    num_layers=2,
+    num_channels=4,
     points_per_unit=10f0
 )
 data_gen = DataGenerator(
     process;
     batch_size=16,
     x_dist=Uniform(-2, 2),
-    max_context_points=10,
+    max_context_points=20,
     num_target_points=50
 )
 
