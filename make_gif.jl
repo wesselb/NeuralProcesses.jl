@@ -60,7 +60,7 @@ for num = 0:15
 
     ylims!(plt, (-0.25, 1.25))
     xlims!(plt, (-2, 2))
-    plot!(plt, framestyle=:none)
+    plot!(plt, framestyle=:none, size=(1000, 200))
 
     savefig(plt, @sprintf("step%02d.png", num))
 end
