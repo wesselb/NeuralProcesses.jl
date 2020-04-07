@@ -12,12 +12,12 @@ end
 
 _compute_padding(kernel_size) = Integer(floor(kernel_size / 2))
 
-_init_conv(k, ch) = (
+_init_conv_fixed_bias(k, ch) = (
     Flux.param(Flux.glorot_normal(k..., ch...)),
     Flux.param(fill(1f-3, ch[2]))
 )
 
-_init_depthwiseconv(k, ch) = (
+_init_depthwiseconv_fixed_bias(k, ch) = (
     Flux.param(Flux.glorot_normal(k..., div(ch[2], ch[1]), ch[1])),
     Flux.param(fill(1f-3, ch[2]))
 )
@@ -30,7 +30,9 @@ _init_depthwiseconv(k, ch) = (
         points_per_unit::Float32=30f0,
         multiple::Integer=1,
         in_channels::Integer=2,
-        out_channels::Integer=2
+        out_channels::Integer=2,
+        init_conv::Function=_init_conv_fixed_bias,
+        init_depthwiseconv::Function=_init_depthwiseconv_fixed_bias
     )
 
 Build a 1D CNN with a specified receptive field size.
@@ -48,6 +50,9 @@ Build a 1D CNN with a specified receptive field size.
 - `multiple::Integer=1`: Multiple for the discretisation. See `UniformDiscretisation1d`.
 - `in_channels::Integer=2`: Number of input channels.
 - `out_channels::Integer=2`: Number of output channels.
+- `init_conv::Function=_init_conv_fixed_bias`: Initialiser for dense convolutions.
+- `init_depthwiseconv::Function=_init_depthwiseconv_fixed_bias`: Initialiser for depthwise
+    separable convolutions.
 
 # Returns
 - `Architecture`: Corresponding CNN bundled with the specified points per unit and margin.
@@ -60,6 +65,8 @@ function build_conv_1d(
     multiple::Integer=1,
     in_channels::Integer=2,
     out_channels::Integer=2,
+    init_conv::Function=_init_conv_fixed_bias,
+    init_depthwiseconv::Function=_init_depthwiseconv_fixed_bias
 )
     # We use two-dimensional kernels: CUDNN does not support 1D convolutions.
     kernel = (_compute_kernel_size(receptive_field, points_per_unit, num_layers), 1)
@@ -69,18 +76,18 @@ function build_conv_1d(
 
     # Build layers of the conv net.
     layers = []
-    push!(layers, Conv(_init_conv((1, 1), in_channels=>num_channels)..., act))
+    push!(layers, Conv(init_conv((1, 1), in_channels=>num_channels)..., act))
     for i = 1:num_layers
         push!(layers, DepthwiseConv(
-            _init_depthwiseconv(kernel, num_channels=>num_channels)...,
+            init_depthwiseconv(kernel, num_channels=>num_channels)...,
             pad=padding
         ))
         push!(layers, Conv(
-            _init_conv((1, 1), num_channels=>num_channels)...,
+            init_conv((1, 1), num_channels=>num_channels)...,
             act
         ))
     end
-    push!(layers, Conv(_init_conv((1, 1), num_channels=>out_channels)...))  
+    push!(layers, Conv(_init_conv((1, 1), num_channels=>out_channels)...))
 
     return (
         conv=Chain(layers...),
