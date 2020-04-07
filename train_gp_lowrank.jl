@@ -1,8 +1,8 @@
-# using Pkg
-#
-# Pkg.activate(".")
-# Pkg.resolve()
-# Pkg.instantiate()
+using Pkg
+
+Pkg.activate(".")
+Pkg.resolve()
+Pkg.instantiate()
 
 using BSON: @save
 using ConvCNPs
