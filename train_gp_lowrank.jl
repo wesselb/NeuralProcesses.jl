@@ -148,13 +148,13 @@ data_gen = DataGenerator(
     process;
     batch_size=8,
     x_dist=Uniform(-2, 2),
-    max_context_points=10,
+    max_context_points=50,
     num_target_points=50
 )
 
 # Build low-rank ConvCNP model.
 rank = 3
-arch = build_conv_1d(4scale, 6, 32; points_per_unit=30f0, out_channels=2 + rank)
+arch = build_conv_1d(4scale, 6, 16; points_per_unit=30f0, out_channels=2 + rank)
 model = convcnp_1d_lowrank(arch; margin=2scale, rank=rank) |> gpu
 
 # Configure training.

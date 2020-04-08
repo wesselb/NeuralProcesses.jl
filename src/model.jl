@@ -114,13 +114,7 @@ function convcnp_1d_factorised(arch::Architecture; margin::Float32=0.1f0)
     )
 end
 
-struct _PredictGaussianLowRank
-    log_noise
-end
-
-@Flux.treelike _PredictGaussianLowRank
-
-function (p::_PredictGaussianLowRank)(channels)
+function _predict_gaussian_lowrank(channels)
     # Get number of data points, channels, and batches.
     n, c, b = size(channels)
 
@@ -144,7 +138,11 @@ function (p::_PredictGaussianLowRank)(channels)
 end
 
 """
-    convcnp_1d_lowrank(arch::Architecture, margin::Float32=0.1f0)
+    convcnp_1d_lowrank(
+        arch::Architecture;
+        margin::Float32=0.1f0,
+        rank::Integer=10
+    )
 
 Construct a ConvCNP for one-dimensional data with a low-rank predictive distribution.
 
@@ -159,8 +157,7 @@ Construct a ConvCNP for one-dimensional data with a low-rank predictive distribu
 function convcnp_1d_lowrank(
     arch::Architecture;
     margin::Float32=0.1f0,
-    rank::Integer=10,
-    noise::Float32=0.01f0
+    rank::Integer=10
 )
     scale = 2 / arch.points_per_unit
     return ConvCNP(
@@ -168,6 +165,6 @@ function convcnp_1d_lowrank(
         set_conv(1, scale; density=true),
         arch.conv,
         set_conv(2 + rank, scale; density=false),
-        _PredictGaussianLowRank(param(log(noise)))
+        _predict_gaussian_lowrank
     )
 end
