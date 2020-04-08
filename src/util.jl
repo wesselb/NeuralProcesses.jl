@@ -117,3 +117,9 @@ gaussian_logpdf(x::AbstractVector, μ::AbstractVector, Σ::AbstractMatrix) =
         return ȳ .* -u, ȳ .* u, ȳ .* (u * u' .- L' \ (L \ eye)) ./ 2
     end
 end
+
+diagonal(x::AbstractVector) = Tracker.track(diagonal, x)
+
+@Tracker.grad function diagonal(x)
+    convert(CuArray, Diagonal(Tracker.data(x))), ȳ -> (diag(ȳ),)
+end
