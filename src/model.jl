@@ -17,7 +17,7 @@ struct ConvCNP
     encoder::SetConv
     conv::Chain
     decoder::SetConv
-    predict::Function
+    predict
 end
 
 @Flux.treelike ConvCNP
@@ -114,19 +114,24 @@ function convcnp_1d_factorised(arch::Architecture; margin::Float32=0.1f0)
     )
 end
 
-function _predict_gaussian_lowrank(channels)
+struct _PredictGaussianLowRank
+    log_noise
+end
+
+@Flux.treelike _PredictGaussianLowRank
+
+function (p::_PredictGaussianLowRank)(channels)
     # Get number of data points, channels, and batches.
     n, c, b = size(channels)
 
     μ = channels[:, 1:1, :]
 
-    # Initialise the covariance with diagonal matrices. This manipulation is hard to do on
-    # a GPU without causing indexing, so we do it on the CPU and move it back to the GPU
-    # afterwards.
-    noise_channel = NNlib.softplus.(channels[:, 2, :])
-    Σ = cat([diagonal(noise_channel[:, i]) for i = 1:b]..., dims=3)
+    # Initialise the covariance with the observation noise.
+    Σ = repeat(exp(p.log_noise) .* gpu(Matrix(I, n, n)), 1, 1, b)
+    # noise_channel = NNlib.softplus.(channels[:, 2, :])
+    # Σ = cat([diagonal(noise_channel[:, i]) for i = 1:b]..., dims=3)
 
-    # Unfortunately, batched matrix multiplication does not have a gradient, so we do it 
+    # Unfortunately, batched matrix multiplication does not have a gradient, so we do it
     # manually.
     for i = 3:c
         L = channels[:, i, :]
@@ -152,13 +157,18 @@ Construct a ConvCNP for one-dimensional data with a low-rank predictive distribu
 - `margin::Float32=0.1f0`: Margin for the discretisation. See `UniformDiscretisation1d`.
 - `rank::Integer=rank`: Rank of the predictive covariance.
 """
-function convcnp_1d_lowrank(arch::Architecture; margin::Float32=0.1f0, rank::Integer=10)
+function convcnp_1d_lowrank(
+    arch::Architecture;
+    margin::Float32=0.1f0,
+    rank::Integer=10,
+    noise::Float32=0.01f0
+)
     scale = 2 / arch.points_per_unit
     return ConvCNP(
         UniformDiscretisation1d(arch.points_per_unit, margin, arch.multiple),
         set_conv(1, scale; density=true),
         arch.conv,
         set_conv(2 + rank, scale; density=false),
-        _predict_gaussian_lowrank
+        _PredictGaussianLowRank(Flux.param(log(noise)))
     )
 end
