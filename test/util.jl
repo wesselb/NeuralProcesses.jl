@@ -55,7 +55,7 @@ import ConvCNPs: ceil_odd, insert_dim, rbf, compute_dists2
         Σ = L * L' .+ Matrix{Float64}(I, 3, 3)
 
         # Check value.
-        @test Tracker.data(dummy(x, μ, L)) ≈ logpdf(MvNormal(μ, Σ), x)
+        @test Tracker.data(dummy(x, μ, L)) ≈ logpdf(MvNormal(μ, Σ), x) atol=1e-6
 
         # Check gradient
         grad = Tracker.gradient(dummy, x, μ, L)
