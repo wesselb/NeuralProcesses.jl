@@ -115,27 +115,26 @@ function convcnp_1d_factorised(arch::Architecture; margin::Float32=0.1f0)
 end
 
 function _predict_gaussian_lowrank(channels)
-    # We return `Float64`s in anticipation of the need of increased numerical precision for
-    # the Cholesky decomposition of the covariance.
-
+    # Get number of data points, channels, and batches.
     n, c, b = size(channels)
-    μ = Float64.(channels[:, 1:1, :])
+
+    μ = channels[:, 1:1, :]
 
     # Initialise the covariance with diagonal matrices. This manipulation is hard to do on
-    # a GPU without causing indexing, so we do it on the CPU.
-    noise_channel = cpu(channels[:, 2, :])
-    noises = [diagm(NNlib.softplus.(noise_channel[:, i])) for i = 1:b]
-    Σ = gpu(Float64.(cat(noises...; dims=3)))
+    # a GPU without causing indexing, so we do it on the CPU and move it back to the GPU
+    # afterwards.
+    noise_channel = NNlib.softplus.(channels[:, 2, :])
+    Σ = cat([diagonal(noise_channel[:, i]) for i = 1:b]..., dims=3)
 
     # Unfortunately, batched matrix multiplication does not have a gradient, so we do it 
     # manually.
     for i = 3:c
-        L = Float64.(channels[:, i, :])
+        L = channels[:, i, :]
         Σ = Σ .+ reshape(L, n, 1, b) .* reshape(L, 1, n, b)
     end
 
     # Divide by the number of components to keep the scale of the variance right.
-    Σ = Σ ./ (c - 1)  
+    Σ = Σ ./ (c - 1)  # Subtract one to account because that is the mean.
 
     return μ, Σ
 end
