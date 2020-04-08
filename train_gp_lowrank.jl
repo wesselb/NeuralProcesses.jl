@@ -28,10 +28,11 @@ function plot_task(model, epoch, plot_true = (plt, x_context, y_context, x) -> n
     # Run model. Take care of the dimensionality of all objects and bringing
     # them to the GPU and back.
     expand(x) = gpu(reshape(x, length(x), 1, 1))
-    y_mean, y_var = model(expand.((x_context, y_context, x))...)
+    y_mean, y_cov = model(expand.((x_context, y_context, x))...)
     y_mean = cpu(Flux.data(y_mean[:, 1, 1]))
-    y_cov = cpu(Flux.data(y_var[:, :, 1]))
+    y_cov = cpu(Flux.data(y_cov[:, :, 1]))
     y_var = diag(y_cov)
+
     x = cpu(x)
 
     # Produce three posterior samples.
@@ -98,7 +99,12 @@ function loss(model, x_context, y_context, x_target, y_target)
     n, _, b = size(x_target)
 
     μ, Σ = model(x_context, y_context, x_target)
-    logpdf = 0.0
+
+    # Ensure that the model mean and target outputs have only one channel.
+    size(μ, 2) == 1 || error("Model mean has more than one channel.")
+    size(y_target, 2) == 1 || error("Target outputs have more than one channel.")
+
+    logpdf = 0f0
     for i = 1:b
         logpdf += gaussian_logpdf(y_target[:, 1, i], μ[:, 1, i], Σ[:, :, i])
     end
@@ -148,10 +154,10 @@ data_gen = DataGenerator(
 
 # Build low-rank ConvCNP model.
 rank = 3
-arch = build_conv_1d(4scale, 8, 32; points_per_unit=30f0, out_channels=2 + rank)
+arch = build_conv_1d(4scale, 6, 32; points_per_unit=30f0, out_channels=2 + rank)
 model = convcnp_1d_lowrank(arch; margin=2scale, rank=rank) |> gpu
 
 # Configure training.
 opt = ADAM(1e-3)
 
-model = train!(model, data_gen, opt; epochs=300)
+model = train!(model, data_gen, opt; epochs=100)
