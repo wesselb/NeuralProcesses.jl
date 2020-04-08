@@ -84,8 +84,7 @@ function build_conv_1d(
         ))
         push!(layers, Conv(
             init_conv((1, 1), num_channels=>num_channels)...,
-            # Use a tanh as the last activation function.
-            i < num_layers ? act : tanh
+            act
         ))
     end
     push!(layers, Conv(init_conv((1, 1), num_channels=>out_channels)...))
