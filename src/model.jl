@@ -126,18 +126,19 @@ function (p::_PredictGaussianLowRank)(channels)
 
     μ = channels[:, 1:1, :]
 
-    # Initialise the covariance with the observation noise.
-    Σ = repeat(exp(p.log_noise) .* gpu(Matrix(I, n, n)), 1, 1, b)
+    # Initialise the covariance with heterogeneous observation noise.
+    noise_channel = NNlib.softplus.(channels[:, 2, :])
+    Σ = cat([diagonal(noise_channel[:, i]) for i = 1:b]..., dims=3)
 
     # Unfortunately, batched matrix multiplication does not have a gradient, so we do it
     # manually.
-    for i = 2:c
+    for i = 3:c
         L = channels[:, i, :]
         Σ = Σ .+ reshape(L, n, 1, b) .* reshape(L, 1, n, b)
     end
 
     # Divide by the number of components to keep the scale of the variance right.
-    Σ = Σ ./ (c - 1)  # Subtract one, because that is the mean.
+    Σ = Σ ./ (c - 1)  # Subtract one to account for the mean.
 
     return μ, Σ
 end
