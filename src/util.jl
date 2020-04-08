@@ -111,7 +111,7 @@ gaussian_logpdf(x::AbstractVector, μ::AbstractVector, Σ::AbstractMatrix) =
     L = U'             # Lower triangular
     z = L \ (x .- μ)
     logconst = 1.837877f0
-    # Taking the diagonal of L = U' causes indexing on GPU, which is why we equivalently 
+    # Taking the diagonal of L = U' causes indexing on GPU, which is why we equivalently
     # take the diagonal of U.
     logpdf = -(n * logconst + 2sum(log.(diag(U))) + dot(z, z)) / 2
 
@@ -122,6 +122,17 @@ gaussian_logpdf(x::AbstractVector, μ::AbstractVector, Σ::AbstractMatrix) =
     end
 end
 
+"""
+    diagonal(x::AbstractVector)
+
+Turn a vector `x` into a diagonal matrix.
+
+# Arguments
+- `x::AbstractVector`: Vector.
+
+# Returns
+- `AbstractMatrix`: Matrix with `x` on the diagonal.
+"""
 diagonal(x::AbstractVector) = Tracker.track(diagonal, x)
 
 @Tracker.grad function diagonal(x)
