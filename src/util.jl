@@ -84,7 +84,7 @@ function gaussian_logpdf(x::AbstractArray, μ::AbstractArray, σ²::AbstractArra
     z = x .- μ
     quad = (z .* z) ./ σ²
     sum = logconst .+ logdet .+ quad
-    return -0.5f0 .* sum
+    return -sum ./ 2
 end
 
 """
@@ -104,16 +104,20 @@ gaussian_logpdf(x::AbstractVector, μ::AbstractVector, Σ::AbstractMatrix) =
     Tracker.track(gaussian_logpdf, x, μ, Σ)
 
 @Tracker.grad function gaussian_logpdf(x, μ, Σ)
+    n = length(x)
     x, μ, Σ = Tracker.data.((x, μ, Σ))
-    U = cholesky(Σ).U
-    L = U'
+
+    U = cholesky(Σ).U  # Upper triangular
+    L = U'             # Lower triangular
     z = L \ (x .- μ)
-    # Taking the diagonal of U' causes indexing on GPU, which is why we
-    # equivalently take the diagonal of U.
-    logpdf = -(log(2π * length(x)) + 2sum(log.(diag(U))) + dot(z, z)) / 2
+    logconst = 1.837877f0
+    # Taking the diagonal of L = U' causes indexing on GPU, which is why we equivalently 
+    # take the diagonal of U.
+    logpdf = -(n * logconst + 2sum(log.(diag(U))) + dot(z, z)) / 2
+
     return logpdf, function (ȳ)
-        u = L' \ z
-        eye = gpu(Matrix{eltype(x)}(I, length(x), length(x)))
-        return ȳ .* -u, ȳ .* u, ȳ .* (u * u' .- L' \ (L \ eye)) ./ 2
+        u = U \ z
+        eye = gpu(Matrix{Float32}(I, n, n))
+        return ȳ .* -u, ȳ .* u, ȳ .* (u .* u' .- U \ (L \ eye)) ./ 2
     end
 end
