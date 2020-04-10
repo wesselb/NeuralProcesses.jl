@@ -116,7 +116,14 @@ end
 
 _batched_mul(x, y) = Tracker.track(_batched_mul, x, y)
 
-_transpose(x) = permutedims(x, size(x)[1], size(x)[2], size(x)[3:end]...)
+_transpose(x) = Tracker.track(_transpose, x)
+
+__transpose(x) = permutedims(x, (2, 1, range(3, length(size(x)), step=1)...))
+
+@Tracker.grad function _transpose(x)
+    x = Tracker.data(x)
+    return __transpose(x), ȳ -> __transpose(ȳ)
+end
 
 @Tracker.grad function _batched_mul(x, y)
     x, y = Tracker.data.((x, y))
@@ -124,7 +131,7 @@ _transpose(x) = permutedims(x, size(x)[1], size(x)[2], size(x)[3:end]...)
     y, _ = _to_rank_3(y)
     return back(batched_mul(x, y)), function (ȳ)
         ȳ, _ = _to_rank_3(ȳ)
-        return back(batched_mul(ȳ, _transpose(b))), back(batched_mul(_transpose(a), ȳ))
+        return back(batched_mul(ȳ, __transpose(b))), back(batched_mul(__transpose(a), ȳ))
     end
 end
 
@@ -175,7 +182,7 @@ function kernel(
 
     # Multiply with weights and sum.
     # Shape: `(m, m, channels + 1, batch)`.
-    channels = _batched_mul(permutedims(channels .* weights, (2, 1, 3, 4)), weights)
+    channels = _batched_mul(_transpose(channels .* weights), weights)
 
     if layer.density
         # Divide by the density channel.
@@ -222,8 +229,10 @@ function kernel_smooth(
 
     # Multiply with weights and sum.
     # Shape: `(m, m, channels, batch)`.
+    println(size(y_context))
+    println(size(weights))
     L = _batched_mul(y_context, weights)
-    channels = _batched_mul(permutedims(L, (2, 1, 3, 4)), L)
+    channels = _batched_mul(_transpose(L), L)
 
     return channels
 end

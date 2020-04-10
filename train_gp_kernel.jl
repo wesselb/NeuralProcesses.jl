@@ -101,13 +101,12 @@ function loss(model, x_context, y_context, x_target, y_target)
     μ, Σ = model(x_context, y_context, x_target)
 
     # Ensure that the model mean and target outputs have only one channel.
-    size(μ, 2) == 1 || error("Model mean has more than one channel.")
     size(y_target, 2) == 1 || error("Target outputs have more than one channel.")
 
     logpdf = 0f0
-    ridge = gpu(Matrix(1f-4I, n, n))
+    ridge = gpu(Matrix(1f-3I, n, n))
     for i = 1:b
-        logpdf += gaussian_logpdf(y_target[:, 1, i], μ[:, 1, i], Σ[:, :, i] .+ ridge)
+        logpdf += gaussian_logpdf(y_target[:, 1, i], μ[:, i], Σ[:, :, i] .+ ridge)
     end
 
     return -logpdf / n / b
@@ -154,8 +153,8 @@ data_gen = DataGenerator(
 )
 
 # Build low-rank ConvCNP model.
-mean_arch = build_conv_1d(4scale, 6, 16; points_per_unit=20f0)
-kernel_arch = build_conv_1d_kernel(4scale, 6, 16; points_per_unit=20f0)
+mean_arch = build_conv_1d(4scale, 6, 16; points_per_unit=20f0, out_channels=1)
+kernel_arch = build_conv_1d_kernel(4scale, 6, 16; points_per_unit=20f0, out_channels=1)
 model = convcnp_1d_kernel(mean_arch, kernel_arch; margin=2scale) |> gpu
 
 # Configure training.
