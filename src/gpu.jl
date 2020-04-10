@@ -260,3 +260,10 @@ function ∇depthwiseconv_data!(
         )
     end
 end
+
+# Accelerate `batched_mul` on the GPU.
+
+function NNlib.batched_mul!(C::CuArray{T, 3}, A::CuArray{T, 3}, B::CuArray{T, 3}) where {T<:CUBLAS.CublasFloat}
+    CUBLAS.gemm_strided_batched!('N', 'N', one(T), NNlib._unbatch(A), NNlib._unbatch(B), zero(T), C)
+    return C
+end
