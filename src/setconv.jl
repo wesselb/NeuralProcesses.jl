@@ -195,7 +195,7 @@ function kernel(
     # Add identity channel.
     identity =
         gpu(repeat(Matrix{Float32}(I, n_target, n_target), 1, 1, size(channels)[3:4]...))
-    channels = cat(channels, identity; dims=2)
+    channels = cat(channels, identity; dims=3)
 
     return channels
 end
@@ -209,8 +209,6 @@ function kernel_smooth(
     n_context = size(x_context, 1)
     dimensionality = size(x_context, 2)
     batch_size = size(x_context, 3)
-
-    println(size(y_context))
 
     # Validate input sizes.
     @assert size(y_context, 1) == n_context
