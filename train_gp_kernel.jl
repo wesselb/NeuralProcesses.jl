@@ -35,7 +35,7 @@ function plot_task(model, epoch, plot_true = (plt, x_context, y_context, x) -> n
     y_mean, y_cov = model(expand.((x_context, y_context, x))...)
     y_mean = cpu(Flux.data(y_mean[:, 1, 1]))
     y_cov = cpu(Flux.data(y_cov[:, :, 1]))
-    y_cov = Matrix(epoch_to_reg(reg) * I, size(y_cov)...) .+ y_cov
+    y_cov = Matrix(epoch_to_reg(epoch) * I, size(y_cov)...) .+ y_cov
     y_var = diag(y_cov)
 
     x = cpu(x)
@@ -109,7 +109,7 @@ function loss(model, epoch, x_context, y_context, x_target, y_target)
     size(y_target, 2) == 1 || error("Target outputs have more than one channel.")
 
     logpdf = 0f0
-    ridge = gpu(Matrix(epoch_to_reg(reg) * I, n, n))
+    ridge = gpu(Matrix(epoch_to_reg(epoch) * I, n, n))
     for i = 1:b
         logpdf += gaussian_logpdf(y_target[:, 1, i], μ[:, i], Σ[:, :, i] .+ ridge)
     end
@@ -133,7 +133,7 @@ function train!(model, data_gen, opt; epochs=100, batches_per_epoch=2048)
             Flux.params(model),
             data_gen(batches_per_epoch),
             opt,
-            cb = Flux.throttle(() -> eval_model(model), 20)
+            cb = Flux.throttle(() -> eval_model(model, epoch), 20)
         )
 
         eval_model(model, epoch; num_batches=128)
