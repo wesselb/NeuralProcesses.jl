@@ -207,7 +207,8 @@ function (model::ConvCNPKernel)(
             eltype(y_context),
             size(x_discretisation, 1),
             size(x_discretisation, 1),
-            size(y_context, 2) + model.encoder.density,  # Account for density channel.
+            # Account for density and identity channel.
+            size(y_context, 2) + model.encoder.density + 1,
             size(y_context, 3)
         ))
     end
