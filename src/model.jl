@@ -1,4 +1,4 @@
-export ConvCNP, convcnp_1d_factorised, convcnp_1d_lowrank
+export ConvCNP, convcnp_1d_factorised, convcnp_1d_lowrank, convcnp_1d_kernel
 
 """
     ConvCNP
@@ -167,4 +167,96 @@ function convcnp_1d_lowrank(
         set_conv(2 + rank, scale; density=false),
         _predict_gaussian_lowrank
     )
+end
+
+
+struct ConvCNPKernel
+    discretisation::Discretisation
+    encoder::SetConv
+    mean_conv::Chain
+    kernel_conv::Chain
+    decoder::SetConv
+    predict
+end
+
+@Flux.treelike ConvCNPKernel
+
+function (model::ConvCNPKernel)(
+    x_context::AbstractArray,
+    y_context::AbstractArray,
+    x_target::AbstractArray
+)
+    n_context = size(x_context, 1)
+
+    # Compute discretisation of the functional embedding.
+    x_discretisation = gpu(model.discretisation(x_context, x_target))
+
+    if n_context > 0
+        # The context set is non-empty. Compute encodings as usual.
+        mean_encoding = model.encoder(x_context, y_context, x_discretisation)
+        kernel_encoding = kernel(model.encoder, x_context, y_context, x_discretisation)
+    else
+        # The context set is empty. Set the encodings to all zeros.
+        mean_encoding = gpu(zeros(
+            eltype(y_context),
+            size(x_discretisation, 1),
+            size(y_context, 2) + model.encoder.density,  # Account for density channel.
+            size(y_context, 3)
+        ))
+        kernel_encoding = gpu(zeros(
+            eltype(y_context),
+            size(x_discretisation, 1),
+            size(x_discretisation, 1),
+            size(y_context, 2) + model.encoder.density,  # Account for density channel.
+            size(y_context, 3)
+        ))
+    end
+
+    # Apply the mean CNN. It operates on images of height one, so we have to insert a
+    # dimension and pull it out afterwards.
+    mean_encoding = insert_dim(mean_encoding; pos=2)
+    mean_latent = model.mean_conv(mean_encoding)
+    if size(mean_encoding, 1) != size(mean_latent, 1) || size(mean_latent, 2) != 1
+        error(
+            "Mean conv net changed the discretisation size from " *
+            "$(size(mean_encoding, 1)) to $(size(mean_latent, 1))."
+        )
+    end
+    mean_latent = dropdims(mean_latent; dims=2)
+
+    # Apply the kernel CNN.
+    kernel_latent = model.kernel_conv(kernel_encoding)
+
+    # Perform decoding.
+    mean_channels = model.decoder(x_discretisation, mean_latent, x_target)
+    kernel_channels = kernel_smooth(model.decoder, x_discretisation, kernel_latent, x_target)
+
+    # Return predictive distribution.
+    return model.predict(mean_channels, kernel_channels)
+end
+
+function convcnp_1d_kernel(
+    mean_arch::Architecture,
+    kernel_arch::Architecture;
+    margin::Float32=0.1f0
+)
+    arch = mean_arch
+    scale = 2 / arch.points_per_unit
+    return ConvCNPKernel(
+        UniformDiscretisation1d(arch.points_per_unit, margin, arch.multiple),
+        set_conv(1, scale; density=true),
+        mean_arch.conv,
+        kernel_arch.conv,
+        set_conv(1, scale; density=false),
+        _predict_gaussian_kernel
+    )
+end
+
+function _predict_gaussian_kernel(mean_channels, kernel_channels)
+    length(size(mean_channels)) == 3 || error("Mean tensor must be rank 3.")
+    length(size(kernel_channels)) == 4 || error("Kernel tensor must be rank 4.")
+    size(mean_channels, 2) == 1 || error("Mean tensor must have exactly one channel.")
+    size(kernel_channels, 3) == 1 || error("Kernel tensor must have exactly one channel.")
+
+    return mean_channels[:, 1, :], kernel_channels[:, :, 1, :]
 end

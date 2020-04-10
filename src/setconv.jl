@@ -51,8 +51,8 @@ end
 - `x_target::AbstractArray`: Discretisation locations of shape `(m, d, batch)`.
 
 # Returns
-- `AbstractArray`: Output of layer of shape `(n, channels, batch)` or
-    `(n, channels + 1, batch)`.
+- `AbstractArray`: Output of layer of shape `(m, channels, batch)` or
+    `(m, channels + 1, batch)`.
 """
 function (layer::SetConv)(
     x_context::AbstractArray,
@@ -103,6 +103,127 @@ function (layer::SetConv)(
         others = channels[:, 2:end, :] ./ (density .+ 1f-8)
         channels = cat(density, others; dims=2)
     end
+
+    return channels
+end
+
+function _to_rank_3(x)
+    size_x = size(x)
+    return reshape(x, size_x[1:2]..., prod(size_x[3:end])), function (y)
+        return reshape(y, size(y)[1:2]..., size_x[3:end]...)
+    end
+end
+
+_batched_mul(x, y) = Tracker.track(_batched_mul, x, y)
+
+_transpose(x) = permutedims(x, size(x)[1], size(x)[2], size(x)[3:end]...)
+
+@Tracker.grad function _batched_mul(x, y)
+    x, y = Tracker.data.((x, y))
+    x, back = _to_rank_3(x)
+    y, _ = _to_rank_3(y)
+    return back(batched_mul(x, y)), function (ȳ)
+        ȳ, _ = _to_rank_3(ȳ)
+        return back(batched_mul(ȳ, _transpose(b))), back(batched_mul(_transpose(a), ȳ))
+    end
+end
+
+function kernel(
+    layer::SetConv,
+    x_context::AbstractArray,
+    y_context::AbstractArray,
+    x_target::AbstractArray,
+)
+    n_context = size(x_context, 1)
+    dimensionality = size(x_context, 2)
+    batch_size = size(x_context, 3)
+
+    # Validate input sizes.
+    @assert size(y_context, 1) == n_context
+    @assert size(x_target, 2) == dimensionality
+    @assert size(y_context, 3) == batch_size
+    @assert size(x_target, 3) == batch_size
+
+    # Shape: `(n, m, batch)`.
+    dists2 = compute_dists2(x_context, x_target)
+
+    # Add channel dimension.
+    # Shape: `(n, m, channels, batch)`.
+    dists2 = insert_dim(dists2; pos=3)
+
+    # Apply length scales.
+    # Shape: `(n, m, channels, batch)`.
+    scales = reshape(exp.(layer.log_scales), 1, 1, length(layer.log_scales), 1)
+    dists2 = dists2 ./ scales.^2
+
+    # Apply RBF to compute weights.
+    # Shape: `(n, m, channels, batch)`.
+    weights = rbf(dists2)
+
+    if layer.density
+        # Add density channel to `y`.
+        # Shape: `(n, channels + 1, batch)`.
+        density = gpu(ones(eltype(y_context), n_context, 1, batch_size))
+        channels = cat(density, y_context; dims=2)
+    else
+        channels = y_context
+    end
+
+    # Add target dimenion.
+    # Shape: `(n, 1, channels + 1, batch)`.
+    channels = insert_dim(channels; pos=2)
+
+    # Multiply with weights and sum.
+    # Shape: `(m, m, channels + 1, batch)`.
+    channels = _batched_mul(permutedims(channels .* weights, (2, 1, 3, 4)), weights)
+
+    if layer.density
+        # Divide by the density channel.
+        density = channels[:, :, 1:1, :]
+        others = channels[:, :, 2:end, :] ./ (density .+ 1f-8)
+        channels = cat(density, others; dims=3)
+    end
+
+    return channels
+end
+
+function kernel_smooth(
+    layer::SetConv,
+    x_context::AbstractArray,
+    y_context::AbstractArray,
+    x_target::AbstractArray,
+)
+    n_context = size(x_context, 1)
+    dimensionality = size(x_context, 2)
+    batch_size = size(x_context, 3)
+
+    # Validate input sizes.
+    @assert size(y_context, 1) == n_context
+    @assert size(y_context, 2) == n_context
+    @assert size(x_target, 2) == dimensionality
+    @assert size(y_context, 4) == batch_size
+    @assert size(x_target, 3) == batch_size
+
+    # Shape: `(n, m, batch)`.
+    dists2 = compute_dists2(x_context, x_target)
+
+    # Add channel dimension.
+    # Shape: `(n, m, channels, batch)`.
+    dists2 = insert_dim(dists2; pos=3)
+
+    # Apply length scales.
+    # Shape: `(n, m, channels, batch)`.
+    scales = reshape(exp.(layer.log_scales), 1, 1, length(layer.log_scales), 1)
+    dists2 = dists2 ./ scales.^2
+
+    # Apply RBF to compute weights.
+    # Shape: `(n, m, channels, batch)`.
+    weights = rbf(dists2)
+
+    # Multiply with weights and sum.
+    # Shape: `(m, m, channels, batch)`.
+    L = _batched_mul(y_context, weights)
+    channels = _batched_mul(permutedims(L, (2, 1, 3, 4)), L)
 
     return channels
 end
