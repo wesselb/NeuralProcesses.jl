@@ -171,11 +171,14 @@ end
 
 
 struct ConvCNPKernel
-    discretisation::Discretisation
-    encoder::SetConv
+    mean_discretisation::Discretisation
+    kernel_discretisation::Discretisation
+    mean_encoder::SetConv
+    kernel_encoder::SetConv
     mean_conv::Chain
     kernel_conv::Chain
-    decoder::SetConv
+    mean_decoder::SetConv
+    kernel_decoder::SetConv
     predict
 end
 
@@ -189,24 +192,25 @@ function (model::ConvCNPKernel)(
     n_context = size(x_context, 1)
 
     # Compute discretisation of the functional embedding.
-    x_discretisation = gpu(model.discretisation(x_context, x_target))
+    mean_discretisation = gpu(model.mean_discretisation(x_context, x_target))
+    kernel_discretisation = gpu(model.kernel_discretisation(x_context, x_target))
 
     if n_context > 0
         # The context set is non-empty. Compute encodings as usual.
-        mean_encoding = model.encoder(x_context, y_context, x_discretisation)
-        kernel_encoding = kernel(model.encoder, x_context, y_context, x_discretisation)
+        mean_encoding = model.mean_encoder(x_context, y_context, mean_discretisation)
+        kernel_encoding = kernel(model.kernel_encoder, x_context, y_context, kernel_discretisation)
     else
         # The context set is empty. Set the encodings to all zeros.
         mean_encoding = gpu(zeros(
             eltype(y_context),
-            size(x_discretisation, 1),
+            size(mean_discretisation, 1),
             size(y_context, 2) + model.encoder.density,  # Account for density channel.
             size(y_context, 3)
         ))
         kernel_encoding = gpu(zeros(
             eltype(y_context),
-            size(x_discretisation, 1),
-            size(x_discretisation, 1),
+            size(kernel_discretisation, 1),
+            size(kernel_discretisation, 1),
             # Account for density and identity channel.
             size(y_context, 2) + model.encoder.density + 1,
             size(y_context, 3)
@@ -229,8 +233,8 @@ function (model::ConvCNPKernel)(
     kernel_latent = model.kernel_conv(kernel_encoding)
 
     # Perform decoding.
-    mean_channels = model.decoder(x_discretisation, mean_latent, x_target)
-    kernel_channels = kernel_smooth(model.decoder, x_discretisation, kernel_latent, x_target)
+    mean_channels = model.mean_decoder(mean_discretisation, mean_latent, x_target)
+    kernel_channels = kernel_smooth(model.kernel_decoder, kernel_discretisation, kernel_latent, x_target)
 
     # Return predictive distribution.
     return model.predict(mean_channels, kernel_channels)
@@ -241,14 +245,17 @@ function convcnp_1d_kernel(
     kernel_arch::Architecture;
     margin::Float32=0.1f0
 )
-    arch = mean_arch
-    scale = 2 / arch.points_per_unit
+    mean_scale = 2 / mean_arch.points_per_unit
+    kernel_scale = 2 / kernel_arch.points_per_unit
     return ConvCNPKernel(
-        UniformDiscretisation1d(arch.points_per_unit, margin, arch.multiple),
-        set_conv(1, scale; density=true),
+        UniformDiscretisation1d(mean_arch.points_per_unit, margin, mean_arch.multiple),
+        UniformDiscretisation1d(kernel_arch.points_per_unit, margin, kernel_arch.multiple),
+        set_conv(1, mean_scale; density=true),
+        set_conv(1, kernel_scale; density=true),
         mean_arch.conv,
         kernel_arch.conv,
-        set_conv(1, scale; density=false),
+        set_conv(1, mean_scale; density=false),
+        set_conv(1, kernel_scale; density=false),
         _predict_gaussian_kernel
     )
 end
