@@ -1,5 +1,6 @@
 import CuArrays: @libcudnn
 using CuArrays.CUDNN
+using CuArrays.CUBLAS
 import CuArrays.CUDNN:
     @check, cudnnStatus_t, cudnnConvolutionDescriptor_t,
     ConvDesc, TensorDesc, FilterDesc,
