@@ -31,6 +31,7 @@ function plot_task(model, epoch, plot_true = (plt, x_context, y_context, x) -> n
     y_mean, y_cov = model(expand.((x_context, y_context, x))...)
     y_mean = cpu(Flux.data(y_mean[:, 1, 1]))
     y_cov = cpu(Flux.data(y_cov[:, :, 1]))
+    y_cov = Matrix(1f-3I, size(y_cov)...) .+ y_cov
     y_var = diag(y_cov)
 
     x = cpu(x)
@@ -149,15 +150,15 @@ data_gen = DataGenerator(
     batch_size=8,
     x_dist=Uniform(-2, 2),
     max_context_points=10,
-    num_target_points=50
+    num_target_points=40
 )
 
 # Build low-rank ConvCNP model.
-mean_arch = build_conv_1d(4scale, 6, 16; points_per_unit=20f0, out_channels=1)
-kernel_arch = build_conv_1d_kernel(4scale, 6, 16; points_per_unit=20f0, out_channels=1)
+mean_arch = build_conv_1d(2scale, 4, 8; points_per_unit=30f0, out_channels=1)
+kernel_arch = build_conv_1d_kernel(2scale, 4, 8; points_per_unit=10f0, out_channels=1)
 model = convcnp_1d_kernel(mean_arch, kernel_arch; margin=2scale) |> gpu
 
 # Configure training.
-opt = ADAM(1e-3)
+opt = ADAM(5e-4)
 
 model = train!(model, data_gen, opt; epochs=100)
