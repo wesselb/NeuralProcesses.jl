@@ -211,7 +211,7 @@ function (model::ConvCNPKernel)(
             eltype(y_context),
             size(kernel_discretisation, 1),
             size(kernel_discretisation, 1),
-            size(y_context, 2) + model.encoder.density, # Account for density channel.
+            size(y_context, 2) + model.kernel_encoder.density, # Account for density channel.
             size(y_context, 3)
         ))
         # Append identity channel.
