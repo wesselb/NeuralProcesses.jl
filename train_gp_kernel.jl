@@ -19,6 +19,10 @@ using GPUArrays
 GPUArrays.allowscalar(false)
 pyplot()
 
+
+epoch_to_reg(epoch) = Float32(10^(-min(1 + epoch / 5, 3)))
+
+
 function plot_task(model, epoch, plot_true = (plt, x_context, y_context, x) -> nothing)
     x = gpu(collect(range(-3, 3, length=400)))
 
@@ -31,7 +35,7 @@ function plot_task(model, epoch, plot_true = (plt, x_context, y_context, x) -> n
     y_mean, y_cov = model(expand.((x_context, y_context, x))...)
     y_mean = cpu(Flux.data(y_mean[:, 1, 1]))
     y_cov = cpu(Flux.data(y_cov[:, :, 1]))
-    y_cov = Matrix(1f-3I, size(y_cov)...) .+ y_cov
+    y_cov = Matrix(epoch_to_reg(reg) * I, size(y_cov)...) .+ y_cov
     y_var = diag(y_cov)
 
     x = cpu(x)
@@ -96,7 +100,7 @@ function make_plot_true(process::GP)
     return plot_true
 end
 
-function loss(model, x_context, y_context, x_target, y_target)
+function loss(model, epoch, x_context, y_context, x_target, y_target)
     n, _, b = size(x_target)
 
     μ, Σ = model(x_context, y_context, x_target)
@@ -105,7 +109,7 @@ function loss(model, x_context, y_context, x_target, y_target)
     size(y_target, 2) == 1 || error("Target outputs have more than one channel.")
 
     logpdf = 0f0
-    ridge = gpu(Matrix(1f-3I, n, n))
+    ridge = gpu(Matrix(epoch_to_reg(reg) * I, n, n))
     for i = 1:b
         logpdf += gaussian_logpdf(y_target[:, 1, i], μ[:, i], Σ[:, :, i] .+ ridge)
     end
@@ -113,26 +117,26 @@ function loss(model, x_context, y_context, x_target, y_target)
     return -logpdf / n / b
 end
 
-function eval_model(model; num_batches=16)
-    loss_value = Flux.data(mean(map(x -> loss(model, gpu.(x)...), data_gen(num_batches))))
+function eval_model(model, epoch; num_batches=16)
+    loss_value = Flux.data(mean(map(x -> loss(model, epoch, gpu.(x)...), data_gen(num_batches))))
     @printf("Test loss: %.3f (%d batches)\n", loss_value, num_batches)
 end
 
 function train!(model, data_gen, opt; epochs=100, batches_per_epoch=2048)
     # Evaluate once before training.
-    eval_model(model)
+    eval_model(model, 1)
 
     for epoch in 1:epochs
         println("Epoch: $epoch")
         Flux.train!(
-            (xs...) -> loss(model, gpu.(xs)...),
+            (xs...) -> loss(model, epoch, gpu.(xs)...),
             Flux.params(model),
             data_gen(batches_per_epoch),
             opt,
             cb = Flux.throttle(() -> eval_model(model), 20)
         )
 
-        eval_model(model; num_batches=128)
+        eval_model(model, epoch; num_batches=128)
         plot_task(model, epoch, make_plot_true(data_gen.process))
 
         model_cpu = model |> cpu
