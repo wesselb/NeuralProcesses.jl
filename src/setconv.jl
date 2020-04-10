@@ -193,8 +193,7 @@ function kernel(
     end
 
     # Add identity channel.
-    identity =
-        gpu(repeat(Matrix{Float32}(I, n_target, n_target), 1, 1, size(channels)[3:4]...))
+    identity = gpu(repeat(Matrix{Float32}(I, n_target, n_target), 1, 1, 1, batch_size))
     channels = cat(channels, identity; dims=3)
 
     return channels

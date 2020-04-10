@@ -102,7 +102,7 @@ function build_conv_1d_kernel(
     num_channels::Integer;
     points_per_unit::Float32=30f0,
     multiple::Integer=1,
-    in_channels::Integer=2,
+    in_channels::Integer=3,
     out_channels::Integer=2,
     init_conv::Function=_init_conv_fixed_bias,
     init_depthwiseconv::Function=_init_depthwiseconv_fixed_bias
