@@ -211,10 +211,17 @@ function (model::ConvCNPKernel)(
             eltype(y_context),
             size(kernel_discretisation, 1),
             size(kernel_discretisation, 1),
-            # Account for density and identity channel.
-            size(y_context, 2) + model.encoder.density + 1,
+            size(y_context, 2) + model.encoder.density, # Account for density channel.
             size(y_context, 3)
         ))
+        # Append identity channel.
+        identity = gpu(repeat(Matrix{Float32}(
+            I,
+            size(kernel_discretisation, 1),
+            size(kernel_discretisation, 1)
+        ), 1, 1, 1, size(y_context, 3)))
+        kernel_encoding = cat(kernel_encoding, identity, dims=3)
+
     end
 
     # Apply the mean CNN. It operates on images of height one, so we have to insert a
