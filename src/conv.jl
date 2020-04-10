@@ -123,7 +123,7 @@ function build_conv_1d_kernel(
         ))
         push!(layers, Conv(
             init_conv((1, 1), num_channels=>num_channels)...,
-            act
+            i == num_layers ? tanh : act
         ))
     end
     push!(layers, Conv(init_conv((1, 1), num_channels=>out_channels)...))

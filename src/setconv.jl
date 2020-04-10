@@ -122,7 +122,7 @@ __transpose(x) = permutedims(x, (2, 1, range(3, length(size(x)), step=1)...))
 
 @Tracker.grad function _transpose(x)
     x = Tracker.data(x)
-    return __transpose(x), ȳ -> __transpose(ȳ)
+    return __transpose(x), ȳ -> (__transpose(ȳ),)
 end
 
 @Tracker.grad function _batched_mul(x, y)
@@ -235,7 +235,7 @@ function kernel_smooth(
     # Multiply with weights and sum.
     # Shape: `(m, m, channels, batch)`.
     L = _batched_mul(y_context, weights)
-    channels = _batched_mul(_transpose(L), L)
+    channels = _batched_mul(_transpose(L), L) ./ n_context
 
     return channels
 end
