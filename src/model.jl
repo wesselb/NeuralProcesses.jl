@@ -204,7 +204,7 @@ function (model::ConvCNPKernel)(
         mean_encoding = gpu(zeros(
             eltype(y_context),
             size(mean_discretisation, 1),
-            size(y_context, 2) + model.encoder.density,  # Account for density channel.
+            size(y_context, 2) + model.mean_encoder.density,  # Account for density channel.
             size(y_context, 3)
         ))
         kernel_encoding = gpu(zeros(
@@ -212,7 +212,7 @@ function (model::ConvCNPKernel)(
             size(kernel_discretisation, 1),
             size(kernel_discretisation, 1),
             # Account for density and identity channel.
-            size(y_context, 2) + model.encoder.density + 1,
+            size(y_context, 2) + model.kernel_encoder.density + 1,
             size(y_context, 3)
         ))
     end
