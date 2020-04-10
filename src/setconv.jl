@@ -131,7 +131,7 @@ end
     y, _ = _to_rank_3(y)
     return back(batched_mul(x, y)), function (ȳ)
         ȳ, _ = _to_rank_3(ȳ)
-        return back(batched_mul(ȳ, __transpose(y))), back(batched_mul(__transpose(a), ȳ))
+        return back(batched_mul(ȳ, __transpose(y))), back(batched_mul(__transpose(x), ȳ))
     end
 end
 
