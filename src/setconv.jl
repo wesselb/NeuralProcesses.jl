@@ -235,7 +235,7 @@ function kernel_smooth(
     # Multiply with weights and sum.
     # Shape: `(m, m, channels, batch)`.
     L = _batched_mul(y_context, weights)
-    channels = _batched_mul(_transpose(L), L) ./ n_context
+    channels = _batched_mul(_transpose(L), L)
 
     return channels
 end
