@@ -1,4 +1,4 @@
-export ConvCNP, convcnp_1d_factorised, convcnp_1d_lowrank, convcnp_1d_kernel
+export ConvCNP, convcnp_1d_factorised, convcnp_1d_kernel
 
 """
     ConvCNP
@@ -113,62 +113,6 @@ function convcnp_1d_factorised(arch::Architecture; margin::Float32=0.1f0)
         _predict_gaussian_factorised
     )
 end
-
-function _predict_gaussian_lowrank(channels)
-    # Get number of data points, channels, and batches.
-    n, c, b = size(channels)
-
-    μ = channels[:, 1:1, :]
-
-    # Initialise the covariance with heterogeneous observation noise.
-    noise_channel = NNlib.softplus.(channels[:, 2, :])
-    Σ = cat([diagonal(noise_channel[:, i]) for i = 1:b]..., dims=3)
-
-    # Unfortunately, batched matrix multiplication does not have a gradient, so we do it
-    # manually.
-    for i = 3:c
-        L = channels[:, i, :]
-        Σ = Σ .+ reshape(L, n, 1, b) .* reshape(L, 1, n, b)
-    end
-
-    # Divide by the number of components to keep the scale of the variance right.
-    Σ = Σ ./ (c - 1)  # Subtract one to account for the mean.
-
-    return μ, Σ
-end
-
-"""
-    convcnp_1d_lowrank(
-        arch::Architecture;
-        margin::Float32=0.1f0,
-        rank::Integer=10
-    )
-
-Construct a ConvCNP for one-dimensional data with a low-rank predictive distribution.
-
-# Arguments
-- `arch::Architecture`: CNN bundled with the points per units as constructed by
-    `build_conv`.
-
-# Keywords
-- `margin::Float32=0.1f0`: Margin for the discretisation. See `UniformDiscretisation1d`.
-- `rank::Integer=rank`: Rank of the predictive covariance.
-"""
-function convcnp_1d_lowrank(
-    arch::Architecture;
-    margin::Float32=0.1f0,
-    rank::Integer=10
-)
-    scale = 2 / arch.points_per_unit
-    return ConvCNP(
-        UniformDiscretisation1d(arch.points_per_unit, margin, arch.multiple),
-        set_conv(1, scale; density=true),
-        arch.conv,
-        set_conv(2 + rank, scale; density=false),
-        _predict_gaussian_lowrank
-    )
-end
-
 
 struct ConvCNPKernel
     mean_discretisation::Discretisation
