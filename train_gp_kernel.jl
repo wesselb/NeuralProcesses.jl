@@ -20,7 +20,7 @@ GPUArrays.allowscalar(false)
 pyplot()
 
 
-epoch_to_reg(epoch) = Float32(10^(-min(1 + epoch / 5, 3)))
+epoch_to_reg(epoch) = Float32(10^(-min(1 + float(epoch), 5)))
 
 
 function plot_task(model, epoch, plot_true = (plt, x_context, y_context, x) -> nothing)
@@ -133,36 +133,36 @@ function train!(model, data_gen, opt; epochs=100, batches_per_epoch=2048)
             Flux.params(model),
             data_gen(batches_per_epoch),
             opt,
-            cb = Flux.throttle(() -> eval_model(model, epoch), 20)
+            cb = Flux.throttle(() -> eval_model(model, epoch), 60)
         )
 
         eval_model(model, epoch; num_batches=128)
         plot_task(model, epoch, make_plot_true(data_gen.process))
 
         model_cpu = model |> cpu
-        @save "matern52_lowrank.bson" model_cpu
+        @save "matern52_kernel.bson" model_cpu
     end
 
     return model
 end
 
 # Construct data generator. The model's effective predictive extent is the scale.
-scale = 0.5f0
+scale = 0.25f0
 process = GP(stretch(matern52(), 1 / 0.25), GPC())
 data_gen = DataGenerator(
     process;
-    batch_size=8,
+    batch_size=4,
     x_dist=Uniform(-2, 2),
     max_context_points=10,
-    num_target_points=40
+    num_target_points=30
 )
 
 # Build low-rank ConvCNP model.
-mean_arch = build_conv_1d(2scale, 4, 8; points_per_unit=30f0, out_channels=1)
-kernel_arch = build_conv_1d_kernel(2scale, 4, 8; points_per_unit=10f0, out_channels=1)
+mean_arch = build_conv_1d(2scale, 6, 12; points_per_unit=30f0, out_channels=1)
+kernel_arch = build_conv_1d_kernel(2scale, 6, 12; points_per_unit=10f0, out_channels=1)
 model = convcnp_1d_kernel(mean_arch, kernel_arch; margin=2scale) |> gpu
 
 # Configure training.
-opt = ADAM(5e-4)
+opt = ADAM(1e-4)
 
-model = train!(model, data_gen, opt; epochs=100)
+model = train!(model, data_gen, opt; epochs=200)
