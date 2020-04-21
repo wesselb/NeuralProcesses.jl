@@ -219,16 +219,6 @@ observation noise variance `noise`.
 """
 (convcnp::BayesianConvCNP)(x, noise) = FiniteBayesianConvCNP(x, noise, convcnp)
 
-_init_conv(k, ch) = (
-    Flux.glorot_normal(k..., ch...),
-    1f-3 .* randn(Float32, ch[2])
-)
-
-_init_depthwiseconv(k, ch) = (
-    Flux.glorot_normal(k..., div(ch[2], ch[1]), ch[1]),
-    1f-3 .* randn(Float32, ch[2])
-)
-
 function Base.rand(fconvcnp::FiniteBayesianConvCNP)
     # Contruct discretisation.
     discretisation = UniformDiscretisation1d(
@@ -240,15 +230,16 @@ function Base.rand(fconvcnp::FiniteBayesianConvCNP)
     x_discretisation = reshape(x_discretisation, length(x_discretisation), 1, 1)
 
     # Construct CNN with random initialisation.
-    conv = build_conv_1d(
+    conv = build_conv(
         fconvcnp.convcnp.receptive_field,
         fconvcnp.convcnp.num_layers,
         fconvcnp.convcnp.num_channels;
         points_per_unit=fconvcnp.convcnp.points_per_unit,
         in_channels=1,
         out_channels=1,
-        init_conv=_init_conv,
-        init_depthwiseconv=_init_depthwiseconv
+        dimensionality=1,
+        init_conv=_init_conv_random_bias,
+        init_depthwiseconv=_init_depthwiseconv_random_bias
     ).conv
 
     # Construct decoder.
