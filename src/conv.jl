@@ -1,4 +1,4 @@
-export Architecture, build_conv_1d, build_conv_1d_kernel
+export Architecture, build_conv
 
 const Architecture = NamedTuple{
     (:conv, :points_per_unit, :multiple),
@@ -12,15 +12,21 @@ end
 
 _compute_padding(kernel_size) = Integer(floor(kernel_size / 2))
 
-_init_conv_fixed_bias(k, ch) = (
-    Flux.param(Flux.glorot_normal(k..., ch...)),
-    Flux.param(fill(1f-3, ch[2]))
-)
+_init_conv_fixed_bias(k, ch) =
+    (Flux.glorot_normal(k..., ch...), fill(1f-3, ch[2]))
+_init_depthwiseconv_fixed_bias(k, ch) =
+    (Flux.glorot_normal(k..., div(ch[2], ch[1]), ch[1]), fill(1f-3, ch[2]))
 
-_init_depthwiseconv_fixed_bias(k, ch) = (
-    Flux.param(Flux.glorot_normal(k..., div(ch[2], ch[1]), ch[1])),
-    Flux.param(fill(1f-3, ch[2]))
-)
+_init_conv_random_bias(k, ch) =
+    (Flux.glorot_normal(k..., ch...), 1f-3 .* randn(Float32, ch[2]))
+_init_depthwiseconv_random_bias(k, ch) =
+    (Flux.glorot_normal(k..., div(ch[2], ch[1]), ch[1]), 1f-3 .* randn(Float32, ch[2]))
+
+_expand_kernel(n, ::Val{1}) = (n, 1)
+_expand_kernel(n, ::Val{2}) = (n, n)
+
+_expand_padding(n, ::Val{1}) = (n, 0)
+_expand_padding(n, ::Val{2}) = (n, n)
 
 """
     build_conv(
@@ -31,11 +37,12 @@ _init_depthwiseconv_fixed_bias(k, ch) = (
         multiple::Integer=1,
         in_channels::Integer=2,
         out_channels::Integer=2,
+        dimensionality::Integer=1,
         init_conv::Function=_init_conv_fixed_bias,
         init_depthwiseconv::Function=_init_depthwiseconv_fixed_bias
     )
 
-Build a 1D CNN with a specified receptive field size.
+Build a CNN with a specified receptive field size.
 
 # Arguments
 - `receptive_field::Float32`: Width of the receptive field.
@@ -50,6 +57,7 @@ Build a 1D CNN with a specified receptive field size.
 - `multiple::Integer=1`: Multiple for the discretisation. See `UniformDiscretisation1d`.
 - `in_channels::Integer=2`: Number of input channels.
 - `out_channels::Integer=2`: Number of output channels.
+- `dimensionality::Integer=1`: Dimensionality of the filters.
 - `init_conv::Function=_init_conv_fixed_bias`: Initialiser for dense convolutions.
 - `init_depthwiseconv::Function=_init_depthwiseconv_fixed_bias`: Initialiser for depthwise
     separable convolutions.
@@ -57,7 +65,7 @@ Build a 1D CNN with a specified receptive field size.
 # Returns
 - `Architecture`: Corresponding CNN bundled with the specified points per unit and margin.
 """
-function build_conv_1d(
+function build_conv(
     receptive_field::Float32,
     num_layers::Integer,
     num_channels::Integer;
@@ -65,68 +73,33 @@ function build_conv_1d(
     multiple::Integer=1,
     in_channels::Integer=2,
     out_channels::Integer=2,
+    dimensionality::Integer=1,
     init_conv::Function=_init_conv_fixed_bias,
     init_depthwiseconv::Function=_init_depthwiseconv_fixed_bias
 )
     # We use two-dimensional kernels: CUDNN does not support 1D convolutions.
-    kernel = (_compute_kernel_size(receptive_field, points_per_unit, num_layers), 1)
-    padding = (_compute_padding(kernel[1]), 0)
-
-    act(x) = leakyrelu(x, 0.1f0)
-
-    # Build layers of the conv net.
-    layers = []
-    push!(layers, Conv(init_conv((1, 1), in_channels=>num_channels)..., act))
-    for i = 1:num_layers
-        push!(layers, DepthwiseConv(
-            init_depthwiseconv(kernel, num_channels=>num_channels)...,
-            pad=padding
-        ))
-        push!(layers, Conv(
-            init_conv((1, 1), num_channels=>num_channels)...,
-            act
-        ))
-    end
-    push!(layers, Conv(init_conv((1, 1), num_channels=>out_channels)...))
-
-    return (
-        conv=Chain(layers...),
-        points_per_unit=points_per_unit,
-        multiple=multiple
+    kernel = _expand_kernel(
+        _compute_kernel_size(receptive_field, points_per_unit, num_layers),
+        Val(dimensionality)
     )
-end
-
-function build_conv_1d_kernel(
-    receptive_field::Float32,
-    num_layers::Integer,
-    num_channels::Integer;
-    points_per_unit::Float32=30f0,
-    multiple::Integer=1,
-    in_channels::Integer=3,
-    out_channels::Integer=2,
-    init_conv::Function=_init_conv_fixed_bias,
-    init_depthwiseconv::Function=_init_depthwiseconv_fixed_bias
-)
-    kernel =
-        ntuple(_ -> _compute_kernel_size(receptive_field, points_per_unit, num_layers), 2)
-    padding = ntuple(_ -> _compute_padding(kernel[1]), 2)
+    padding = _expand_padding(_compute_padding(kernel[1]), Val(dimensionality))
 
     act(x) = leakyrelu(x, 0.1f0)
 
     # Build layers of the conv net.
     layers = []
-    push!(layers, Conv(init_conv((1, 1), in_channels=>num_channels)..., act))
+    push!(layers, Conv(Flux.param.(init_conv((1, 1), in_channels=>num_channels))..., act))
     for i = 1:num_layers
         push!(layers, DepthwiseConv(
-            init_depthwiseconv(kernel, num_channels=>num_channels)...,
+            Flux.param.(init_depthwiseconv(kernel, num_channels=>num_channels))...,
             pad=padding
         ))
         push!(layers, Conv(
-            init_conv((1, 1), num_channels=>num_channels)...,
+            Flux.param.(init_conv((1, 1), num_channels=>num_channels))...,
             act
         ))
     end
-    push!(layers, Conv(init_conv((1, 1), num_channels=>out_channels)...))
+    push!(layers, Conv(Flux.param.(init_conv((1, 1), num_channels=>out_channels))...))
 
     return (
         conv=Chain(layers...),
