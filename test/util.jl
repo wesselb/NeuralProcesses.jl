@@ -1,6 +1,23 @@
 using Distributions
 
-import ConvCNPs: ceil_odd, insert_dim, rbf, compute_dists2
+import ConvCNPs:
+    ceil_odd, insert_dim, rbf, compute_dists2,
+    diagonal, batched_transpose, batched_mul
+
+function test_gradient(f, xs...)
+    # Construct scalar version of `f`.
+    v = randn(size(f(xs...)))
+    f_scalar(ys...) = sum(f(ys...) .* v)
+
+    # Compare gradient with numerical estimate.
+    grad = Tracker.gradient(f_scalar, xs...)
+    grad_estimate = FiniteDifferences.grad(
+        central_fdm(5, 1, adapt=1),
+        (ys...) -> Tracker.data(f_scalar(ys...)),
+        xs...
+    )
+    @test all(grad .≈ grad_estimate)
+end
 
 @testset "util.jl" begin
     @testset "ceil_odd" begin
@@ -12,9 +29,9 @@ import ConvCNPs: ceil_odd, insert_dim, rbf, compute_dists2
 
     @testset "insert_dim" begin
         x = randn(2, 3)
-        @test size(insert_dim(x; pos=1)) == (1, 2, 3)
-        @test size(insert_dim(x; pos=2)) == (2, 1, 3)
-        @test size(insert_dim(x; pos=3)) == (2, 3, 1)
+        @test size(insert_dim(x, pos=1)) == (1, 2, 3)
+        @test size(insert_dim(x, pos=2)) == (2, 1, 3)
+        @test size(insert_dim(x, pos=3)) == (2, 3, 1)
     end
 
     @testset "rbf" begin
@@ -54,18 +71,30 @@ import ConvCNPs: ceil_odd, insert_dim, rbf, compute_dists2
         L = randn(3, 3)
         Σ = L * L' .+ Matrix{Float64}(I, 3, 3)
 
-        # Check value.
-        @test Tracker.data(dummy(x, μ, L)) ≈ logpdf(MvNormal(μ, Σ), x) atol=1e-6
+        @test dummy(x, μ, L) ≈ logpdf(MvNormal(μ, Σ), x) atol=1e-6
+        test_gradient(dummy, x, μ, L)
+    end
 
-        # Check gradient
-        grad = Tracker.gradient(dummy, x, μ, L)
-        grad_estimate = FiniteDifferences.grad(
-            central_fdm(5, 1, adapt=1),
-            (xs...) -> Tracker.data(dummy(xs...)),
-            x,
-            μ,
-            L
-        )
-        @test all(Tracker.data.(grad) .≈ grad_estimate)
+    @testset "diagonal" begin
+        x = randn(3)
+        @test diagonal(x) ≈ collect(Diagonal(x))
+        test_gradient(diagonal, x)
+    end
+
+    @testset "batched_transpose" begin
+        x = randn(3, 4, 5, 6)
+        @test batched_transpose(x) ≈ permutedims(x, (2, 1, 3, 4))
+        test_gradient(batched_transpose, x)
+    end
+
+    @testset "batched_mul" begin
+        x = randn(3, 4, 5, 6)
+        y = randn(4, 5, 5, 6)
+        z = Array{Float64}(undef, 3, 5, 5, 6)
+        for i = 1:5, j = 1:6
+            z[:, :, i, j] = x[:, :, i, j] * y[:, :, i, j]
+        end
+        @test batched_mul(x, y) ≈ z
+        test_gradient(batched_mul, x, y)
     end
 end

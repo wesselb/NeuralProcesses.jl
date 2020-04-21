@@ -135,6 +135,64 @@ Turn a vector `x` into a diagonal matrix.
 """
 diagonal(x::AbstractVector) = Tracker.track(diagonal, x)
 
+_diagonal(x::Array{T, 1}) where T<:Real = convert(Array, Diagonal(x))
+
 @Tracker.grad function diagonal(x)
-    convert(CuArray, Diagonal(Tracker.data(x))), ȳ -> (diag(ȳ),)
+    return _diagonal(Tracker.data(x)), ȳ -> (diag(ȳ),)
+end
+
+"""
+    batched_transpose(x)
+
+Batch transpose tensor `x` where dimensions `1:2` are the matrix dimensions and dimension
+`3:end` are the batch dimensions.
+
+# Args
+- `x`: Tensor to transpose.
+
+# Returns
+- Transpose of `x`.
+"""
+batched_transpose(x) = Tracker.track(batched_transpose, x)
+
+_batched_transpose(x) = permutedims(x, (2, 1, range(3, length(size(x)), step=1)...))
+
+@Tracker.grad function batched_transpose(x)
+    x = Tracker.data(x)
+    return _batched_transpose(x), ȳ -> (_batched_transpose(ȳ),)
+end
+
+"""
+    batched_mul(x, y)
+
+Batch matrix-multiply tensors `x` and `y` where dimensions `1:2` are the matrix
+dimensions and dimension `3:end` are the batch dimensions.
+
+# Args
+- `x`: Left matrix in product.
+- `y`: Right matrix in product.
+
+# Returns
+- Matrix product of `x` and `y`.
+"""
+batched_mul(x, y) = Tracker.track(batched_mul, x, y)
+
+function _to_rank_3(x)
+    size_x = size(x)
+    return reshape(x, size_x[1:2]..., prod(size_x[3:end])), function (y)
+        return reshape(y, size(y)[1:2]..., size_x[3:end]...)
+    end
+end
+
+@Tracker.grad function batched_mul(x, y)
+    x, y = Tracker.data.((x, y))
+    x, back = _to_rank_3(x)
+    y, _ = _to_rank_3(y)
+    return back(Flux.batched_mul(x, y)), function (ȳ)
+        ȳ, _ = _to_rank_3(ȳ)
+        return (
+            back(Flux.batched_mul(ȳ, _batched_transpose(y))),
+            back(Flux.batched_mul(_batched_transpose(x), ȳ))
+        )
+    end
 end

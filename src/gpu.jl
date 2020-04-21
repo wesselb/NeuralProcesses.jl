@@ -13,6 +13,31 @@ import CuArrays.CUDNN:
     cudnnGetConvolutionBackwardFilterWorkspaceSize
 import NNlib: depthwiseconv!, ∇depthwiseconv_filter!, ∇depthwiseconv_data!
 
+# Accelerate `batched_mul` on the GPU.
+
+function NNlib.batched_mul!(
+    c::CuArray{T, 3},
+    a::CuArray{T, 3},
+    b::CuArray{T, 3}
+) where {T<:CUBLAS.CublasFloat}
+    CUBLAS.gemm_strided_batched!(
+        'N',
+        'N',
+        one(T),
+        NNlib._unbatch(a),
+        NNlib._unbatch(b),
+        zero(T),
+        c
+    )
+    return c
+end
+
+# Implement conversion to dense, diagonal matrix.
+
+_diagonal(x::CuArray{T, 1}) where T<:Real = convert(CuArray, Diagonal(x))
+
+# Implement GPU support for depthwise separable convolutions.
+
 function cudnnGetConvolutionGroupCount(convDesc, count)
     @check ccall(
         (:cudnnGetConvolutionGroupCount, @libcudnn),
@@ -124,7 +149,6 @@ function cudnnConvolutionBackwardData(
     return dx
 end
 
-
 function cudnnGetConvolutionBackwardDataWorkspaceSize(
     dx::CuArray{T, N},
     w::CuArray{T, N},
@@ -143,7 +167,6 @@ function cudnnGetConvolutionBackwardDataWorkspaceSize(
     )
     return Int(workspace_size[])
 end
-
 
 function cudnnConvolutionBackwardFilter(
     dw::CuArray{T, N},
@@ -170,7 +193,6 @@ function cudnnConvolutionBackwardFilter(
     return dw
 end
 
-
 function cudnnGetConvolutionBackwardFilterWorkspaceSize(
     dw::CuArray{T, N},
     x::CuArray{T, N},
@@ -189,7 +211,6 @@ function cudnnGetConvolutionBackwardFilterWorkspaceSize(
     )
     return Int(workspace_size[])
 end
-
 
 function depthwiseconv!(
     y::CuArray{T},
@@ -260,11 +281,4 @@ function ∇depthwiseconv_data!(
             workspace_size=workspace_size
         )
     end
-end
-
-# Accelerate `batched_mul` on the GPU.
-
-function NNlib.batched_mul!(C::CuArray{T, 3}, A::CuArray{T, 3}, B::CuArray{T, 3}) where {T<:CUBLAS.CublasFloat}
-    CUBLAS.gemm_strided_batched!('N', 'N', one(T), NNlib._unbatch(A), NNlib._unbatch(B), zero(T), C)
-    return C
 end
