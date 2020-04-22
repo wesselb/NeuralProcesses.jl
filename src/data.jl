@@ -1,4 +1,4 @@
-export DataGenerator, Sawtooth, BayesianConvCNP
+export DataGenerator, Sawtooth, BayesianConvNP
 
 """
     DataGenerator
@@ -159,9 +159,9 @@ function Base.rand(fs::FiniteSawtooth)
 end
 
 """
-    Bayesian ConvCNP
+    Bayesian ConvNP
 
-Bayesian ConvCNP.
+Bayesian ConvNP.
 
 # Fields
 - `receptive_field::Float32`: Width of the receptive field.
@@ -172,13 +172,13 @@ Bayesian ConvCNP.
 - `points_per_unit::Float32=30f0`: Points per unit for the discretisation. See
      `UniformDiscretisation1d`.
 """
-struct BayesianConvCNP
+struct BayesianConvNP
     receptive_field::Float32
     num_layers::Integer
     num_channels::Integer
     points_per_unit::Float32
 
-    function BayesianConvCNP(;
+    function BayesianConvNP(;
         receptive_field::Float32=1f0,
         num_layers::Integer=4,
         num_channels::Integer=6,
@@ -189,25 +189,25 @@ struct BayesianConvCNP
 end
 
 """
-    FiniteBayesianConvCNP{T<:Real}
+    FiniteBayesianConvNP{T<:Real}
 
-Finite-dimensional distribution of a `BayesianConvCNP` at particular inputs.
+Finite-dimensional distribution of a `BayesianConvNP` at particular inputs.
 
 # Fields
 - `x::Vector{T}`: Inputs.
 - `noise::T`: Noise variance.
-- `convcnp::BayesianConvCNP`: Corresponding `BayesianConvCNP`.
+- `convnp::BayesianConvNP`: Corresponding `BayesianConvNP`.
 """
-struct FiniteBayesianConvCNP{T<:Real}
+struct FiniteBayesianConvNP{T<:Real}
     x::Vector{T}
     noise::T
-    convcnp::BayesianConvCNP
+    convnp::BayesianConvNP
 end
 
 """
-    (convcnp::BayesianConvCNP)(x, noise)
+    (convnp::BayesianConvNP)(x, noise)
 
-Construct the finite-dimensional distribution of a `BayesianConvCNP` at inputs `x` and
+Construct the finite-dimensional distribution of a `BayesianConvNP` at inputs `x` and
 observation noise variance `noise`.
 
 # Arguments
@@ -215,26 +215,26 @@ observation noise variance `noise`.
 - `noise`: Noise variance.
 
 # Returns
-- `FiniteBayesianConvCNP`: Corresponding finite-dimensional distribution.
+- `FiniteBayesianConvNP`: Corresponding finite-dimensional distribution.
 """
-(convcnp::BayesianConvCNP)(x, noise) = FiniteBayesianConvCNP(x, noise, convcnp)
+(convnp::BayesianConvNP)(x, noise) = FiniteBayesianConvNP(x, noise, convnp)
 
-function Base.rand(fconvcnp::FiniteBayesianConvCNP)
+function Base.rand(fconvnp::FiniteBayesianConvNP)
     # Contruct discretisation.
-    discretisation = UniformDiscretisation1d(
-        fconvcnp.convcnp.points_per_unit,
-        fconvcnp.convcnp.receptive_field / 2,
+    disc = UniformDiscretisation1d(
+        fconvnp.convnp.points_per_unit,
+        fconvnp.convnp.receptive_field / 2,
         1
     )
-    x_discretisation = discretisation(fconvcnp.x)
-    x_discretisation = reshape(x_discretisation, length(x_discretisation), 1, 1)
+    x_disc = disc(fconvnp.x)
+    x_disc = reshape(x_disc, length(x_disc), 1, 1)
 
     # Construct CNN with random initialisation.
     conv = build_conv(
-        fconvcnp.convcnp.receptive_field,
-        fconvcnp.convcnp.num_layers,
-        fconvcnp.convcnp.num_channels;
-        points_per_unit=fconvcnp.convcnp.points_per_unit,
+        fconvnp.convnp.receptive_field,
+        fconvnp.convnp.num_layers,
+        fconvnp.convnp.num_channels;
+        points_per_unit=fconvnp.convnp.points_per_unit,
         in_channels=1,
         out_channels=1,
         dimensionality=1,
@@ -243,24 +243,23 @@ function Base.rand(fconvcnp::FiniteBayesianConvCNP)
     ).conv
 
     # Construct decoder.
-    scale = 2 / fconvcnp.convcnp.points_per_unit
-    decoder = SetConv([log(scale)], false)
+    scale = 2 / fconvnp.convnp.points_per_unit
+    decoder = SetConv([log(scale)])
 
     # Draw random encoding.
-    encoding = randn(Float32, length(x_discretisation))
+    encoding = randn(Float32, length(x_disc))
 
     # Pass through CNN, which takes in images of height one.
     encoding = reshape(encoding, length(encoding), 1, 1, 1)
     latent = conv(encoding)
-    latent = reshape(latent, length(latent), 1, 1)
 
     # Perform decoding.
-    x_target = reshape(fconvcnp.x, length(fconvcnp.x), 1, 1)
-    sample = decoder(x_discretisation, latent, x_target)[:, 1, 1]
+    x_target = reshape(fconvnp.x, length(fconvnp.x), 1, 1)
+    sample = decode(decoder, x_disc, latent, x_target)[:, 1, 1]
 
     # Normalise sample.
     sample = (sample .- mean(sample)) ./ std(sample)
 
     # Return with noise.
-    return sample .+ sqrt(fconvcnp.noise) .* randn(Float32, size(sample)...)
+    return sample .+ sqrt(fconvnp.noise) .* randn(Float32, size(sample)...)
 end
