@@ -77,7 +77,7 @@ function build_conv(
     init_conv::Function=_init_conv_fixed_bias,
     init_depthwiseconv::Function=_init_depthwiseconv_fixed_bias
 )
-    # We use two-dimensional kernels: CUDNN does not support 1D convolutions.
+    # Appropriate expand the kernels to the right dimensionality.
     kernel = _expand_kernel(
         _compute_kernel_size(receptive_field, points_per_unit, num_layers),
         Val(dimensionality)
