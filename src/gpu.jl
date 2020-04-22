@@ -16,20 +16,20 @@ import NNlib: depthwiseconv!, ∇depthwiseconv_filter!, ∇depthwiseconv_data!
 # Accelerate `batched_mul` on the GPU.
 
 function NNlib.batched_mul!(
-    c::CuArray{T, 3},
-    a::CuArray{T, 3},
-    b::CuArray{T, 3}
+    z::CuArray{T, 3},
+    x::CuArray{T, 3},
+    y::CuArray{T, 3}
 ) where {T<:CUBLAS.CublasFloat}
     CUBLAS.gemm_strided_batched!(
         'N',
         'N',
         one(T),
-        NNlib._unbatch(a),
-        NNlib._unbatch(b),
+        NNlib._unbatch(x),
+        NNlib._unbatch(y),
         zero(T),
-        c
+        z
     )
-    return c
+    return z
 end
 
 # Implement conversion to dense, diagonal matrix.
