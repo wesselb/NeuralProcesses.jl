@@ -1,19 +1,19 @@
-export ConvCNP, convcnp_1d_factorised, convcnp_1d_kernel
+export ConvCNP, convcnp_1d, CorrelatedConvCNP, convcnp_1d_correlated
 
 """
     ConvCNP
 
-Convolutional CNP model.
+Convolutional CNP model with a factorised Gaussian predictive distribution.
 
 # Fields
-- `discretisation::Discretisation`: Discretisation for the encoding.
+- `disc::Discretisation`: Discretisation for the encoding.
 - `encoder::SetConv`: Encoder.
-- `conv::Chain`: CNN that approximates rho.
+- `conv::Chain`: CNN that approximates ρ.
 - `decoder::SetConv`: Decoder.
-- `predict::Function`: Function that transforms the decoding into a predictive distribution.
+- `predict`: Function that transforms the decoding into a predictive distribution.
 """
 struct ConvCNP
-    discretisation::Discretisation
+    disc::Discretisation
     encoder::SetConv
     conv::Chain
     decoder::SetConv
@@ -21,6 +21,14 @@ struct ConvCNP
 end
 
 @Flux.treelike ConvCNP
+
+function _check_conv_output(encoding, latent)
+    shape_encoding = size(encoding)[[1, 2]]
+    shape_latent = size(latent)[[1, 2]]
+    if shape_encoding != shape_latent
+        error("Conv net changed the shape from $(shape_encoding) to $(shape_latent).")
+    end
+end
 
 """
     (model::ConvCNP)(
@@ -42,59 +50,45 @@ function (model::ConvCNP)(
     y_context::AbstractArray,
     x_target::AbstractArray
 )
-    n_context = size(x_context, 1)
-
     # Compute discretisation of the functional embedding.
-    x_discretisation = gpu(model.discretisation(x_context, x_target))
+    x_disc = gpu(model.disc(x_context, x_target))
 
-    if n_context > 0
+    if size(x_context, 1) > 0
         # The context set is non-empty. Compute encoding as usual.
-        encoding = model.encoder(x_context, y_context, x_discretisation)
+        encoding = encode(model.encoder, x_context, y_context, x_disc)
     else
-        # The context set is empty. Set the encoding to all zeros.
-        encoding = gpu(zeros(
-            eltype(y_context),
-            size(x_discretisation, 1),
-            size(y_context, 2) + model.encoder.density,  # Account for density channel.
-            size(y_context, 3)
-        ))
+        # The context set is empty. Set to empty encodings.
+        encoding = empty_encoding(model.encoder, y_context, x_disc)
     end
 
-    # Apply the CNN. It operates on images of height one, so we have to insert a
-    # dimension and pull it out afterwards.
-    encoding = insert_dim(encoding; pos=2)
+    # Apply CNN.
     latent = model.conv(encoding)
-    if size(encoding, 1) != size(latent, 1) || size(latent, 2) != 1
-        error(
-            "Conv net changed the discretisation size from " *
-            "$(size(encoding, 1)) to $(size(latent, 1))."
-        )
-    end
-    latent = dropdims(latent; dims=2)
+    _check_conv_output(encoding, latent)
 
     # Perform decoding.
-    channels = model.decoder(x_discretisation, latent, x_target)
+    channels = decode(model.decoder, x_disc, latent, x_target)
 
     # Return predictive distribution.
     return model.predict(channels)
 end
 
 function _predict_gaussian_factorised(channels)
-    # Check that the number of channels is even.
-    mod(size(channels, 2), 2) != 0 && error("Number of channels must be even.")
+    size(channels, 2) == 1 || error("Channels are not one-dimensional.")
+    mod(size(channels, 3), 2) == 0 || error("Number of channels must be even.")
 
     # Half of the channels are used to determine the mean, and the other half are used to
     # determine the standard deviation.
-    i_split = div(size(channels, 2), 2)
-    μ = channels[:, 1:i_split, :]
-    σ² = NNlib.softplus.(channels[:, i_split + 1:end, :])
+    i_split = div(size(channels, 3), 2)
+    μ = channels[:, 1, 1:i_split, :]
+    σ² = NNlib.softplus.(channels[:, 1, i_split + 1:end, :])
     return μ, σ²
 end
 
-"""
-    convcnp_1d_factorised(arch::Architecture, margin::Float32=0.1f0)
 
-Construct a ConvCNP for one-dimensional data with a factorised predictive distribution.
+"""
+    convcnp_1d(arch::Architecture, margin::Float32=0.1f0)
+
+Construct a ConvCNP for one-dimensional data.
 
 # Arguments
 - `arch::Architecture`: CNN bundled with the points per units as constructed by
@@ -103,119 +97,130 @@ Construct a ConvCNP for one-dimensional data with a factorised predictive distri
 # Keywords
 - `margin::Float32=0.1f0`: Margin for the discretisation. See `UniformDiscretisation1d`.
 """
-function convcnp_1d_factorised(arch::Architecture; margin::Float32=0.1f0)
+function convcnp_1d(arch::Architecture; margin::Float32=0.1f0)
     scale = 2 / arch.points_per_unit
     return ConvCNP(
         UniformDiscretisation1d(arch.points_per_unit, margin, arch.multiple),
-        set_conv(1, scale; density=true),
+        set_conv(2, scale),  # Account for density channel.
         arch.conv,
-        set_conv(2, scale; density=false),
+        set_conv(2, scale),
         _predict_gaussian_factorised
     )
 end
 
-struct ConvCNPKernel
-    mean_discretisation::Discretisation
-    kernel_discretisation::Discretisation
-    mean_encoder::SetConv
-    kernel_encoder::SetConv
-    mean_conv::Chain
-    kernel_conv::Chain
-    mean_decoder::SetConv
-    kernel_decoder::SetConv
+"""
+    CorrelatedConvCNP
+
+Convolutional CNP model with a correlated Gaussian predictive distribution.
+
+# Fields
+- `μ_disc::Discretisation`: Discretisation for the encoding of the mean.
+- `Σ_disc::Discretisation`: Discretisation for the encoding of the covariance.
+- `μ_encoder::SetConv`: Encoder for the mean.
+- `Σ_encoder::SetConv`: Encoder for the covariance.
+- `μ_conv::Chain`: CNN that approximates ρ for the mean.
+- `Σ_conv::Chain`: CNN that approximates ρ for the covariance.
+- `μ_decoder::SetConv`: Decoder for the mean.
+- `Σ_decoder::SetConv`: Decoder for the covariance.
+- `predict`: Function that transforms the decodings into a predictive distribution.
+"""
+struct CorrelatedConvCNP
+    μ_disc::Discretisation
+    Σ_disc::Discretisation
+    μ_encoder::SetConv
+    Σ_encoder::SetConv
+    μ_conv::Chain
+    Σ_conv::Chain
+    μ_decoder::SetConv
+    Σ_decoder::SetConv
     predict
 end
 
-@Flux.treelike ConvCNPKernel
+@Flux.treelike CorrelatedConvCNP
 
-function (model::ConvCNPKernel)(
+"""
+    (model::CorrelatedConvCNP)(
+        x_context::AbstractArray,
+        y_context::AbstractArray,
+        x_target::AbstractArray
+    )
+
+# Arguments
+- `x_context::AbstractArray`: Locations of observed values of shape `(n, d, batch)`.
+- `y_context::AbstractArray`: Observed values of shape `(n, channels, batch)`.
+- `x_target::AbstractArray`: Locations of target set of shape `(m, d, batch)`.
+
+# Returns
+- `Tuple{AbstractArray, AbstractArray}`: Tuple containing means and covariances.
+"""
+function (model::CorrelatedConvCNP)(
     x_context::AbstractArray,
     y_context::AbstractArray,
     x_target::AbstractArray
 )
-    n_context = size(x_context, 1)
-
     # Compute discretisation of the functional embedding.
-    mean_discretisation = gpu(model.mean_discretisation(x_context, x_target))
-    kernel_discretisation = gpu(model.kernel_discretisation(x_context, x_target))
+    μ_disc = gpu(model.μ_disc(x_context, x_target))
+    Σ_disc = gpu(model.Σ_disc(x_context, x_target))
 
-    if n_context > 0
+    if size(x_context, 1) > 0
         # The context set is non-empty. Compute encodings as usual.
-        mean_encoding = model.mean_encoder(x_context, y_context, mean_discretisation)
-        kernel_encoding = kernel(model.kernel_encoder, x_context, y_context, kernel_discretisation)
+        μ_encoding = encode(   model.μ_encoder, x_context, y_context, μ_disc)
+        Σ_encoding = encode_pd(model.Σ_encoder, x_context, y_context, Σ_disc)
     else
-        # The context set is empty. Set the encodings to all zeros.
-        mean_encoding = gpu(zeros(
-            eltype(y_context),
-            size(mean_discretisation, 1),
-            size(y_context, 2) + model.mean_encoder.density,  # Account for density channel.
-            size(y_context, 3)
-        ))
-        kernel_encoding = gpu(zeros(
-            eltype(y_context),
-            size(kernel_discretisation, 1),
-            size(kernel_discretisation, 1),
-            size(y_context, 2) + model.kernel_encoder.density, # Account for density channel.
-            size(y_context, 3)
-        ))
-        # Append identity channel.
-        identity = gpu(repeat(Matrix{Float32}(
-            I,
-            size(kernel_discretisation, 1),
-            size(kernel_discretisation, 1)
-        ), 1, 1, 1, size(y_context, 3)))
-        kernel_encoding = cat(kernel_encoding, identity, dims=3)
-
+        # The context set is empty. Set to empty encodings.
+        μ_encoding = empty_encoding(   model.μ_encoder, y_context, μ_disc)
+        Σ_encoding = empty_encoding_pd(model.Σ_encoder, y_context, Σ_disc)
     end
 
-    # Apply the mean CNN. It operates on images of height one, so we have to insert a
-    # dimension and pull it out afterwards.
-    mean_encoding = insert_dim(mean_encoding; pos=2)
-    mean_latent = model.mean_conv(mean_encoding)
-    if size(mean_encoding, 1) != size(mean_latent, 1) || size(mean_latent, 2) != 1
-        error(
-            "Mean conv net changed the discretisation size from " *
-            "$(size(mean_encoding, 1)) to $(size(mean_latent, 1))."
-        )
-    end
-    mean_latent = dropdims(mean_latent; dims=2)
-
-    # Apply the kernel CNN.
-    kernel_latent = model.kernel_conv(kernel_encoding)
+    # Apply the CNNs.
+    μ_latent = model.μ_conv(μ_encoding)
+    _check_conv_output(μ_encoding, μ_latent)
+    Σ_latent = model.Σ_conv(Σ_encoding)
+    _check_conv_output(Σ_encoding, Σ_latent)
 
     # Perform decoding.
-    mean_channels = model.mean_decoder(mean_discretisation, mean_latent, x_target)
-    kernel_channels = kernel_smooth(model.kernel_decoder, kernel_discretisation, kernel_latent, x_target)
+    μ_channels = decode(   model.μ_decoder, μ_disc, μ_latent, x_target)
+    Σ_channels = decode_pd(model.Σ_decoder, Σ_disc, Σ_latent, x_target)
 
     # Return predictive distribution.
-    return model.predict(mean_channels, kernel_channels)
+    return model.predict(μ_channels, Σ_channels)
 end
 
-function convcnp_1d_kernel(
-    mean_arch::Architecture,
-    kernel_arch::Architecture;
+"""
+    convcnp_1d_correlated(arch::Architecture, margin::Float32=0.1f0)
+
+Construct a correlated ConvCNP for one-dimensional data.
+
+# Arguments
+- `arch::Architecture`: CNN bundled with the points per units as constructed by
+    `build_conv`.
+
+# Keywords
+- `margin::Float32=0.1f0`: Margin for the discretisation. See `UniformDiscretisation1d`.
+"""
+function convcnp_1d_correlated(
+    μ_arch::Architecture,
+    Σ_arch::Architecture;
     margin::Float32=0.1f0
 )
-    mean_scale = 2 / mean_arch.points_per_unit
-    kernel_scale = 2 / kernel_arch.points_per_unit
-    return ConvCNPKernel(
-        UniformDiscretisation1d(mean_arch.points_per_unit, margin, mean_arch.multiple),
-        UniformDiscretisation1d(kernel_arch.points_per_unit, margin, kernel_arch.multiple),
-        set_conv(1, mean_scale; density=true),
-        set_conv(1, kernel_scale; density=true),
-        mean_arch.conv,
-        kernel_arch.conv,
-        set_conv(1, mean_scale; density=false),
-        set_conv(1, kernel_scale; density=false),
-        _predict_gaussian_kernel
+    μ_scale = 2 / μ_arch.points_per_unit
+    Σ_scale = 2 / Σ_arch.points_per_unit
+    return CorrelatedConvCNP(
+        UniformDiscretisation1d(μ_arch.points_per_unit, margin, μ_arch.multiple),
+        UniformDiscretisation1d(Σ_arch.points_per_unit, margin, Σ_arch.multiple),
+        set_conv(2, μ_scale),  # Account for density channel.
+        set_conv(2, Σ_scale),  # Account for density channel.
+        μ_arch.conv,
+        Σ_arch.conv,
+        set_conv(1, μ_scale),
+        set_conv(1, Σ_scale),
+        _predict_gaussian_correlated
     )
 end
 
-function _predict_gaussian_kernel(mean_channels, kernel_channels)
-    length(size(mean_channels)) == 3 || error("Mean tensor must be rank 3.")
-    length(size(kernel_channels)) == 4 || error("Kernel tensor must be rank 4.")
-    size(mean_channels, 2) == 1 || error("Mean tensor must have exactly one channel.")
-    size(kernel_channels, 3) == 1 || error("Kernel tensor must have exactly one channel.")
-
-    return mean_channels[:, 1, :], kernel_channels[:, :, 1, :]
+function _predict_gaussian_correlated(μ_channels, Σ_channels)
+    size(μ_channels, 2) == 1 || error("Mean is not one-dimensional.")
+    size(μ_channels, 3) == 1 || error("More than one channel for the mean.")
+    size(Σ_channels, 3) == 1 || error("More than one channel for the covariance.")
+    return μ_channels[:, 1, 1, :], Σ_channels[:, :, 1, :]
 end
