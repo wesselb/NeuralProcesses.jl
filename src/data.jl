@@ -8,30 +8,32 @@ export DataGenerator, Sawtooth, BayesianConvNP
     back a distribution that can be fed to `randn` to sample values corresponding to those
     inputs `x` at observation noise `noise`.
 - `batch_size::Integer=16`: Number of tasks in a batch.
-- `x_dist::Distribution=Uniform(-2, 2)`: Distribution to sample inputs from.
-- `max_context_points::Integer=10`: Maximum number of context points in a task.
-- `num_target_points::Integer=100`: Number of target points in a task.
+- `x::Distribution=Uniform(-2, 2)`: Distribution to sample inputs from.
+- `num_context::Distribution=DiscreteUniform(10, 10)`: Distribution of number of context
+    points in a task.
+- `num_target::Distribution=DiscreteUniform(100, 100)`: Distribution of number of target
+    points in a task.
 """
 struct DataGenerator
     process
     batch_size::Integer
-    x_dist::Distribution
-    max_context_points::Integer
-    num_target_points::Integer
+    x::Distribution
+    num_context::Distribution
+    num_target::Distribution
 
     function DataGenerator(
         process;
         batch_size::Integer=16,
-        x_dist::Distribution=Uniform(-2, 2),
-        max_context_points::Integer=10,
-        num_target_points::Integer=100,
+        x::Distribution=Uniform(-2, 2),
+        num_context::Distribution=DiscreteUniform(10, 10),
+        num_target::Distribution=DiscreteUniform(100, 100)
     )
         return new(
             process,
             batch_size,
-            x_dist,
-            max_context_points,
-            num_target_points
+            x,
+            num_context,
+            num_target
         )
     end
 end
@@ -49,8 +51,8 @@ end
 function (generator::DataGenerator)(num_batches::Integer)
     return [_make_batch(
         generator,
-        rand(0:generator.max_context_points),
-        generator.num_target_points
+        rand(generator.num_context),
+        rand(generator.num_target)
     ) for i in 1:num_batches]
 end
 
@@ -61,13 +63,13 @@ function _make_batch(generator::DataGenerator, num_context::Integer, num_target:
     tasks = []
     for i in 1:generator.batch_size
         # Determine context set.
-        x_context = rand(generator.x_dist, num_context)
+        x_context = rand(generator.x, num_context)
 
         # Determine target set.
-        dx = (maximum(generator.x_dist) - minimum(generator.x_dist)) / num_target
+        dx = (maximum(generator.x) - minimum(generator.x)) / num_target
         offset = rand() * dx
         steps = collect(range(0, num_target - 1, step=1))
-        x_target = minimum(generator.x_dist) .+ offset .+ steps .* dx
+        x_target = minimum(generator.x) .+ offset .+ steps .* dx
 
         # Concatenate inputs and sample.
         x = vcat(x_context, x_target)
@@ -91,19 +93,20 @@ end
 Random truncated Fourier expansion of a sawtooth wave.
 
 # Fields
-- `freq_dist=Uniform(3, 5)`: Distribution of the frequency.
-- `shift_dist=Uniform(3, 5)`: Distribution of the shift.
-- `trunc_dist=10:20`: Distribution of the truncation of the Fourier expansion.
+- `freq_dist::Distribution=Uniform(3, 5)`: Distribution of the frequency.
+- `shift_dist::Distribution=Uniform(3, 5)`: Distribution of the shift.
+- `trunc_dist::Distribution=DiscreteUniform(10, 20)`: Distribution of the truncation of
+    the Fourier expansion.
 """
 struct Sawtooth
-    freq_dist
-    shift_dist
-    trunc_dist
+    freq_dist::Distribution
+    shift_dist::Distribution
+    trunc_dist::Distribution
 
     function Sawtooth(
-        freq_dist=Uniform(3, 5),
-        shift_dist=Uniform(-5, 5),
-        trunc_dist=10:20
+        freq_dist::Distribution=Uniform(3, 5),
+        shift_dist::Distribution=Uniform(-5, 5),
+        trunc_dist::Distribution=DiscreteUniform(10, 20)
     )
         return new(freq_dist, shift_dist, trunc_dist)
     end

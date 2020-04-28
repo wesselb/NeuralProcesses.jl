@@ -5,9 +5,9 @@ function test_generator(process)
     gen = DataGenerator(
         process,
         batch_size=10,
-        x_dist=Uniform(-1, 3),
-        max_context_points=5,
-        num_target_points=8
+        x=Uniform(-1, 3),
+        num_context=DiscreteUniform(0, 5),
+        num_target=DiscreteUniform(8, 8)
     )
 
     epoch = gen(500)  # `num_batches = 500`.
@@ -28,7 +28,7 @@ function test_generator(process)
     @test all([size(batch[4], 1) == 8 for batch in epoch])
 
     for batch in epoch
-        # Check `x_dist`.
+        # Check `x`.
         for x in [batch[1], batch[3]]
             if !isempty(x)
                 @test minimum(x) >= -1
