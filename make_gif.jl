@@ -35,7 +35,6 @@ for num = 0:15
     # Plot true sawtooth.
     plot!(plt, x, y, c=:black, dpi=200, label="")
 
-
     # Plot prediction.
     plot!(plt, x, y_mean, c=:green, label="", dpi=200)
     plot!(plt, x, [y_mean y_mean],
