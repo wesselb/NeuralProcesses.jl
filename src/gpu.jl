@@ -1,3 +1,4 @@
+using CuArrays
 import CuArrays: @libcudnn
 using CuArrays.CUDNN
 using CuArrays.CUBLAS
