@@ -19,4 +19,6 @@ if Flux.has_cuarrays()
     include("gpu.jl")
 end
 
+include("experiment.jl")
+
 end
