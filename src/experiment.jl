@@ -14,6 +14,8 @@ using GPUArrays
 
 pyplot()
 
+_untrack(model) = mapleaves(x -> Flux.data(x), model)
+
 _expand_gpu(x) = gpu(reshape(x, length(x), 1, 1))
 
 function predict(
@@ -22,9 +24,9 @@ function predict(
     y_context::AbstractVector,
     x_target::AbstractVector
 )
-    μ, σ² =  model(_expand_gpu.((x_context, y_context, x_target))...)
-    μ = Flux.data(μ[:, 1, 1]) |> cpu
-    σ² = Flux.data(σ²[:, 1, 1]) |> cpu
+    μ, σ² = _untrack(model)(_expand_gpu.((x_context, y_context, x_target))...)
+    μ = μ[:, 1, 1] |> cpu
+    σ² = σ²[:, 1, 1] |> cpu
     return μ, μ .- 2 .* sqrt.(σ²), μ .+ 2 .* sqrt.(σ²), nothing
 end
 
@@ -34,9 +36,9 @@ function predict(
     y_context::AbstractVector,
     x_target::AbstractVector
 )
-    μ, Σ = model(_expand_gpu.((x_context, y_context, x_target)))
-    μ = Flux.data(μ[:, 1, 1]) |> cpu
-    Σ = Flux.data(Σ[:, :, 1]) |> cpu
+    μ, Σ = _untrack(model)(_expand_gpu.((x_context, y_context, x_target)))
+    μ = μ[:, 1, 1] |> cpu
+    Σ = Σ[:, :, 1] |> cpu
     σ² = diag(Σ)
 
     # Produce three posterior samples.
@@ -68,10 +70,11 @@ function loss(model::CorrelatedConvCNP, epoch, x_context, y_context, x_target, y
 end
 
 function eval_model(model, data_gen, epoch; num_batches=128)
-    value = Flux.data(mean(map(
+    model = _untrack(model)
+    value = mean(map(
         x -> loss(model, epoch, gpu.(x)...),
         data_gen(num_batches)
-    )))
+    ))
     @printf("Loss: %.3f (%d batches)\n", value, num_batches)
 end
 
@@ -108,7 +111,7 @@ function plot_task(
     epoch,
     plot_true = (plt, x_context, y_context, x_target) -> nothing
 )
-    x = gpu(collect(range(-3, 3, length=400)))
+    x = collect(range(-3, 3, length=400))
 
     # Predict on a task.
     x_context, y_context, x_target, y_target = map(x -> x[:, 1, 1], data_gen(1)[1])
