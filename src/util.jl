@@ -103,9 +103,8 @@ Multi-dimensional Gaussian log-pdf.
 gaussian_logpdf(x::AbstractVector, μ::AbstractVector, Σ::AbstractMatrix) =
     Tracker.track(gaussian_logpdf, x, μ, Σ)
 
-@Tracker.grad function gaussian_logpdf(x, μ, Σ)
+function _gaussian_logpdf(x, μ, Σ)
     n = length(x)
-    x, μ, Σ = Tracker.data.((x, μ, Σ))
 
     U = cholesky(Σ).U  # Upper triangular
     L = U'             # Lower triangular
@@ -115,6 +114,14 @@ gaussian_logpdf(x::AbstractVector, μ::AbstractVector, Σ::AbstractMatrix) =
     # take the diagonal of U.
     logpdf = -(n * logconst + 2sum(log.(diag(U))) + dot(z, z)) / 2
 
+    return logpdf, n, L, U, z
+end
+
+gaussian_logpdf(x::CuOrVector, μ::CuOrVector, Σ::CuOrMatrix) =
+    first(_gaussian_logpdf(x, μ, Σ))
+
+@Tracker.grad function gaussian_logpdf(x, μ, Σ)
+    logpdf, n, L, U, z = _gaussian_logpdf(Tracker.data.((x, μ, Σ))...)
     return logpdf, function (ȳ)
         u = U \ z
         eye = gpu(Matrix{Float32}(I, n, n))
@@ -135,10 +142,10 @@ Turn a vector `x` into a diagonal matrix.
 """
 diagonal(x::AbstractVector) = Tracker.track(diagonal, x)
 
-_diagonal(x::Array{T, 1}) where T<:Real = convert(Array, Diagonal(x))
+diagonal(x::Array{T, 1}) where T<:Real = convert(Array, Diagonal(x))
 
 @Tracker.grad function diagonal(x)
-    return _diagonal(Tracker.data(x)), ȳ -> (diag(ȳ),)
+    return diagonal(Tracker.data(x)), ȳ -> (diag(ȳ),)
 end
 
 """
@@ -153,13 +160,13 @@ Batch transpose tensor `x` where dimensions `1:2` are the matrix dimensions and 
 # Returns
 - Transpose of `x`.
 """
-batched_transpose(x) = Tracker.track(batched_transpose, x)
+batched_transpose(x::AbstractArray) = Tracker.track(batched_transpose, x)
 
-_batched_transpose(x) = permutedims(x, (2, 1, range(3, length(size(x)), step=1)...))
+batched_transpose(x::CuOrArray) =
+    permutedims(x, (2, 1, range(3, length(size(x)), step=1)...))
 
 @Tracker.grad function batched_transpose(x)
-    x = Tracker.data(x)
-    return _batched_transpose(x), ȳ -> (_batched_transpose(ȳ),)
+    return batched_transpose(Tracker.data(x)), ȳ -> (batched_transpose(ȳ),)
 end
 
 """
@@ -175,7 +182,7 @@ dimensions and dimension `3:end` are the batch dimensions.
 # Returns
 - Matrix product of `x` and `y`.
 """
-batched_mul(x, y) = Tracker.track(batched_mul, x, y)
+batched_mul(x::AbstractArray, y::AbstractArray) = Tracker.track(batched_mul, x, y)
 
 function _to_rank_3(x)
     size_x = size(x)
@@ -184,15 +191,21 @@ function _to_rank_3(x)
     end
 end
 
-@Tracker.grad function batched_mul(x, y)
-    x, y = Tracker.data.((x, y))
+function _batched_mul(x, y)
     x, back = _to_rank_3(x)
     y, _ = _to_rank_3(y)
-    return back(Flux.batched_mul(x, y)), function (ȳ)
-        ȳ, _ = _to_rank_3(ȳ)
+    return back(Flux.batched_mul(x, y)), x, y
+end
+
+batched_mul(x::CuOrArray, y::CuOrArray) = first(_batched_mul(x, y))
+
+@Tracker.grad function batched_mul(x, y)
+    z, x, y = _batched_mul(Tracker.data.((x, y))...)
+    return z, function (ȳ)
+        ȳ, back = _to_rank_3(ȳ)
         return (
-            back(Flux.batched_mul(ȳ, _batched_transpose(y))),
-            back(Flux.batched_mul(_batched_transpose(x), ȳ))
+            back(Flux.batched_mul(ȳ, batched_transpose(y))),
+            back(Flux.batched_mul(batched_transpose(x), ȳ))
         )
     end
 end

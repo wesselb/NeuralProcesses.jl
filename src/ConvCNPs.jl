@@ -8,16 +8,20 @@ using Printf
 using Random
 using Statistics
 
+if Flux.has_cuarrays()
+    include("gpu.jl")
+else
+    const CuOrVector = Vector
+    const CuOrMatrix = Matrix
+    const CuOrArray = Array
+end
+
 include("util.jl")
 include("discretisation.jl")
 include("setconv.jl")
 include("conv.jl")
 include("model.jl")
 include("data.jl")
-
-if Flux.has_cuarrays()
-    include("gpu.jl")
-end
 
 include("experiment.jl")
 

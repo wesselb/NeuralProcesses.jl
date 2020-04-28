@@ -1,4 +1,5 @@
 using Distributions
+using Flux.Tracker
 
 import ConvCNPs:
     ceil_odd, insert_dim, rbf, compute_dists2,
@@ -8,6 +9,9 @@ function test_gradient(f, xs...)
     # Construct scalar version of `f`.
     v = randn(size(f(xs...)))
     f_scalar(ys...) = sum(f(ys...) .* v)
+
+    # Check that non-tracked arguments give a non-tracked output.
+    @test !Tracker.istracked(f_scalar(xs...))
 
     # Compare gradient with numerical estimate.
     grad = Tracker.gradient(f_scalar, xs...)

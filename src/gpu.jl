@@ -13,6 +13,10 @@ import CuArrays.CUDNN:
     cudnnGetConvolutionBackwardFilterWorkspaceSize
 import NNlib: depthwiseconv!, ∇depthwiseconv_filter!, ∇depthwiseconv_data!
 
+const CuOrVector = Union{CuVector, Vector}
+const CuOrMatrix = Union{CuMatrix, Matrix}
+const CuOrArray = Union{CuArray, Array}
+
 # Accelerate `batched_mul` on the GPU.
 
 function NNlib.batched_mul!(
@@ -34,7 +38,7 @@ end
 
 # Implement conversion to dense, diagonal matrix.
 
-_diagonal(x::CuArray{T, 1}) where T<:Real = convert(CuArray, Diagonal(x))
+diagonal(x::CuArray{T, 1}) where T<:Real = convert(CuArray, Diagonal(x))
 
 # Implement GPU support for depthwise separable convolutions.
 
