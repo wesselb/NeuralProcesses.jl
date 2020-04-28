@@ -15,22 +15,21 @@ scale = 0.5f0
 process = GP(stretch(matern52(), 1 / 0.25), GPC())
 data_gen = DataGenerator(
     process;
-    batch_size=8,
+    batch_size=32,
     x=Uniform(-2, 2),
     num_context=DiscreteUniform(3, 50),
     num_target=DiscreteUniform(3, 50)
 )
 
 # Instantiate ConvCNP model.
-arch = build_conv(4scale, 8, 32; points_per_unit=30f0, dimensionality=1)
-model = convcnp_1d(arch; margin=2scale) |> gpu
+arch = build_conv(4scale, 8, 32; points_per_unit=60f0, dimensionality=1)
+model = convcnp_1d(arch; margin=4scale) |> gpu
 
-# Configure training.
+# Train model.
 opt = ADAM(5e-4)
-epochs = 50
+epochs = 100
 num_batches = 2048
 bson = "model_matern52.bson"
-
 train!(
     model,
     data_gen,
@@ -39,4 +38,3 @@ train!(
     batches_per_epoch=num_batches,
     epochs=epochs
 )
-eval_model(model, data_gen, epochs; num_batches=num_batches)
