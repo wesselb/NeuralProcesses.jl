@@ -62,14 +62,9 @@ function _make_batch(generator::DataGenerator, num_context::Integer, num_target:
     # Sample tasks.
     tasks = []
     for i in 1:generator.batch_size
-        # Determine context set.
+        # Determine context and target set.
         x_context = rand(generator.x, num_context)
-
-        # Determine target set.
-        dx = (maximum(generator.x) - minimum(generator.x)) / num_target
-        offset = rand() * dx
-        steps = collect(range(0, num_target - 1, step=1))
-        x_target = minimum(generator.x) .+ offset .+ steps .* dx
+        x_target = rand(generator.x, num_target)
 
         # Concatenate inputs and sample.
         x = vcat(x_context, x_target)
