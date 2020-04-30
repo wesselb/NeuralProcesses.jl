@@ -78,7 +78,7 @@ function eval_model(model, data_gen, epoch; num_batches=128)
     @printf(
         "Loss: %.3f +- %.3f (%d batches)\n",
         mean(values),
-        2std(values),
+        2std(values) / sqrt(length(values)),
         num_batches
     )
 end
