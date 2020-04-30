@@ -12,7 +12,7 @@ using Stheno
 using Distributions
 
 # Construct data generator.
-process = GP(stretch(matern52(), 1 / 0.25), GPC())
+process = GP(stretch(eq(), 1 / 0.25), GPC())
 data_gen = DataGenerator(
     process;
     batch_size=16,
@@ -22,7 +22,7 @@ data_gen = DataGenerator(
 )
 
 # Load ConvCNP model.
-bson = "model_matern52.bson"
+bson = "model_eq.bson"
 @BSON.load bson model
 model = model |> gpu
 
