@@ -4,7 +4,7 @@ export predict, loss, eval_model, train!, plot_task
 
 using ..ConvCNPs
 
-using BSON: @save
+using BSON
 using Flux
 using Stheno
 using StatsBase
@@ -75,12 +75,15 @@ function eval_model(model, data_gen, epoch; num_batches=128)
         x -> loss(model, epoch, gpu.(x)...),
         data_gen(num_batches)
     )
+    loss_value = mean(values)
+    loss_error = 2std(values) / sqrt(length(values))
     @printf(
         "Loss: %.3f +- %.3f (%d batches)\n",
-        mean(values),
-        2std(values) / sqrt(length(values)),
+        loss_value,
+        loss_error,
         num_batches
     )
+    return loss_value, loss_error
 end
 
 function train!(
@@ -109,12 +112,41 @@ function train!(
         )
 
         # Evalute model.
-        eval_model(model, data_gen, epoch)
+        loss_value, loss_error = eval_model(model, data_gen, epoch)
         plot_task(model, data_gen, epoch, make_plot_true(data_gen.process), path=path)
 
-        # Save model.
         if !isnothing(bson)
-            @save bson model = cpu(model)
+            # Check whether to save model.
+            save_model = false
+            if !isfile(bson) || epoch == 1
+                # It is the first model. Save in any case.
+                println("Saving model: first model")
+                save_model = true
+            else
+                # BSON file exists. Check whether it has a loss saved.
+                content = BSON.load(bson)
+                if haskey(content, :loss_value)
+                    # A loss is available. Only save if the current loss is lower.
+                    if loss_value < content[:loss_value]
+                        println("Saving model: new best model")
+                        save_model = true
+                    end
+                else
+                    # There is no loss available. Save anyway.
+                    println("Saving model: no existing loss")
+                    save_model = true
+                end
+            end
+
+            if save_model
+                BSON.bson(
+                    bson,
+                    model = cpu(model),
+                    loss_value = loss_value,
+                    loss_error = loss_error,
+                    epoch = epoch
+                )
+            end
         end
     end
 end
