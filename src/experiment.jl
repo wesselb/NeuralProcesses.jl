@@ -71,11 +71,16 @@ end
 
 function eval_model(model, data_gen, epoch; num_batches=128)
     model = _untrack(model)
-    value = mean(map(
+    values = map(
         x -> loss(model, epoch, gpu.(x)...),
         data_gen(num_batches)
-    ))
-    @printf("Loss: %.3f (%d batches)\n", value, num_batches)
+    )
+    @printf(
+        "Loss: %.3f +- %.3f (%d batches)\n",
+        mean(values),
+        2std(values),
+        num_batches
+    )
 end
 
 function train!(
