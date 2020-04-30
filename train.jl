@@ -1,0 +1,95 @@
+using Pkg
+
+Pkg.activate(".")
+Pkg.resolve()
+Pkg.instantiate()
+
+using ArgParse
+using BSON
+using ConvCNPs
+using ConvCNPs.Experiment
+using Flux
+using Flux.Tracker
+using Stheno
+using Distributions
+
+# Parse command line arguments.
+parser = ArgParseSettings()
+@add_arg_table! parser begin
+    "--model"
+        help = "Model to train or evaluate."
+        arg_type = String
+        required = true
+    "--continue"
+        help = "Continue training."
+        action = :store_true
+    "--evaluate"
+        help = "Evaluate model."
+        action = :store_true
+    "--epochs"
+        help = "Number of epochs to training for."
+        arg_type = Int
+        default = 20
+end
+args = parse_args(parser)
+
+# Set up experiment.
+if args["model"] == "eq"
+    process = GP(stretch(eq(), 1 / 0.25), GPC())
+    receptive_field = 2f0
+    channels = 64
+elseif args["model"] == "matern52"
+    process = GP(stretch(matern52(), 1 / 0.25), GPC())
+    receptive_field = 2f0
+    channels = 64
+elseif args["model"] == "weakly-periodic"
+    process = GP(stretch(eq(), 1 / 0.5) * stretch(Stheno.PerEQ(), 1 / 0.25), GPC())
+    receptive_field = 8f0
+    channels = 16  # Keep `receptive_field * channels constant.`
+elseif args["model"] == "sawtooth"
+    process = Sawtooth()
+    receptive_field = 8f0
+    channels = 16
+else
+    error("Unknown model \"$model\".")
+end
+
+# Determine name of file to write model to.
+bson = "model_" * args["model"] * ".bson"
+
+# Construct data generator.
+data_gen = DataGenerator(
+    process;
+    batch_size=16,
+    x=Uniform(-2, 2),
+    num_context=DiscreteUniform(3, 50),
+    num_target=DiscreteUniform(3, 50)
+)
+
+if args["continue"] || args["evaluate"]
+    # Load existing model.
+    @BSON.load bson model
+    model = model |> gpu
+else
+    # Instantiate ConvCNP model.
+    arch = build_conv(receptive_field, 8, channels; points_per_unit=64f0, dimensionality=1)
+    model = convcnp_1d(arch; margin=0.5receptive_field) |> gpu
+end
+
+# Report number of parameters.
+println("Number of parameters: ", sum(map(length, Flux.params(model))))
+
+if args["evaluate"]
+    # Evaluate model.
+    eval_model(model, data_gen, 100, num_batches=10000)
+else
+    # Train model.
+    train!(
+        model,
+        data_gen,
+        ADAM(5e-4),
+        bson=bson,
+        batches_per_epoch=2048,
+        epochs=args["epochs"]
+    )
+end
