@@ -78,13 +78,22 @@ function eval_model(model, data_gen, epoch; num_batches=128)
     @printf("Loss: %.3f (%d batches)\n", value, num_batches)
 end
 
-function train!(model, data_gen, opt; bson=nothing, epochs=100, batches_per_epoch=2048)
+function train!(
+    model,
+    data_gen,
+    opt;
+    bson=nothing,
+    starting_epoch=1,
+    epochs=100,
+    batches_per_epoch=2048,
+    path="output"
+)
     GPUArrays.allowscalar(false)
 
     # Evaluate once before training.
     eval_model(model, data_gen, 1)
 
-    for epoch in 1:epochs
+    for epoch in starting_epoch:(starting_epoch + epochs - 1)
         # Perform epoch.
         println("Epoch: $epoch")
         Flux.train!(
@@ -96,7 +105,7 @@ function train!(model, data_gen, opt; bson=nothing, epochs=100, batches_per_epoc
 
         # Evalute model.
         eval_model(model, data_gen, epoch)
-        plot_task(model, data_gen, epoch, make_plot_true(data_gen.process))
+        plot_task(model, data_gen, epoch, make_plot_true(data_gen.process), path=path)
 
         # Save model.
         if !isnothing(bson)
@@ -109,7 +118,8 @@ function plot_task(
     model,
     data_gen,
     epoch,
-    plot_true = (plt, x_context, y_context, x_target) -> nothing
+    plot_true = (plt, x_context, y_context, x_target) -> nothing;
+    path = "output"
 )
     x = collect(range(-3, 3, length=400))
 
@@ -143,8 +153,7 @@ function plot_task(
         plot!(plt, x, samples, c=:green, lw=0.5, dpi=200, label="")
     end
 
-    mkpath("output")
-    savefig(plt, "output/epoch$epoch.png")
+    savefig(plt, "$path/epoch$epoch.png")
 end
 
 

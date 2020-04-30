@@ -20,9 +20,10 @@ parser = ArgParseSettings()
         help = "Model to train or evaluate."
         arg_type = String
         required = true
-    "--continue"
-        help = "Continue training."
-        action = :store_true
+    "--starting-epoch"
+        help = "Set to a number greater than one to continue training."
+        arg_type = Int
+        default = 1
     "--evaluate"
         help = "Evaluate model."
         action = :store_true
@@ -54,8 +55,13 @@ else
     error("Unknown model \"$model\".")
 end
 
-# Determine name of file to write model to.
-bson = "model_" * args["model"] * ".bson"
+# Determine name of file to write model to and folder to output images.
+bson = "models/" * args["model"] * ".bson"
+path = "output/" * args["model"]
+
+# Ensure that the directories exist.
+mkpath("models")
+mkpath(path)
 
 # Construct data generator.
 data_gen = DataGenerator(
@@ -66,14 +72,14 @@ data_gen = DataGenerator(
     num_target=DiscreteUniform(3, 50)
 )
 
-if args["continue"] || args["evaluate"]
+if args["starting-epoch"] > 1 || args["evaluate"]
     # Load existing model.
     @BSON.load bson model
     model = model |> gpu
 else
     # Instantiate ConvCNP model.
     arch = build_conv(receptive_field, 8, channels; points_per_unit=64f0, dimensionality=1)
-    model = convcnp_1d(arch; margin=0.5receptive_field) |> gpu
+    model = convcnp_1d(arch; margin=receptive_field / 2) |> gpu
 end
 
 # Report number of parameters.
@@ -90,6 +96,8 @@ else
         ADAM(5e-4),
         bson=bson,
         batches_per_epoch=2048,
-        epochs=args["epochs"]
+        starting_epoch=args["starting-epoch"],
+        epochs=args["epochs"],
+        path=path
     )
 end

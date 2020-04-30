@@ -11,14 +11,16 @@ echo Binary: $BIN
 for model in eq matern52 weakly-periodic sawtooth
 do
     echo Model: $model
-    echo Initial training iteration
-    $BIN --model $model
-    for training_iteration in $(seq 2 5)
+    
+    echo Training model
+    $BIN --model $model --starting-epoch 1
+
+    for starting_epoch in $(seq 21 20 100)
     do
-        echo Training iteration: $training_iteration
-        $BIN --model $model --continue
+        echo Resuming from epoch $starting_epoch
+        $BIN --model $model --starting-epoch $starting_epoch
     done
-    echo Evaluate model
+
+    echo Evaluating model
     $BIN --model $model --evaluate
 done
-
