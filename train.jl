@@ -93,7 +93,7 @@ else
     train!(
         model,
         data_gen,
-        ADAM(2e-4),
+        ADAM(1e-4),
         bson=bson,
         batches_per_epoch=2048,
         starting_epoch=args["starting-epoch"],
