@@ -1,4 +1,4 @@
-export ConvCNP, convcnp_1d
+export ConvCNP, convcnp_1d, loss, predict
 
 """
     ConvCNP
@@ -63,19 +63,6 @@ function (model::ConvCNP)(
     return model.predict(channels)
 end
 
-function _predict_gaussian_factorised(channels)
-    size(channels, 2) == 1 || error("Channels are not one-dimensional.")
-    mod(size(channels, 3), 2) == 0 || error("Number of channels must be even.")
-
-    # Half of the channels are used to determine the mean, and the other half are used to
-    # determine the standard deviation.
-    i_split = div(size(channels, 3), 2)
-    μ = channels[:, 1, 1:i_split, :]
-    σ² = NNlib.softplus.(channels[:, 1, i_split + 1:end, :])
-    return μ, σ²
-end
-
-
 """
     convcnp_1d(;
         receptive_field::Float32,
@@ -123,3 +110,70 @@ function convcnp_1d(;
         _predict_gaussian_factorised
     )
 end
+
+function _predict_gaussian_factorised(channels)
+    size(channels, 2) == 1 || error("Channels are not one-dimensional.")
+    mod(size(channels, 3), 2) == 0 || error("Number of channels must be even.")
+
+    # Half of the channels are used to determine the mean, and the other half are used to
+    # determine the standard deviation.
+    i_split = div(size(channels, 3), 2)
+    μ = channels[:, 1, 1:i_split, :]
+    σ² = NNlib.softplus.(channels[:, 1, i_split + 1:end, :])
+    return μ, σ²
+end
+
+"""
+    loss(
+        model::ConvCNP,
+        epoch::Integer,
+        x_context::AbstractArray,
+        y_context::AbstractArray,
+        x_target::AbstractArray,
+        y_targe::AbstractArrayt
+    )
+
+# Arguments
+
+# Returns
+"""
+function loss(
+    model::ConvCNP,
+    epoch::Integer,
+    x_context::AbstractArray,
+    y_context::AbstractArray,
+    x_target::AbstractArray,
+    y_targe::AbstractArrayt
+)
+    logpdfs = gaussian_logpdf(y_target, model(x_context, y_context, x_target)...)
+    # Sum over data points before averaging over tasks.
+    return -mean(sum(logpdfs, dims=1))
+end
+
+"""
+    predict(
+        model::ConvCNP,
+        x_context::AbstractVector,
+        y_context::AbstractVector,
+        x_target::AbstractVector
+    )
+
+# Arguments
+
+# Returns
+"""
+function predict(
+    model::ConvCNP,
+    x_context::AbstractVector,
+    y_context::AbstractVector,
+    x_target::AbstractVector
+)
+    μ, σ² = _untrack(model)(_expand_gpu.((x_context, y_context, x_target))...)
+    μ = μ[:, 1, 1] |> cpu
+    σ² = σ²[:, 1, 1] |> cpu
+    return μ, μ .- 2 .* sqrt.(σ²), μ .+ 2 .* sqrt.(σ²), nothing
+end
+
+_untrack(model) = mapleaves(x -> Flux.data(x), model)
+
+_expand_gpu(x) = reshape(x, length(x), 1, 1) |> gpu

@@ -1,4 +1,4 @@
-export CorrelatedConvCNP, convcnp_1d_correlated
+export CorrelatedConvCNP, convcnp_1d_correlated, loss, predict
 
 """
     CorrelatedConvCNP
@@ -113,4 +113,72 @@ function _predict_gaussian_correlated(μ_channels, Σ_channels)
     size(μ_channels, 3) == 1 || error("More than one channel for the mean.")
     size(Σ_channels, 3) == 1 || error("More than one channel for the covariance.")
     return μ_channels[:, 1, 1, :], Σ_channels[:, :, 1, :]
+end
+
+"""
+    loss(
+        model::CorrelatedConvCNP,
+        epoch::Integer,
+        x_context::AbstractArray,
+        y_context::AbstractArray,
+        x_target::AbstractArray,
+        y_target::AbstractArray
+    )
+
+# Arguments
+
+# Returns
+"""
+function loss(
+    model::CorrelatedConvCNP,
+    epoch::Integer,
+    x_context::AbstractArray,
+    y_context::AbstractArray,
+    x_target::AbstractArray,
+    y_target::AbstractArray
+)
+    size(y_target, 2) == 1 || error("Target outputs have more than one channel.")
+
+    n_target, _, batch_size = size(x_target)
+
+    μ, Σ = model(x_context, y_context, x_target)
+
+    logpdf = 0f0
+    ridge = gpu(Matrix(_epoch_to_reg(epoch) * I, n_target, n_target))
+    for i = 1:batch_size
+        logpdf += gaussian_logpdf(y_target[:, 1, i], μ[:, i], Σ[:, :, i] .+ ridge)
+    end
+
+    return -logpdf / batch_size
+end
+
+_epoch_to_reg(epoch) = 10^(-min(1 + Float32(epoch), 5))
+
+"""
+    predict(
+       model::CorrelatedConvCNP,
+       x_context::AbstractVector,
+       y_context::AbstractVector,
+       x_target::AbstractVector
+    )
+
+# Arguments
+
+# Returns
+"""
+function predict(
+    model::CorrelatedConvCNP,
+    x_context::AbstractVector,
+    y_context::AbstractVector,
+    x_target::AbstractVector
+)
+    μ, Σ = _untrack(model)(_expand_gpu.((x_context, y_context, x_target)))
+    μ = μ[:, 1, 1] |> cpu
+    Σ = Σ[:, :, 1] |> cpu
+    σ² = diag(Σ)
+
+    # Produce three posterior samples.
+    samples = cholesky(y_cov).U' * randn(length(x), 3) .+ y_mean
+
+    return μ, μ .- 2 .* sqrt.(σ²), μ .+ 2 .* sqrt.(σ²), samples
 end

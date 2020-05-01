@@ -1,4 +1,4 @@
-export ConvNP, convnp_1d, sample_latent, encode, decode
+export ConvNP, sample_latent, encode, decode, convnp_1d, loss, predict
 
 """
     ConvNP
@@ -270,4 +270,64 @@ function convnp_1d(;
         set_conv(1, scale),
         param([log(σ²)])
     )
+end
+
+"""
+    loss(
+        model::ConvNP,
+        epoch::Integer,
+        x_context::AbstractArray,
+        y_context::AbstractArray,
+        x_target::AbstractArray,
+        y_target::AbstractArray,
+        num_samples::Integer
+    )
+
+# Arguments
+
+
+# Keywords
+
+# Returns
+
+"""
+function loss(
+    model::ConvNP,
+    epoch::Integer,
+    x_context::AbstractArray,
+    y_context::AbstractArray,
+    x_target::AbstractArray,
+    y_target::AbstractArray;
+    num_samples::Integer
+)
+    x_latent = model.disc(x_context, x_target) |> gpu
+
+    pz = encode(model, x_context, y_context, x_latent)
+    qz = encode(
+        model,
+        cat(x_context, x_target, dims=1),
+        cat(y_context, y_target, dims=1),
+        x_latent
+    )
+
+    samples = sample_latent(model, qz..., num_samples)
+    μ, σ² = decode(model, x_latent, samples, x_target)
+
+    # Compute the components of the ELBO.
+    expectations = gaussian_logpdf(y_target, μ, σ²)
+    kls = kl(qz..., pz...)
+
+    # Sum over data points and channels to assemble the expressions.
+    expectations = sum(expectations, dims=(1, 3))
+    kls = sum(kls, dims=(1, 3))
+
+    # Estimate ELBO from samples.
+    elbos = mean(expectations, dims=5) .- kls
+
+    # Return average over batches.
+    return -mean(elbos)
+end
+
+function kl(μ₁, σ²₁, μ₂, σ²₂)
+    return (log.(σ²₂ ./ σ²₁) .+ (σ²₁ .+ (μ₁ .- μ₂).^2) ./ σ²₂ .- 1) ./ 2
 end
