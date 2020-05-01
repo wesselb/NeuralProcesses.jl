@@ -19,7 +19,7 @@ pyplot()
 function eval_model(model, loss, data_gen, epoch; num_batches=256)
     model = ConvCNPs.untrack(model)
     values = map(
-        x -> loss(model, epoch, gpu.(x)..., loss_args...),
+        x -> loss(model, epoch, gpu.(x)...),
         data_gen(num_batches)
     )
     loss_value = mean(values)
@@ -53,7 +53,7 @@ function train!(
         # Perform epoch.
         println("Epoch: $epoch")
         Flux.train!(
-            (xs...) -> loss(model, epoch, gpu.(xs)..., loss_args...),
+            (xs...) -> loss(model, epoch, gpu.(xs)...),
             Flux.params(model),
             data_gen(batches_per_epoch),
             opt
@@ -92,19 +92,22 @@ function plot_task(
     plot_true(plt, x_context, y_context, x)
 
     # Plot prediction.
-    plot!(plt, x, μ, c=:green, label="Model output", dpi=200)
-    plot!(
-        plt,
-        x,
-        [μ μ],
-        fillrange=[lower upper],
-        fillalpha=0.2,
-        c=:green,
-        label="",
-        dpi=200
-    )
+    if !isnothing(μ)
+        plot!(plt, x, μ, c=:green, label="Model output", dpi=200)
+        plot!(
+            plt,
+            x,
+            [μ μ],
+            fillrange=[lower upper],
+            fillalpha=0.2,
+            c=:green,
+            label="",
+            dpi=200
+        )
+    end
+
+    # Plot samples.
     if !isnothing(samples)
-        # Plot samples.
         plot!(plt, x, samples, c=:green, lw=0.5, dpi=200, label="")
     end
 
