@@ -176,8 +176,8 @@ _epoch_to_reg(epoch) = 10^(-min(1 + Float32(epoch), 5))
 - `x_target::AbstractArray`: Locations of target values of shape `(m, d, batch)`.
 
 # Returns
-- `Tuple{AbstractArray, AbstractArray, AbstractArray, Nothing}`: Tuple containing means,
-    lower and upper 95% central credible bounds, and three posterior samples.
+- `Tuple{AbstractArray, AbstractArray, AbstractArray, AbstractArray}`: Tuple containing
+    means, lower and upper 95% central credible bounds, and three posterior samples.
 """
 function predict(
     model::CorrelatedConvCNP,
