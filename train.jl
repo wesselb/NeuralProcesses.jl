@@ -35,30 +35,41 @@ end
 args = parse_args(parser)
 
 # Set up experiment.
-if args["model"] == "eq"
+if args["model"] == "eq-small"
+    process = GP(stretch(eq(), 1 / 0.25), GPC())
+    receptive_field = 1f0
+    channels = 16
+    num_context = DiscreteUniform(3, 50)
+    num_target = DiscreteUniform(3, 50)
+    points_per_unit = 32f0
+elseif args["model"] == "eq"
     process = GP(stretch(eq(), 1 / 0.25), GPC())
     receptive_field = 2f0
     channels = 64
     num_context = DiscreteUniform(3, 50)
     num_target = DiscreteUniform(3, 50)
+    points_per_unit = 64f0
 elseif args["model"] == "matern52"
     process = GP(stretch(matern52(), 1 / 0.25), GPC())
     receptive_field = 2f0
     channels = 64
     num_context = DiscreteUniform(3, 50)
     num_target = DiscreteUniform(3, 50)
+    points_per_unit = 64f0
 elseif args["model"] == "weakly-periodic"
     process = GP(stretch(eq(), 1 / 0.5) * stretch(Stheno.PerEQ(), 1 / 0.25), GPC())
     receptive_field = 4f0
     channels = 64
     num_context = DiscreteUniform(3, 50)
     num_target = DiscreteUniform(3, 50)
+    points_per_unit = 64f0
 elseif args["model"] == "sawtooth"
     process = Sawtooth()
     receptive_field = 16f0
     channels = 32
     num_context = DiscreteUniform(3, 100)
     num_target = DiscreteUniform(3, 100)
+    points_per_unit = 64f0
 else
     error("Unknown model \"$model\".")
 end
@@ -80,24 +91,30 @@ data_gen = DataGenerator(
     num_target=num_target
 )
 
-if args["starting-epoch"] > 1 || args["evaluate"]
-    # Load existing model.
-    @BSON.load bson model
-    model = model |> gpu
+if args["evaluate"]
+    # Use the best model for evaluation.
+    model = best_model(bson)
+elseif args["starting-epoch"] > 1
+    # Continue training from most recent model.
+    model = recent_model(bson)
 else
-    # Instantiate ConvCNP model.
-    arch = build_conv(receptive_field, 8, channels; points_per_unit=64f0, dimensionality=1)
-    model = convcnp_1d(arch; margin=receptive_field / 2) |> gpu
+    # Instantiate a new model to start training.
+    arch = build_conv(
+        receptive_field,
+        8,
+        channels,
+        points_per_unit=points_per_unit,
+        dimensionality=1
+    )
+    model = convcnp_1d(arch; margin=receptive_field) |> gpu
 end
 
 # Report number of parameters.
 println("Number of parameters: ", sum(map(length, Flux.params(model))))
 
 if args["evaluate"]
-    # Evaluate model.
     eval_model(model, data_gen, 100, num_batches=10000)
 else
-    # Train model.
     train!(
         model,
         data_gen,
