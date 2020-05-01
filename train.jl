@@ -126,6 +126,8 @@ else
     else
         error("Unknown model \"" * args["model"] * "\".")
     end
+
+    model = model |> gpu
 end
 
 function report_num_params(model)
