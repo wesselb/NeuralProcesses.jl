@@ -126,8 +126,15 @@ end
     )
 
 # Arguments
+- `model::CorrelatedConvCNP`: Model.
+- `epoch::Integer`: Current epoch.
+- `x_context::AbstractArray`: Locations of observed values of shape `(n, d, batch)`.
+- `y_context::AbstractArray`: Observed values of shape `(n, channels, batch)`.
+- `x_target::AbstractArray`: Locations of target values of shape `(m, d, batch)`.
+- `y_target::AbstractArray`: Target values of shape `(m, channels, batch)`.
 
 # Returns
+- `Real`: Average negative log-likelihood.
 """
 function loss(
     model::CorrelatedConvCNP,
@@ -156,15 +163,21 @@ _epoch_to_reg(epoch) = 10^(-min(1 + Float32(epoch), 5))
 
 """
     predict(
-       model::CorrelatedConvCNP,
-       x_context::AbstractVector,
-       y_context::AbstractVector,
-       x_target::AbstractVector
+        model::CorrelatedConvCNP,
+        x_context::AbstractVector,
+        y_context::AbstractVector,
+        x_target::AbstractVector
     )
 
 # Arguments
+- `model::CorrelatedConvCNP`: Model.
+- `x_context::AbstractArray`: Locations of observed values of shape `(n, d, batch)`.
+- `y_context::AbstractArray`: Observed values of shape `(n, channels, batch)`.
+- `x_target::AbstractArray`: Locations of target values of shape `(m, d, batch)`.
 
 # Returns
+- `Tuple{AbstractArray, AbstractArray, AbstractArray, Nothing}`: Tuple containing means,
+    lower and upper 95% central credible bounds, and three posterior samples.
 """
 function predict(
     model::CorrelatedConvCNP,
@@ -172,7 +185,7 @@ function predict(
     y_context::AbstractVector,
     x_target::AbstractVector
 )
-    μ, Σ = _untrack(model)(_expand_gpu.((x_context, y_context, x_target)))
+    μ, Σ = untrack(model)(_expand_gpu.((x_context, y_context, x_target)))
     μ = μ[:, 1, 1] |> cpu
     Σ = Σ[:, :, 1] |> cpu
     σ² = diag(Σ)

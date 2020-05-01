@@ -17,7 +17,7 @@ include("checkpoint.jl")
 pyplot()
 
 function eval_model(model, loss, data_gen, epoch; num_batches=256)
-    model = _untrack(model)
+    model = ConvCNPs._untrack(model)
     values = map(
         x -> loss(model, epoch, gpu.(x)..., loss_args...),
         data_gen(num_batches)
@@ -80,7 +80,7 @@ function plot_task(
 
     # Predict on a task.
     x_context, y_context, x_target, y_target = map(x -> x[:, 1, 1], data_gen(1)[1])
-    μ, lower, upper, samples = predict(model, x_context, y_context, x)
+    μ, lower, upper, samples = ConvCNPs.predict(model, x_context, y_context, x)
 
     plt = plot()
 

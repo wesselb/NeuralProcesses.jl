@@ -284,12 +284,16 @@ end
     )
 
 # Arguments
-
-
-# Keywords
+- `model::ConvCNP`: Model.
+- `epoch::Integer`: Current epoch.
+- `x_context::AbstractArray`: Locations of observed values of shape `(n, d, batch)`.
+- `y_context::AbstractArray`: Observed values of shape `(n, channels, batch)`.
+- `x_target::AbstractArray`: Locations of target values of shape `(m, d, batch)`.
+- `y_target::AbstractArray`: Target values of shape `(m, channels, batch)`.
+- `num_samples::Integer`: Number of samples.
 
 # Returns
-
+- `Real`: Average negative NP loss.
 """
 function loss(
     model::ConvNP,
@@ -302,7 +306,10 @@ function loss(
 )
     x_latent = model.disc(x_context, x_target) |> gpu
 
+    # Construct prior over latent variable.
     pz = encode(model, x_context, y_context, x_latent)
+
+    # Construct posterior over latent variable.
     qz = encode(
         model,
         cat(x_context, x_target, dims=1),
@@ -310,12 +317,13 @@ function loss(
         x_latent
     )
 
+    # Sample latent variable and compute predictive statistics.
     samples = sample_latent(model, qz..., num_samples)
     μ, σ² = decode(model, x_latent, samples, x_target)
 
     # Compute the components of the ELBO.
     expectations = gaussian_logpdf(y_target, μ, σ²)
-    kls = kl(qz..., pz...)
+    kls = _kl(qz..., pz...)
 
     # Sum over data points and channels to assemble the expressions.
     expectations = sum(expectations, dims=(1, 3))
@@ -328,6 +336,4 @@ function loss(
     return -mean(elbos)
 end
 
-function kl(μ₁, σ²₁, μ₂, σ²₂)
-    return (log.(σ²₂ ./ σ²₁) .+ (σ²₁ .+ (μ₁ .- μ₂).^2) ./ σ²₂ .- 1) ./ 2
-end
+_kl(μ₁, σ²₁, μ₂, σ²₂) = (log.(σ²₂ ./ σ²₁) .+ (σ²₁ .+ (μ₁ .- μ₂).^2) ./ σ²₂ .- 1) ./ 2

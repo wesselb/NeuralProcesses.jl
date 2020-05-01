@@ -130,12 +130,19 @@ end
         x_context::AbstractArray,
         y_context::AbstractArray,
         x_target::AbstractArray,
-        y_targe::AbstractArrayt
+        y_target::AbstractArray
     )
 
 # Arguments
+- `model::ConvCNP`: Model.
+- `epoch::Integer`: Current epoch.
+- `x_context::AbstractArray`: Locations of observed values of shape `(n, d, batch)`.
+- `y_context::AbstractArray`: Observed values of shape `(n, channels, batch)`.
+- `x_target::AbstractArray`: Locations of target values of shape `(m, d, batch)`.
+- `y_target::AbstractArray`: Target values of shape `(m, channels, batch)`.
 
 # Returns
+- `Real`: Average negative log-likelihood.
 """
 function loss(
     model::ConvCNP,
@@ -143,7 +150,7 @@ function loss(
     x_context::AbstractArray,
     y_context::AbstractArray,
     x_target::AbstractArray,
-    y_targe::AbstractArray
+    y_target::AbstractArray
 )
     logpdfs = gaussian_logpdf(y_target, model(x_context, y_context, x_target)...)
     # Sum over data points before averaging over tasks.
@@ -159,8 +166,14 @@ end
     )
 
 # Arguments
+- `model::ConvCNP`: Model.
+- `x_context::AbstractArray`: Locations of observed values of shape `(n, d, batch)`.
+- `y_context::AbstractArray`: Observed values of shape `(n, channels, batch)`.
+- `x_target::AbstractArray`: Locations of target values of shape `(m, d, batch)`.
 
 # Returns
+- `Tuple{AbstractArray, AbstractArray, AbstractArray, Nothing}`: Tuple containing means,
+    lower and upper 95% central credible bounds, and `nothing`.
 """
 function predict(
     model::ConvCNP,
@@ -168,12 +181,10 @@ function predict(
     y_context::AbstractVector,
     x_target::AbstractVector
 )
-    μ, σ² = _untrack(model)(_expand_gpu.((x_context, y_context, x_target))...)
+    μ, σ² = untrack(model)(_expand_gpu.((x_context, y_context, x_target))...)
     μ = μ[:, 1, 1] |> cpu
     σ² = σ²[:, 1, 1] |> cpu
     return μ, μ .- 2 .* sqrt.(σ²), μ .+ 2 .* sqrt.(σ²), nothing
 end
-
-_untrack(model) = mapleaves(x -> Flux.data(x), model)
 
 _expand_gpu(x) = reshape(x, length(x), 1, 1) |> gpu
