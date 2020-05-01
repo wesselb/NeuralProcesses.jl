@@ -48,7 +48,9 @@ function predict(
 end
 
 function loss(model::ConvCNP, epoch, x_context, y_context, x_target, y_target)
-    return -mean(gaussian_logpdf(y_target, model(x_context, y_context, x_target)...))
+    logpdfs = gaussian_logpdf(y_target, model(x_context, y_context, x_target)...)
+    # Sum over data points before averaging over tasks.
+    return mean(sum(logpdf, dims=1))
 end
 
 _epoch_to_reg(epoch) = 10^(-min(1 + Float32(epoch), 5))
