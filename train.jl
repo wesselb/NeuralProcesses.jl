@@ -83,7 +83,7 @@ bson = "models/" * args["model"] * "/" * args["data"] * ".bson"
 path = "output/" * args["model"] * "/" * args["data"]
 
 # Ensure that the directories exist.
-mkpath("models")
+mkpath("models/" * args["model"])
 mkpath(path)
 
 # Construct data generator.
