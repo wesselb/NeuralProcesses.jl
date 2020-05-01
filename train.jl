@@ -71,7 +71,7 @@ elseif args["model"] == "sawtooth"
     num_target = DiscreteUniform(3, 100)
     points_per_unit = 64f0
 else
-    error("Unknown model \"$model\".")
+    error("Unknown model \"" * args["model"] * "\".")
 end
 
 # Determine name of file to write model to and folder to output images.
@@ -91,30 +91,35 @@ data_gen = DataGenerator(
     num_target=num_target
 )
 
-if args["evaluate"]
-    # Use the best model for evaluation.
-    model = best_model(bson)
-elseif args["starting-epoch"] > 1
-    # Continue training from most recent model.
-    model = recent_model(bson)
-else
-    # Instantiate a new model to start training.
-    arch = build_conv(
-        receptive_field,
-        8,
-        channels,
-        points_per_unit=points_per_unit,
-        dimensionality=1
-    )
-    model = convcnp_1d(arch; margin=receptive_field) |> gpu
+function report_num_params(model)
+    println("Number of parameters: ", sum(map(length, Flux.params(model))))
 end
 
-# Report number of parameters.
-println("Number of parameters: ", sum(map(length, Flux.params(model))))
-
 if args["evaluate"]
-    eval_model(model, data_gen, 100, num_batches=10000)
+    # Use the best models for evaluation.
+    for checkpoint in load_checkpoints(bson).top
+        model = checkpoint.model |> gpu
+        report_num_params(model)
+        eval_model(model, data_gen, 100, num_batches=10000)
+    end
 else
+    if args["starting-epoch"] > 1
+        # Continue training from most recent model.
+        model = recent_model(bson) |> gpu
+    else
+        # Instantiate a new model to start training.
+        arch = build_conv(
+            receptive_field,
+            8,
+            channels,
+            points_per_unit=points_per_unit,
+            dimensionality=1
+        )
+        model = convcnp_1d(arch; margin=receptive_field) |> gpu
+    end
+
+    report_num_params(model)
+
     train!(
         model,
         data_gen,
