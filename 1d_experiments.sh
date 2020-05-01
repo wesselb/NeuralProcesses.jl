@@ -2,33 +2,33 @@
 
 set -e
 
-MODELS="eq matern52 weakly-periodic sawtooth"
+DATA_SETS="eq matern52 weakly-periodic sawtooth"
 EPOCHS_INC=20
 EPOCHS_TOTAL=100
 
 EPOCHS_INC_PLUS_ONE=$(echo $EPOCHS_INC + 1 | bc)
 
 JULIA=${1:-julia}
-BIN="$JULIA train.jl --epochs $EPOCHS_INC"
+BIN="$JULIA train.jl --epochs $EPOCHS_INC --model convcnp"
 
 echo Binary: $BIN
-echo Models: $MODELS
+echo Data sets: $DATA_SETS
 
 # First train all models.
-for model in $MODELS
+for data in $DATA_SETS
 do
-    echo Training model: $model
-    $BIN --model $model --starting-epoch 1
+    echo Data set: $data
+    $BIN --data $data --starting-epoch 1
     for starting_epoch in $(seq $EPOCHS_INC_PLUS_ONE $EPOCHS_INC $EPOCHS_TOTAL)
     do
         echo Resuming from epoch $starting_epoch
-        $BIN --model $model --starting-epoch $starting_epoch
+        $BIN --data $data --starting-epoch $starting_epoch
     done
 done
 
 # Finally evaluate all models.
-for model in $MODELS
+for data in $DATA_SETS
 do
-    echo Evaluating model: $model
-    $BIN --model $model --evaluate
+    echo Data set: $data
+    $BIN --data $data --evaluate
 done
