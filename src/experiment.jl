@@ -68,7 +68,7 @@ function loss(model::CorrelatedConvCNP, epoch, x_context, y_context, x_target, y
         logpdf += gaussian_logpdf(y_target[:, 1, i], μ[:, i], Σ[:, :, i] .+ ridge)
     end
 
-    return -logpdf / n_target / batch_size
+    return -logpdf / batch_size
 end
 
 function eval_model(model, data_gen, epoch; num_batches=128)
