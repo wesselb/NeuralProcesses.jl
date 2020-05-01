@@ -128,12 +128,19 @@ else
     end
 end
 
-# Report number of parameters.
-println("Number of parameters: ", sum(map(length, Flux.params(model))))
+function report_num_params(model)
+    println("Number of parameters: ", sum(map(length, Flux.params(model))))
+end
 
 if args["evaluate"]
-    eval_model(model, data_gen, 100, num_batches=10000, loss_args=loss_args)
+    # Use the best models for evaluation.
+    for checkpoint in load_checkpoints(bson).top
+        model = checkpoint.model |> gpu
+        report_num_params(model)
+        eval_model(model, data_gen, 100, num_batches=10000)
+    end
 else
+    report_num_params(model)
     train!(
         model,
         data_gen,

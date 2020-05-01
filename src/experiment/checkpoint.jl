@@ -1,4 +1,4 @@
-export checkpoint, recent_model, best_model
+export load_checkpoints, checkpoint!, recent_model, best_model
 
 struct Checkpoint
     model
@@ -9,7 +9,7 @@ end
 
 const MaybeCheckpoint = Union{Missing, Checkpoint}
 
-struct Checkpoints
+mutable struct Checkpoints
     recent::MaybeCheckpoint
     top::Vector{Checkpoint}
     top_num::Integer
@@ -19,7 +19,7 @@ Checkpoints() = Checkpoints(missing, Vector{Checkpoint}(), 5)
 
 Base.isless(c1::Checkpoint, c2::Checkpoint) = isless(c1.loss_value, c2.loss_value)
 
-function _load_checkpoints(bson)
+function load_checkpoints(bson)
     if !isfile(bson)
         return Checkpoints()
     else
@@ -28,23 +28,25 @@ function _load_checkpoints(bson)
     end
 end
 
-function checkpoint(bson, model, epoch, loss_value, loss_error)
-    checkpoints = _load_checkpoints(bson)
+function checkpoint!(bson, model, epoch, loss_value, loss_error)
+    checkpoints = load_checkpoints(bson)
 
     # Construct current checkpoint.
     current_checkpoint = Checkpoint(cpu(model), epoch, loss_value, loss_error)
 
-    # Update most recent model.
-    if ismissing(checkpoints.recent) || epoch == 1
-        checkpoints.recent = current_checkpoint
-    end
+    # Always update most recent model.
+    checkpoints.recent = current_checkpoint
 
     # Update top models.
-    checkpoints.top = sort(vcat(checkpoints, current_checkpoint))[1:content.top_num]
+    extended_top = sort(vcat(checkpoints.top, current_checkpoint))
+    checkpoints.top = extended_top[1:min(length(extended_top), checkpoints.top_num)]
 
     # Write changes.
     BSON.bson(bson, checkpoints=checkpoints)
 end
 
-recent_model(bson) = _load_checkpoints(bson).recent.model |> gpu
-best_model(bson, position::Integer=1) = _load_checkpoints(bson).top[position].model |> gpu
+recent_model(checkpoints::Checkpoints) = checkpoints.recent.model
+recent_model(bson::String) = recent_model(load_checkpoints(bson))
+
+best_model(checkpoints::Checkpoints, position::Integer=1) = checkpoints.top[position].model
+best_model(bson::String, position::Integer=1) = best_model(load_checkpoints(checkpoints), position)

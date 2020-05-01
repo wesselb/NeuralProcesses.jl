@@ -154,7 +154,7 @@ function train!(
         plot_task(model, data_gen, epoch, make_plot_true(data_gen.process), path=path)
 
         if !isnothing(bson)
-            checkpoint(bson, model, epoch, loss_value, loss_error)
+            checkpoint!(bson, model, epoch, loss_value, loss_error)
         end
     end
 end
