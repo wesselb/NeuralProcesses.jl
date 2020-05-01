@@ -143,7 +143,7 @@ function loss(
     x_context::AbstractArray,
     y_context::AbstractArray,
     x_target::AbstractArray,
-    y_targe::AbstractArrayt
+    y_targe::AbstractArray
 )
     logpdfs = gaussian_logpdf(y_target, model(x_context, y_context, x_target)...)
     # Sum over data points before averaging over tasks.
