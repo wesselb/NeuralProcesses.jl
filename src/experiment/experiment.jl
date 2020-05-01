@@ -55,6 +55,39 @@ function loss(model::ConvCNP, epoch, x_context, y_context, x_target, y_target)
     return -mean(sum(logpdfs, dims=1))
 end
 
+function kl(μ₁, σ²₁, μ₂, σ²₂)
+    return (log.(σ²₂ ./ σ²₁) .+ (σ²₁ .+ (μ₁ .- μ₂).^2) ./ σ²₂ .- 1) ./ 2
+end
+
+function loss(model::ConvNP, epoch, x_context, y_context, x_target, y_target, num_samples)
+    x_latent = model.disc(x_context, x_target) |> gpu
+
+    pz = encode(model, x_context, y_context, x_latent)
+    qz = encode(
+        model,
+        cat(x_context, x_target, dims=1),
+        cat(y_context, y_target, dims=1),
+        x_latent
+    )
+
+    samples = sample_latent(model, qz..., num_samples)
+    μ, σ² = decode(model, x_latent, samples, x_target)
+
+    # Compute the components of the ELBO.
+    expectations = gaussian_logpdf(y_target, μ, σ²)
+    kls = kl(qz..., pz...)
+
+    # Sum over data points and channels to assemble the expressions.
+    expectations = sum(expectations, dims=(1, 3))
+    kls = sum(kls, dims=(1, 3))
+
+    # Estimate ELBO from samples.
+    elbos = mean(expectations, dims=5) .- kls
+
+    # Return average over batches.
+    return -mean(elbos)
+end
+
 _epoch_to_reg(epoch) = 10^(-min(1 + Float32(epoch), 5))
 
 function loss(model::CorrelatedConvCNP, epoch, x_context, y_context, x_target, y_target)
@@ -73,10 +106,10 @@ function loss(model::CorrelatedConvCNP, epoch, x_context, y_context, x_target, y
     return -logpdf / batch_size
 end
 
-function eval_model(model, data_gen, epoch; num_batches=256)
+function eval_model(model, data_gen, epoch; num_batches=256, loss_args=())
     model = _untrack(model)
     values = map(
-        x -> loss(model, epoch, gpu.(x)...),
+        x -> loss(model, epoch, gpu.(x)..., loss_args...),
         data_gen(num_batches)
     )
     loss_value = mean(values)
@@ -98,25 +131,26 @@ function train!(
     starting_epoch=1,
     epochs=100,
     batches_per_epoch=2048,
-    path="output"
+    path="output",
+    loss_args=()
 )
     GPUArrays.allowscalar(false)
 
     # Evaluate once before training.
-    eval_model(model, data_gen, 1)
+    eval_model(model, data_gen, 1, loss_args=loss_args)
 
     for epoch in starting_epoch:(starting_epoch + epochs - 1)
         # Perform epoch.
         println("Epoch: $epoch")
         Flux.train!(
-            (xs...) -> loss(model, epoch, gpu.(xs)...),
+            (xs...) -> loss(model, epoch, gpu.(xs)..., loss_args...),
             Flux.params(model),
             data_gen(batches_per_epoch),
             opt
         )
 
         # Evalute model.
-        loss_value, loss_error = eval_model(model, data_gen, epoch)
+        loss_value, loss_error = eval_model(model, data_gen, epoch, loss_args=loss_args)
         plot_task(model, data_gen, epoch, make_plot_true(data_gen.process), path=path)
 
         if !isnothing(bson)
