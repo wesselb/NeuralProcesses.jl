@@ -39,18 +39,26 @@ if args["model"] == "eq"
     process = GP(stretch(eq(), 1 / 0.25), GPC())
     receptive_field = 2f0
     channels = 64
+    num_context = DiscreteUniform(3, 50)
+    num_target = DiscreteUniform(3, 50)
 elseif args["model"] == "matern52"
     process = GP(stretch(matern52(), 1 / 0.25), GPC())
     receptive_field = 2f0
     channels = 64
+    num_context = DiscreteUniform(3, 50)
+    num_target = DiscreteUniform(3, 50)
 elseif args["model"] == "weakly-periodic"
     process = GP(stretch(eq(), 1 / 0.5) * stretch(Stheno.PerEQ(), 1 / 0.25), GPC())
     receptive_field = 4f0
     channels = 64
+    num_context = DiscreteUniform(3, 50)
+    num_target = DiscreteUniform(3, 50)
 elseif args["model"] == "sawtooth"
     process = Sawtooth()
     receptive_field = 16f0
     channels = 32
+    num_context = DiscreteUniform(3, 100)
+    num_target = DiscreteUniform(3, 100)
 else
     error("Unknown model \"$model\".")
 end
@@ -68,8 +76,8 @@ data_gen = DataGenerator(
     process;
     batch_size=16,
     x=Uniform(-2, 2),
-    num_context=DiscreteUniform(3, 50),
-    num_target=DiscreteUniform(3, 50)
+    num_context=num_context,
+    num_target=num_target
 )
 
 if args["starting-epoch"] > 1 || args["evaluate"]
