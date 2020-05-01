@@ -7,7 +7,7 @@ using ..ConvCNPs
 using BSON
 using Flux
 using Stheno
-using StatsBase
+import StatsBase: std
 using Plots
 using Printf
 using GPUArrays
@@ -80,7 +80,7 @@ function plot_task(
 
     # Predict on a task.
     x_context, y_context, x_target, y_target = map(x -> x[:, 1, 1], data_gen(1)[1])
-    μ, lower, upper, samples = ConvCNPs.predict(model, x_context, y_context, x)
+    μ, lower, upper, samples = predict(model, x_context, y_context, x)
 
     plt = plot()
 
