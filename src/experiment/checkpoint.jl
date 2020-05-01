@@ -24,7 +24,7 @@ function _load_checkpoints(bson)
         return Checkpoints()
     else
         content = BSON.load(bson)
-        return haskey(content, :checkpoints) ? content:checkpoints : Checkpoints()
+        return haskey(content, :checkpoints) ? content[:checkpoints] : Checkpoints()
     end
 end
 
