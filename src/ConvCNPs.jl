@@ -23,6 +23,6 @@ include("conv.jl")
 include("model.jl")
 include("data.jl")
 
-include("experiment.jl")
+include("experiment/experiment.jl")
 
 end

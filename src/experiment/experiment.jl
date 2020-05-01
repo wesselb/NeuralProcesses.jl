@@ -12,6 +12,8 @@ using Plots
 using Printf
 using GPUArrays
 
+include("checkpoint.jl")
+
 pyplot()
 
 _untrack(model) = mapleaves(x -> Flux.data(x), model)
@@ -71,7 +73,7 @@ function loss(model::CorrelatedConvCNP, epoch, x_context, y_context, x_target, y
     return -logpdf / batch_size
 end
 
-function eval_model(model, data_gen, epoch; num_batches=128)
+function eval_model(model, data_gen, epoch; num_batches=256)
     model = _untrack(model)
     values = map(
         x -> loss(model, epoch, gpu.(x)...),
@@ -118,37 +120,7 @@ function train!(
         plot_task(model, data_gen, epoch, make_plot_true(data_gen.process), path=path)
 
         if !isnothing(bson)
-            # Check whether to save model.
-            save_model = false
-            if !isfile(bson) || epoch == 1
-                # It is the first model. Save in any case.
-                println("Saving model: first model")
-                save_model = true
-            else
-                # BSON file exists. Check whether it has a loss saved.
-                content = BSON.load(bson)
-                if haskey(content, :loss_value)
-                    # A loss is available. Only save if the current loss is lower.
-                    if loss_value < content[:loss_value]
-                        println("Saving model: new best model")
-                        save_model = true
-                    end
-                else
-                    # There is no loss available. Save anyway.
-                    println("Saving model: no existing loss")
-                    save_model = true
-                end
-            end
-
-            if save_model
-                BSON.bson(
-                    bson,
-                    model = cpu(model),
-                    loss_value = loss_value,
-                    loss_error = loss_error,
-                    epoch = epoch
-                )
-            end
+            checkpoint(bson, model, epoch, loss_value, loss_error)
         end
     end
 end
@@ -194,7 +166,6 @@ function plot_task(
 
     savefig(plt, "$path/epoch$epoch.png")
 end
-
 
 make_plot_true(process) = (plt, x_context, y_context, x_target) -> nothing
 
