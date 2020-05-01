@@ -2,7 +2,7 @@
 
 set -e
 
-MODELS=(eq matern52 weakly-periodic sawtooth)
+MODELS="eq matern52 weakly-periodic sawtooth"
 EPOCHS_INC=20
 EPOCHS_TOTAL=100
 
