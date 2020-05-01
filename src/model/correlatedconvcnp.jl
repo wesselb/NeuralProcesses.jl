@@ -51,8 +51,8 @@ function (model::CorrelatedConvCNP)(
     x_target::AbstractArray
 )
     # Compute discretisation of the functional embedding.
-    μ_x_latent = gpu(model.μ_disc(x_context, x_target))
-    Σ_x_latent = gpu(model.Σ_disc(x_context, x_target))
+    μ_x_latent = model.μ_disc(x_context, x_target) |> gpu
+    Σ_x_latent = model.Σ_disc(x_context, x_target) |> gpu
 
     if size(x_context, 1) > 0
         # The context set is non-empty. Compute encodings as usual.

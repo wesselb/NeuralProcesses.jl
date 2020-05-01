@@ -46,7 +46,7 @@ function (model::ConvNP)(
     num_samples::Integer
 )
     # Compute discretisation of the latent variable.
-    x_latent = gpu(model.disc(x_context, x_target))
+    x_latent = model.disc(x_context, x_target) |> gpu
 
     # Sample latent variable.
     samples = sample_latent(model, x_context, y_context, x_latent, num_samples)
@@ -106,7 +106,7 @@ function sample_latent(
     σ²::AbstractArray,
     num_samples::Integer
 )
-    noise = randn(Float32, size(μ)..., num_samples)
+    noise = randn(Float32, size(μ)..., num_samples) |> gpu
     return insert_dim(μ .+ sqrt.(σ²) .* noise, pos=2)
 end
 
