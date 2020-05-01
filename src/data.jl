@@ -89,7 +89,7 @@ Random truncated Fourier expansion of a sawtooth wave.
 
 # Fields
 - `freq_dist::Distribution=Uniform(3, 5)`: Distribution of the frequency.
-- `shift_dist::Distribution=Uniform(3, 5)`: Distribution of the shift.
+- `shift_dist::Distribution=Uniform(-5, 5)`: Distribution of the shift.
 - `trunc_dist::Distribution=DiscreteUniform(10, 20)`: Distribution of the truncation of
     the Fourier expansion.
 """
