@@ -132,15 +132,9 @@ function encode(
     y_context::AbstractArray,
     x_latent::AbstractArray
 )
-    # Construct distribution over latent variable by calling the ConvCNP.
+    # Construct distribution over latent variable.
     return model.encoder(x_context, y_context, x_latent)
 end
-
-_repeat_samples(x, num_samples) = reshape(
-    repeat(x, ntuple(_ -> 1, ndims(x))..., num_samples),
-    size(x)[1:end - 1]...,
-    :
-)
 
 """
     decode(
@@ -164,10 +158,11 @@ function decode(
     samples::AbstractArray,
     x_target::AbstractArray
 )
+    num_batches = size(samples, 4)
     num_samples = size(samples, 5)
 
     # Merge samples into batches.
-    samples = reshape(samples, size(samples)[1:3]..., :)
+    samples = reshape(samples, size(samples)[1:3]..., num_batches * num_samples)
 
     # Apply CNN.
     channels = model.conv(samples)
@@ -181,11 +176,17 @@ function decode(
     )
 
     # Separate samples from batches.
-    channels = reshape(channels, size(channels)[1:3]..., :, num_samples)
+    channels = reshape(channels, size(channels)[1:3]..., num_batches, num_samples)
 
     # Return predictive distribution.
     return channels, exp.(model.log_σ²)
 end
+
+_repeat_samples(x, num_samples) = reshape(
+    repeat(x, ntuple(_ -> 1, ndims(x))..., num_samples),
+    size(x)[1:end - 1]...,
+    size(x)[end] * num_samples
+)
 
 """
     convnp_1d(;
@@ -228,8 +229,8 @@ function convnp_1d(;
         encoder_channels,
         points_per_unit=points_per_unit,
         dimensionality=1,
-        in_channels=2,
-        out_channels=2latent_channels
+        in_channels=2,  # Account for density channel.
+        out_channels=2latent_channels  # Outputs means and variances.
     )
 
     # Build architecture for the encoder.
@@ -318,8 +319,8 @@ function loss(
     )
 
     # Sample latent variable and compute predictive statistics.
-    samples = sample_latent(model, qz..., num_samples)
-    μ, σ² = decode(model, x_latent, samples, x_target)
+    z = sample_latent(model, qz..., num_samples)
+    μ, σ² = decode(model, x_latent, z, x_target)
 
     # Compute the components of the ELBO.
     expectations = gaussian_logpdf(y_target, μ, σ²)
@@ -336,4 +337,48 @@ function loss(
     return -mean(elbos)
 end
 
-_kl(μ₁, σ²₁, μ₂, σ²₂) = (log.(σ²₂ ./ σ²₁) .+ (σ²₁ .+ (μ₁ .- μ₂).^2) ./ σ²₂ .- 1) ./ 2
+function _kl(μ₁, σ²₁, μ₂, σ²₂)
+    # Loop fusion introduces indexing, which severly bottlenecks GPU computation, so
+    # we roll out the computation like this.
+    # TODO: What is going on?
+    logdet = log.(σ²₂ ./ σ²₁)
+    z = μ₁ .- μ₂
+    quad = (σ²₁ .+ z .* z) ./ σ²₂
+    sum = logdet .+ quad .- 1
+    return sum ./ 2
+end
+
+"""
+    predict(
+        model::ConvNP,
+        x_context::AbstractVector,
+        y_context::AbstractVector,
+        x_target::AbstractVector
+    )
+
+# Arguments
+- `model::ConvNP`: Model.
+- `x_context::AbstractArray`: Locations of observed values of shape `(n, d, batch)`.
+- `y_context::AbstractArray`: Observed values of shape `(n, channels, batch)`.
+- `x_target::AbstractArray`: Locations of target values of shape `(m, d, batch)`.
+
+# Returns
+- `Tuple{Nothing, Nothing, Nothing, AbstractArray}`: Tuple containing `nothing`, `nothing`,
+    `nothing`, and three posterior samples.
+"""
+function predict(
+    model::ConvNP,
+    x_context::AbstractVector,
+    y_context::AbstractVector,
+    x_target::AbstractVector
+)
+    samples = []
+    for i = 1:3
+        μ, σ² = untrack(model)(_expand_gpu.((x_context, y_context, x_target))..., 1)
+        # Do not add noise to the sample: simply take the mean.
+        push!(samples, μ[:, 1, 1] |> cpu)  
+    end
+    return nothing, nothing, nothing, cat(samples..., dims=2)
+end
+
+_expand_gpu(x) = reshape(x, length(x), 1, 1) |> gpu
