@@ -1,6 +1,19 @@
 export gaussian_logpdf
 
 """
+    untrack(model)
+
+Untrack a model in Flux.
+
+# Arguments
+- `model`: Model to untrack.
+
+# Returns
+- Untracked model.
+"""
+untrack(model) = mapleaves(x -> Flux.data(x), model)
+
+"""
     ceil_odd(x::T) where T<:Real
 
 Ceil a number to the nearest odd integer.

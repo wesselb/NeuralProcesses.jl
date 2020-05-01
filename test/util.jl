@@ -2,7 +2,7 @@ using Distributions
 using Flux.Tracker
 
 import ConvCNPs:
-    ceil_odd, insert_dim, rbf, compute_dists2,
+    untrack, ceil_odd, insert_dim, rbf, compute_dists2,
     diagonal, batched_transpose, batched_mul
 
 function test_gradient(f, xs...)
@@ -24,6 +24,19 @@ function test_gradient(f, xs...)
 end
 
 @testset "util.jl" begin
+    @testset "untrack" begin
+        struct MyModel
+            θ
+        end
+
+        @Flux.treelike MyModel
+
+        model = MyModel(param([1]))
+
+        @test Tracker.istracked(model.θ)
+        @test !Tracker.istracked(untrack(model).θ)
+    end
+
     @testset "ceil_odd" begin
         @test ceil_odd(2) == 3
         @test ceil_odd(2.5) == 3
