@@ -43,7 +43,7 @@ function (model::ConvCNP)(
     x_target::AbstractArray
 )
     # Compute discretisation of the functional embedding.
-    x_latent = gpu(model.disc(x_context, x_target))
+    x_latent = model.disc(x_context, x_target) |> gpu
 
     if size(x_context, 1) > 0
         # The context set is non-empty. Compute encoding as usual.
