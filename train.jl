@@ -95,11 +95,11 @@ data_gen = DataGenerator(
     num_target=num_target
 )
 
-# Set the loss arguments.
+# Set the loss.
 if args["model"] == "convcnp"
-    loss_args = ()
+    loss = ConvCNPs.loss
 elseif args["model"] == "convnp"
-    loss_args = (num_samples=5,)
+    loss(xs...) = ConvCNPs.loss(xs...; num_samples=5)
 else
     error("Unknown model \"" * args["model"] * "\".")
 end
@@ -113,7 +113,7 @@ if args["evaluate"]
     for checkpoint in load_checkpoints(bson).top
         model = checkpoint.model |> gpu
         report_num_params(model)
-        eval_model(model, data_gen, 100, num_batches=10000, loss_args=loss_args)
+        eval_model(model, loss, data_gen, 100, num_batches=10000)
     end
 else
     if args["starting-epoch"] > 1
@@ -148,13 +148,13 @@ else
 
     train!(
         model,
+        loss,
         data_gen,
         ADAM(5e-4),
         bson=bson,
         batches_per_epoch=2048,
         starting_epoch=args["starting-epoch"],
         epochs=args["epochs"],
-        path=path,
-        loss_args=loss_args
+        path=path
     )
 end
