@@ -90,8 +90,9 @@ One-dimensional Gaussian log-pdf.
 - `AbstractArray`: Log-pdf at `x`.
 """
 function gaussian_logpdf(x::AbstractArray, μ::AbstractArray, σ²::AbstractArray)
-    # Loop fusion was introducing indexing, which severly bottlenecks GPU computation, so
+    # Loop fusion introduces indexing, which severly bottlenecks GPU computation, so
     # we roll out the computation like this.
+    # TODO: What is going on?
     logconst = 1.837877f0
     logdet = log.(σ²)
     z = x .- μ
