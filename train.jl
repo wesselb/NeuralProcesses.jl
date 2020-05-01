@@ -95,39 +95,13 @@ data_gen = DataGenerator(
     num_target=num_target
 )
 
-if args["evaluate"]
-    # Use the best model for evaluation.
-    model = best_model(bson)
-elseif args["starting-epoch"] > 1
-    # Continue training from most recent model.
-    model = recent_model(bson)
+# Set the loss arguments.
+if args["model"] == "convcnp"
+    loss_args = ()
+elseif args["model"] == "convnp"
+    loss_args = (num_samples=5,)
 else
-    # Instantiate a new model to start training.
-    if args["model"] == "convcnp"
-        model = convcnp_1d(
-            receptive_field=receptive_field,
-            num_layers=8,
-            num_channels=num_channels,
-            points_per_unit=points_per_unit,
-            margin=receptive_field
-        )
-        loss_args = ()
-    elseif args["model"] == "convnp"
-        model = convnp_1d(
-            receptive_field=receptive_field,
-            num_layers=8,
-            encoder_channels=num_channels,
-            decoder_channels=num_channels,
-            latent_channels=2,
-            points_per_unit=points_per_unit,
-            margin=receptive_field
-        )
-        loss_args = (5,)
-    else
-        error("Unknown model \"" * args["model"] * "\".")
-    end
-
-    model = model |> gpu
+    error("Unknown model \"" * args["model"] * "\".")
 end
 
 function report_num_params(model)
@@ -139,10 +113,39 @@ if args["evaluate"]
     for checkpoint in load_checkpoints(bson).top
         model = checkpoint.model |> gpu
         report_num_params(model)
-        eval_model(model, data_gen, 100, num_batches=10000)
+        eval_model(model, data_gen, 100, num_batches=10000, loss_args=loss_args)
     end
 else
+    if args["starting-epoch"] > 1
+        # Continue training from most recent model.
+        model = recent_model(bson)
+    else
+        # Instantiate a new model to start training.
+        if args["model"] == "convcnp"
+            model = convcnp_1d(
+                receptive_field=receptive_field,
+                num_layers=8,
+                num_channels=num_channels,
+                points_per_unit=points_per_unit,
+                margin=receptive_field
+            ) |> gpu
+        elseif args["model"] == "convnp"
+            model = convnp_1d(
+                receptive_field=receptive_field,
+                num_layers=8,
+                encoder_channels=num_channels,
+                decoder_channels=num_channels,
+                latent_channels=2,
+                points_per_unit=points_per_unit,
+                margin=receptive_field
+            ) |> gpu
+        else
+            error("Unknown model \"" * args["model"] * "\".")
+        end
+    end
+
     report_num_params(model)
+
     train!(
         model,
         data_gen,
