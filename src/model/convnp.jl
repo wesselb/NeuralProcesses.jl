@@ -380,5 +380,3 @@ function predict(
     end
     return nothing, nothing, nothing, cat(samples..., dims=2)
 end
-
-_expand_gpu(x) = reshape(x, length(x), 1, 1) |> gpu
