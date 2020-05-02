@@ -284,10 +284,10 @@ function convnp_1d(;
 end
 
 function _predict_convnp(μ, σ²)
-    size(μ, 2) == 1 && error("Mean should be one-dimensional.")
-    size(μ, 3) == 1 && error("Mean should have one channel.")
+    size(μ, 2) == 1 || error("Mean should be one-dimensional.")
+    size(μ, 3) == 1 || error("Mean should have one channel.")
 
-    size(σ²) == (1,) && error("Variance should be a scalar.")
+    size(σ²) == (1,) || error("Variance should be a scalar.")
 
     return μ[:, 1, :, :, :], reshape(σ², 1, 1, 1)
 end
@@ -388,7 +388,7 @@ end
 
 # Returns
 - `Tuple{Nothing, Nothing, Nothing, AbstractArray}`: Tuple containing `nothing`, `nothing`,
-    `nothing`, and three posterior samples.
+    `nothing`, and `num_samples` posterior samples.
 """
 function predict(
     model::ConvNP,
@@ -399,5 +399,5 @@ function predict(
 )
     μ, σ² = untrack(model)(_expand_gpu.((x_context, y_context, x_target))..., num_samples)
     samples = μ[:, 1, 1, :] |> cpu
-    return nothing, nothing, nothing, cat(samples..., dims=2)
+    return nothing, nothing, nothing, samples
 end
