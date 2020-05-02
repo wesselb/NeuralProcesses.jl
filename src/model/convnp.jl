@@ -223,7 +223,8 @@ _repeat_samples(x, num_samples) = reshape(
 """
 function convnp_1d(;
     receptive_field::Float32,
-    num_layers::Integer,
+    encoder_layers::Integer,
+    decoder_layers::Integer,
     encoder_channels::Integer,
     decoder_channels::Integer,
     latent_channels::Integer,
@@ -234,7 +235,7 @@ function convnp_1d(;
     # Build architecture for the encoder.
     arch_encoder = build_conv(
         receptive_field,
-        num_layers,
+        encoder_layers,
         encoder_channels,
         points_per_unit=points_per_unit,
         dimensionality=1,
@@ -245,7 +246,7 @@ function convnp_1d(;
     # Build architecture for the encoder.
     arch_decoder = build_conv(
         receptive_field,
-        num_layers,
+        decoder_layers,
         decoder_channels,
         points_per_unit=points_per_unit,
         dimensionality=1,
@@ -384,6 +385,8 @@ end
 - `x_context::AbstractVector`: Locations of observed values of shape `(n)`.
 - `y_context::AbstractVector`: Observed values of shape `(n)`.
 - `x_target::AbstractVector`: Locations of target values of shape `(m)`.
+
+# Keywords
 - `num_samples::Integer=10`: Number of posterior samples.
 
 # Returns
