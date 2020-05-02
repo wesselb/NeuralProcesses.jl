@@ -178,6 +178,7 @@ function decode(
     channels = model.conv(samples)
 
     # Perform decoding.
+    # TODO: Do we need to repeat or can we just use broadcasting?
     channels = decode(
         model.decoder,
         _repeat_samples(x_latent, num_samples),
@@ -206,7 +207,7 @@ _repeat_samples(x, num_samples) = reshape(
         latent_channels::Integer,
         points_per_unit::Float32,
         margin::Float32=receptive_field,
-        σ²::Float32=1f-2
+        σ²::Float32=1f-4
     )
 
 # Keywords
@@ -219,7 +220,7 @@ _repeat_samples(x, num_samples) = reshape(
 - `latent_channels::Integer`: Number of channels of the latent variable.
 - `margin::Float32=receptive_field`: Margin for the discretisation. See
     `UniformDiscretisation1d`.
-- `σ²::Float32=1f-2`: Initialisation of the observation noise variance.
+- `σ²::Float32=1f-4`: Initialisation of the observation noise variance.
 """
 function convnp_1d(;
     receptive_field::Float32,
@@ -229,7 +230,7 @@ function convnp_1d(;
     latent_channels::Integer,
     points_per_unit::Float32,
     margin::Float32=receptive_field,
-    σ²::Float32=1f-2
+    σ²::Float32=1f-4
 )
     # Build architecture for the encoder.
     arch_encoder = build_conv(
