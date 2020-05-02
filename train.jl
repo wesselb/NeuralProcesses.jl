@@ -118,7 +118,7 @@ if args["evaluate"]
 else
     if args["starting-epoch"] > 1
         # Continue training from most recent model.
-        model = recent_model(bson)
+        model = recent_model(bson) |> gpu
     else
         # Instantiate a new model to start training.
         if args["model"] == "convcnp"
