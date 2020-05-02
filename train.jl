@@ -132,7 +132,8 @@ else
         elseif args["model"] == "convnp"
             model = convnp_1d(
                 receptive_field=receptive_field,
-                num_layers=8,
+                encoder_layers=8,
+                decoder_layers=2,
                 encoder_channels=num_channels,
                 decoder_channels=num_channels,
                 latent_channels=2,
