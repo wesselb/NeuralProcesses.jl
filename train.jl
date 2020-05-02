@@ -99,7 +99,7 @@ data_gen = DataGenerator(
 if args["model"] == "convcnp"
     loss = ConvCNPs.loss
 elseif args["model"] == "convnp"
-    loss(xs...) = ConvCNPs.loss(xs...; num_samples=5)
+    loss(xs...) = ConvCNPs.loss(xs..., num_samples=5)
 else
     error("Unknown model \"" * args["model"] * "\".")
 end
