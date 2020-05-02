@@ -340,7 +340,8 @@ function loss(
 
     # Sample latent variable and compute predictive statistics.
     samples = sample_latent(model, qz..., num_samples)
-    μ, σ² = decode(model, x_latent, samples, x_target)
+    μ = decode(model, x_latent, samples, x_target)
+    σ² = exp.(model.log_σ²)
 
     # Compute the components of the ELBO.
     y_target = insert_dim(y_target, pos=2)  # Ensure that `y_target` is a 4-tensor.
