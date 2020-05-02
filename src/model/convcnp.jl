@@ -97,7 +97,7 @@ function convcnp_1d(;
         num_channels,
         points_per_unit=points_per_unit,
         dimensionality=1,
-        in_channels=2,
+        in_channels=2,  # Account for density channel.
         out_channels=2
     )
 

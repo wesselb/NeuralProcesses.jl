@@ -11,6 +11,7 @@ Convolutional NP model.
 - `conv::Chain`: CNN that approximates ρ.
 - `decoder::SetConv`: Decoder.
 - `log_σ²`: Natural logarithm of observation noise variance.
+- `predict`: Function that transforms the output of `decode` to the actual prediction.
 """
 struct ConvNP
     disc::Discretisation
@@ -18,6 +19,7 @@ struct ConvNP
     conv::Chain
     decoder::SetConv
     log_σ²
+    predict
 end
 
 @Flux.treelike ConvNP
@@ -51,8 +53,11 @@ function (model::ConvNP)(
     # Sample latent variable.
     samples = sample_latent(model, x_context, y_context, x_latent, num_samples)
 
+    # Perform decoding.
+    channels = decode(model, x_latent, samples, x_target)
+
     # Transform samples into predictions.
-    return decode(model, x_latent, samples, x_target)
+    return model.predict(channels, exp.(model.log_σ²))
 end
 
 """
@@ -107,7 +112,7 @@ function sample_latent(
     num_samples::Integer
 )
     noise = randn(Float32, size(μ)..., num_samples) |> gpu
-    return insert_dim(μ .+ sqrt.(σ²) .* noise, pos=2)
+    return μ .+ sqrt.(σ²) .* noise
 end
 
 """
@@ -120,11 +125,12 @@ end
 
 # Arguments
 - `x_context::AbstractArray`: Locations of observed values of shape `(n, d, batch)`.
-- `y_context::AbstractArray`: Observed values of shape `(n, channels, batch)`.
+- `y_context::AbstractArray`: Observed values of shape `(n, y_channels, batch)`.
 - `x_latent::AbstractArray`: Locations of latent variable of shape `(m, d, batch)`.
 
 # Returns
-- `Tuple{AbstractArray, AbstractArray}`: Tuple containing means and variances.
+- `Tuple{AbstractArray, AbstractArray}`: Tuple containing means and variances of shape
+    `(m, 1, latent_channels, batch)`
 """
 function encode(
     model::ConvNP,
@@ -133,7 +139,11 @@ function encode(
     x_latent::AbstractArray
 )
     # Construct distribution over latent variable.
-    return model.encoder(x_context, y_context, x_latent)
+    μ, σ² = model.encoder(x_context, y_context, x_latent)
+
+    # The means and variances are 3-tensors, because they are the output of the ConvCNP. We
+    # make them 4-tensors to be consistent with the rest of the computation.
+    return insert_dim(μ, pos=2), insert_dim(σ², pos=2)
 end
 
 """
@@ -178,8 +188,7 @@ function decode(
     # Separate samples from batches.
     channels = reshape(channels, size(channels)[1:3]..., num_batches, num_samples)
 
-    # Return predictive distribution.
-    return channels, exp.(model.log_σ²)
+    return channels
 end
 
 _repeat_samples(x, num_samples) = reshape(
@@ -269,8 +278,18 @@ function convnp_1d(;
         encoder,
         arch_decoder.conv,
         set_conv(1, scale),
-        param([log(σ²)])
+        param([log(σ²)]),
+        _predict_convnp
     )
+end
+
+function _predict_convnp(μ, σ²)
+    size(μ, 2) == 1 && error("Mean should be one-dimensional.")
+    size(μ, 3) == 1 && error("Mean should have one channel.")
+
+    size(σ²) == (1,) && error("Variance should be a scalar.")
+
+    return μ[:, 1, :, :, :], reshape(σ², 1, 1, 1)
 end
 
 """
@@ -305,6 +324,7 @@ function loss(
     y_target::AbstractArray;
     num_samples::Integer
 )
+    # Construct input locations for latent variable.
     x_latent = model.disc(x_context, x_target) |> gpu
 
     # Construct prior over latent variable.
@@ -319,10 +339,11 @@ function loss(
     )
 
     # Sample latent variable and compute predictive statistics.
-    z = sample_latent(model, qz..., num_samples)
-    μ, σ² = decode(model, x_latent, z, x_target)
+    samples = sample_latent(model, qz..., num_samples)
+    μ, σ² = decode(model, x_latent, samples, x_target)
 
     # Compute the components of the ELBO.
+    y_target = insert_dim(y_target, pos=2)  # Ensure that `y_target` is a 4-tensor.
     expectations = gaussian_logpdf(y_target, μ, σ²)
     kls = _kl(qz..., pz...)
 
@@ -353,14 +374,16 @@ end
         model::ConvNP,
         x_context::AbstractVector,
         y_context::AbstractVector,
-        x_target::AbstractVector
+        x_target::AbstractVector;
+        num_samples::Integer=10
     )
 
 # Arguments
 - `model::ConvNP`: Model.
-- `x_context::AbstractArray`: Locations of observed values of shape `(n, d, batch)`.
-- `y_context::AbstractArray`: Observed values of shape `(n, channels, batch)`.
-- `x_target::AbstractArray`: Locations of target values of shape `(m, d, batch)`.
+- `x_context::AbstractVector`: Locations of observed values of shape `(n)`.
+- `y_context::AbstractVector`: Observed values of shape `(n)`.
+- `x_target::AbstractVector`: Locations of target values of shape `(m)`.
+- `num_samples::Integer=10`: Number of posterior samples.
 
 # Returns
 - `Tuple{Nothing, Nothing, Nothing, AbstractArray}`: Tuple containing `nothing`, `nothing`,
@@ -370,13 +393,10 @@ function predict(
     model::ConvNP,
     x_context::AbstractVector,
     y_context::AbstractVector,
-    x_target::AbstractVector
+    x_target::AbstractVector;
+    num_samples::Integer=10
 )
-    samples = []
-    for i = 1:3
-        μ, σ² = untrack(model)(_expand_gpu.((x_context, y_context, x_target))..., 1)
-        # Do not add noise to the sample: simply take the mean.
-        push!(samples, μ[:, 1, 1] |> cpu)  
-    end
+    μ, σ² = untrack(model)(_expand_gpu.((x_context, y_context, x_target))..., num_samples)
+    samples = μ[:, 1, 1, :] |> cpu
     return nothing, nothing, nothing, cat(samples..., dims=2)
 end
