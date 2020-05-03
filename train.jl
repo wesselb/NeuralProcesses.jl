@@ -46,6 +46,8 @@ if args["data"] == "eq-small"
     receptive_field = 1f0
     points_per_unit = 32f0
     num_channels = 16
+    encoder_channels = 8
+    decoder_channels = 4
 elseif args["data"] == "eq"
     process = GP(stretch(eq(), 1 / 0.25), GPC())
     num_context = DiscreteUniform(3, 50)
@@ -53,6 +55,8 @@ elseif args["data"] == "eq"
     receptive_field = 2f0
     points_per_unit = 64f0
     num_channels = 64
+    encoder_channels = 32
+    decoder_channels = 16
 elseif args["data"] == "matern52"
     process = GP(stretch(matern52(), 1 / 0.25), GPC())
     num_context = DiscreteUniform(3, 50)
@@ -60,6 +64,8 @@ elseif args["data"] == "matern52"
     receptive_field = 2f0
     points_per_unit = 64f0
     num_channels = 64
+    encoder_channels = 32
+    decoder_channels = 16
 elseif args["data"] == "weakly-periodic"
     process = GP(stretch(eq(), 1 / 0.5) * stretch(Stheno.PerEQ(), 1 / 0.25), GPC())
     num_context = DiscreteUniform(3, 50)
@@ -67,6 +73,8 @@ elseif args["data"] == "weakly-periodic"
     receptive_field = 4f0
     points_per_unit = 64f0
     num_channels = 64
+    encoder_channels = 32
+    decoder_channels = 16
 elseif args["data"] == "sawtooth"
     process = Sawtooth()
     num_context = DiscreteUniform(3, 100)
@@ -74,6 +82,8 @@ elseif args["data"] == "sawtooth"
     receptive_field = 16f0
     points_per_unit = 64f0
     num_channels = 32
+    encoder_channels = 16
+    decoder_channels = 8
 else
     error("Unknown data \"" * args["data"] * "\".")
 end
@@ -133,9 +143,9 @@ else
             model = convnp_1d(
                 receptive_field=receptive_field,
                 encoder_layers=8,
-                decoder_layers=2,
-                encoder_channels=num_channels,
-                decoder_channels=num_channels,
+                decoder_layers=4,
+                encoder_channels=encoder_channels,
+                decoder_channels=decoder_channels,
                 latent_channels=2,
                 points_per_unit=points_per_unit,
                 margin=receptive_field
