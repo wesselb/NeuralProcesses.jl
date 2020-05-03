@@ -41,49 +41,84 @@ args = parse_args(parser)
 # Set up experiment.
 if args["data"] == "eq-small"
     process = GP(stretch(eq(), 1 / 0.25), GPC())
-    num_context = DiscreteUniform(3, 50)
-    num_target = DiscreteUniform(3, 50)
     receptive_field = 1f0
     points_per_unit = 32f0
-    num_channels = 16
-    encoder_channels = 8
-    decoder_channels = 4
+    if args["model"] == "convcnp"
+        num_context = DiscreteUniform(3, 50)
+        num_target = DiscreteUniform(3, 50)
+        num_channels = 16
+    elseif args["model"] == "convnp"
+        num_context = DiscreteUniform(0, 50)
+        num_target = DiscreteUniform(50, 50)
+        encoder_channels = 8
+        decoder_channels = 4
+    else
+        error("Unknown model \"" * args["model"] * "\".")
+    end
 elseif args["data"] == "eq"
     process = GP(stretch(eq(), 1 / 0.25), GPC())
-    num_context = DiscreteUniform(3, 50)
-    num_target = DiscreteUniform(3, 50)
     receptive_field = 2f0
     points_per_unit = 64f0
-    num_channels = 64
-    encoder_channels = 32
-    decoder_channels = 16
+    if args["model"] == "convcnp"
+        num_context = DiscreteUniform(3, 50)
+        num_target = DiscreteUniform(3, 50)
+        num_channels = 64
+    elseif args["model"] == "convnp"
+        num_context = DiscreteUniform(0, 50)
+        num_target = DiscreteUniform(50, 50)
+        encoder_channels = 32
+        decoder_channels = 16
+    else
+        error("Unknown model \"" * args["model"] * "\".")
+    end
 elseif args["data"] == "matern52"
     process = GP(stretch(matern52(), 1 / 0.25), GPC())
-    num_context = DiscreteUniform(3, 50)
-    num_target = DiscreteUniform(3, 50)
     receptive_field = 2f0
     points_per_unit = 64f0
-    num_channels = 64
-    encoder_channels = 32
-    decoder_channels = 16
+    if args["model"] == "convcnp"
+        num_context = DiscreteUniform(3, 50)
+        num_target = DiscreteUniform(3, 50)
+        num_channels = 64
+    elseif args["model"] == "convnp"
+        num_context = DiscreteUniform(0, 50)
+        num_target = DiscreteUniform(50, 50)
+        encoder_channels = 32
+        decoder_channels = 16
+    else
+        error("Unknown model \"" * args["model"] * "\".")
+    end
 elseif args["data"] == "weakly-periodic"
     process = GP(stretch(eq(), 1 / 0.5) * stretch(Stheno.PerEQ(), 1 / 0.25), GPC())
-    num_context = DiscreteUniform(3, 50)
-    num_target = DiscreteUniform(3, 50)
     receptive_field = 4f0
     points_per_unit = 64f0
-    num_channels = 64
-    encoder_channels = 32
-    decoder_channels = 16
+    if args["model"] == "convcnp"
+        num_context = DiscreteUniform(3, 50)
+        num_target = DiscreteUniform(3, 50)
+        num_channels = 64
+    elseif args["model"] == "convnp"
+        num_context = DiscreteUniform(0, 50)
+        num_target = DiscreteUniform(50, 50)
+        encoder_channels = 32
+        decoder_channels = 16
+    else
+        error("Unknown model \"" * args["model"] * "\".")
+    end
 elseif args["data"] == "sawtooth"
     process = Sawtooth()
-    num_context = DiscreteUniform(3, 100)
-    num_target = DiscreteUniform(3, 100)
     receptive_field = 16f0
     points_per_unit = 64f0
-    num_channels = 32
-    encoder_channels = 16
-    decoder_channels = 8
+    if args["model"] == "convcnp"
+        num_context = DiscreteUniform(3, 100)
+        num_target = DiscreteUniform(3, 100)
+        num_channels = 32
+    elseif args["model"] == "convnp"
+        num_context = DiscreteUniform(0, 100)
+        num_target = DiscreteUniform(100, 100)
+        encoder_channels = 16
+        decoder_channels = 8
+    else
+        error("Unknown model \"" * args["model"] * "\".")
+    end
 else
     error("Unknown data \"" * args["data"] * "\".")
 end
