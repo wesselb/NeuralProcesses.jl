@@ -155,9 +155,9 @@ if args["model"] == "convcnp"
     end
 elseif args["model"] == "convnp"
     if args["loss"] == "loglik"
-        loss(x) = loglik(x, num_samples=20)
+        loss(xs...) = loglik(xs..., num_samples=20)
     elseif args["loss"] == "elbo"
-        loss(x) = elbo(x, num_samples=5)
+        loss(xs...) = elbo(xs..., num_samples=5)
     else
         error("Unknown loss \"" * args["loss"] * "\".")
     end
@@ -182,7 +182,7 @@ else
         model = recent_model(bson) |> gpu
     else
         # Instantiate a new model to start training. Ideally, the margin should be the
-        # receptive field size, but that creates large memory requirements for models with 
+        # receptive field size, but that creates large memory requirements for models with
         # large receptive field.
         if args["model"] == "convcnp"
             model = convcnp_1d(
