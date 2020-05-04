@@ -17,11 +17,15 @@ using Distributions
 parser = ArgParseSettings()
 @add_arg_table! parser begin
     "--data"
-        help = "Data set."
+        help = "Data set: eq-small, eq, matern52, weakly-periodic, or sawtooth."
         arg_type = String
         required = true
     "--model"
-        help = "Model."
+        help = "Model: convcnp or convnp."
+        arg_type = String
+        required = true
+    "--loss"
+        help = "Loss: loglik or elbo."
         arg_type = String
         required = true
     "--starting-epoch"
@@ -124,12 +128,12 @@ else
 end
 
 # Determine name of file to write model to and folder to output images.
-bson = "models/" * args["model"] * "/" * args["data"] * ".bson"
-path = "output/" * args["model"] * "/" * args["data"]
+bson = "models/" * args["model"] * "/" * args["loss"] * "/" * args["data"] * ".bson"
+path = "output/" * args["model"] * "/" * args["loss"] * "/" * args["data"]
 
-# Ensure that the directories exist.
-mkpath("models/" * args["model"])
-mkpath(path)
+# Ensure that the appropriate directories exist.
+mkpath("models/" * args["model"] * "/" * args["loss"] * "/" * args["data"])
+mkpath("output/" * args["model"] * "/" * args["loss"] * "/" * args["data"])
 
 # Construct data generator.
 data_gen = DataGenerator(
@@ -142,9 +146,21 @@ data_gen = DataGenerator(
 
 # Set the loss.
 if args["model"] == "convcnp"
-    loss = ConvCNPs.loss
+    if args["loss"] == "loglik"
+        loss = loglik
+    elseif args["loss"] == "elbo"
+        error("ELBO is not applicable to the ConvCNP.")
+    else
+        error("Unknown loss \"" * args["loss"] * "\".")
+    end
 elseif args["model"] == "convnp"
-    loss(xs...) = ConvCNPs.loss(xs..., num_samples=5)
+    if args["loss"] == "loglik"
+        loss(x) = loglik(x, num_samples=20)
+    elseif args["loss"] == "elbo"
+        loss(x) = elbo(x, num_samples=5)
+    else
+        error("Unknown loss \"" * args["loss"] * "\".")
+    end
 else
     error("Unknown model \"" * args["model"] * "\".")
 end

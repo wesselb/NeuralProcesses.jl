@@ -1,4 +1,4 @@
-export CorrelatedConvCNP, convcnp_1d_correlated, loss, predict
+export CorrelatedConvCNP, convcnp_1d_correlated, loglik, predict
 
 """
     CorrelatedConvCNP
@@ -116,7 +116,7 @@ function _predict_gaussian_correlated(μ_channels, Σ_channels)
 end
 
 """
-    loss(
+    loglik(
         model::CorrelatedConvCNP,
         epoch::Integer,
         x_context::AbstractArray,
@@ -136,7 +136,7 @@ end
 # Returns
 - `Real`: Average negative log-likelihood.
 """
-function loss(
+function loglik(
     model::CorrelatedConvCNP,
     epoch::Integer,
     x_context::AbstractArray,

@@ -1,4 +1,4 @@
-export ConvNP, sample_latent, encode, decode, convnp_1d, loss, predict
+export ConvNP, sample_latent, encode, decode, convnp_1d, loglik, elbo, predict
 
 """
     ConvNP
@@ -295,7 +295,7 @@ function _predict_convnp(μ, σ²)
 end
 
 """
-    loss(
+    loglik(
         model::ConvNP,
         epoch::Integer,
         x_context::AbstractArray,
@@ -304,6 +304,45 @@ end
         y_target::AbstractArray,
         num_samples::Integer
     )
+
+Log-expected-likelihood loss. This is a biased estimate of the log-likelihood.
+
+# Arguments
+- `model::ConvCNP`: Model.
+- `epoch::Integer`: Current epoch.
+- `x_context::AbstractArray`: Locations of observed values of shape `(n, d, batch)`.
+- `y_context::AbstractArray`: Observed values of shape `(n, channels, batch)`.
+- `x_target::AbstractArray`: Locations of target values of shape `(m, d, batch)`.
+- `y_target::AbstractArray`: Target values of shape `(m, channels, batch)`.
+- `num_samples::Integer`: Number of samples.
+
+# Returns
+- `Real`: Average negative log-expected likelihood.
+"""
+function loglik(
+    model::ConvNP,
+    epoch::Integer,
+    x_context::AbstractArray,
+    y_context::AbstractArray,
+    x_target::AbstractArray,
+    y_target::AbstractArray;
+    num_samples::Integer
+)
+    
+end
+
+"""
+    elbo(
+        model::ConvNP,
+        epoch::Integer,
+        x_context::AbstractArray,
+        y_context::AbstractArray,
+        x_target::AbstractArray,
+        y_target::AbstractArray,
+        num_samples::Integer
+    )
+
+Neural process ELBO-style loss.
 
 # Arguments
 - `model::ConvCNP`: Model.
@@ -317,7 +356,7 @@ end
 # Returns
 - `Real`: Average negative NP loss.
 """
-function loss(
+function elbo(
     model::ConvNP,
     epoch::Integer,
     x_context::AbstractArray,

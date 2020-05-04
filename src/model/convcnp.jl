@@ -1,4 +1,4 @@
-export ConvCNP, convcnp_1d, loss, predict
+export ConvCNP, convcnp_1d, loglik, predict
 
 """
     ConvCNP
@@ -124,7 +124,7 @@ function _predict_gaussian_factorised(channels)
 end
 
 """
-    loss(
+    loglik(
         model::ConvCNP,
         epoch::Integer,
         x_context::AbstractArray,
@@ -144,7 +144,7 @@ end
 # Returns
 - `Real`: Average negative log-likelihood.
 """
-function loss(
+function loglik(
     model::ConvCNP,
     epoch::Integer,
     x_context::AbstractArray,
