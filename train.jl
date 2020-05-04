@@ -165,14 +165,16 @@ else
         # Continue training from most recent model.
         model = recent_model(bson) |> gpu
     else
-        # Instantiate a new model to start training.
+        # Instantiate a new model to start training. Ideally, the margin should be the
+        # receptive field size, but that creates large memory requirements for models with 
+        # large receptive field.
         if args["model"] == "convcnp"
             model = convcnp_1d(
                 receptive_field=receptive_field,
                 num_layers=8,
                 num_channels=num_channels,
                 points_per_unit=points_per_unit,
-                margin=receptive_field
+                margin=1f0
             ) |> gpu
         elseif args["model"] == "convnp"
             model = convnp_1d(
@@ -183,7 +185,7 @@ else
                 decoder_channels=decoder_channels,
                 latent_channels=2,
                 points_per_unit=points_per_unit,
-                margin=receptive_field
+                margin=1f0
             ) |> gpu
         else
             error("Unknown model \"" * args["model"] * "\".")
