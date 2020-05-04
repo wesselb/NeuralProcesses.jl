@@ -147,7 +147,7 @@ data_gen = DataGenerator(
 # Set the loss.
 if args["model"] == "convcnp"
     if args["loss"] == "loglik"
-        loss = loglik
+        loss = ConvCNPs.loglik
     elseif args["loss"] == "elbo"
         error("ELBO is not applicable to the ConvCNP.")
     else
@@ -155,9 +155,9 @@ if args["model"] == "convcnp"
     end
 elseif args["model"] == "convnp"
     if args["loss"] == "loglik"
-        loss(xs...) = loglik(xs..., num_samples=20)
+        loss(xs...) = ConvCNPs.loglik(xs..., num_samples=20)
     elseif args["loss"] == "elbo"
-        loss(xs...) = elbo(xs..., num_samples=5)
+        loss(xs...) = ConvCNPs.elbo(xs..., num_samples=5)
     else
         error("Unknown loss \"" * args["loss"] * "\".")
     end
