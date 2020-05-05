@@ -1,5 +1,6 @@
 using Distributions
 using Flux.Tracker
+using StatsFuns
 
 import ConvCNPs:
     untrack, ceil_odd, insert_dim, rbf, compute_dists2,
@@ -113,5 +114,11 @@ end
         end
         @test batched_mul(x, y) ≈ z
         test_gradient(batched_mul, x, y)
+    end
+
+    @testset "logsumexp" begin
+        x = randn(3, 4, 5)
+        @test StatsFuns.logsumexp(x, dims=1) ≈ logsumexp(x, dims=1)
+        test_gradient((y) -> logsumexp(y, dims=1), x)
     end
 end

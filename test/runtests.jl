@@ -1,5 +1,6 @@
 using ConvCNPs
 using FiniteDifferences
+using Flux
 using Flux.Tracker
 using LinearAlgebra
 using Test

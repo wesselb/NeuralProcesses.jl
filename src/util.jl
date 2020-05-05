@@ -225,20 +225,29 @@ batched_mul(x::CuOrArray, y::CuOrArray) = first(_batched_mul(x, y))
 end
 
 """
-    logsumexp(X; dims)
+    logsumexp(x::AbstractArray; dims)
 
-    Safe log-sum-exp reduction of array `X` along dimensions `dims`.
+Safe log-sum-exp reduction of array `x` along dimensions `dims`.
 
 # Args
-- `X`: array to apply reductions to.
-- `dims`: diensions along which reduction is applied.
+- `x::AbstractArray`: Array to apply reductions to.
+- `dims`: Dimensions along which reduction is applied.
 
 # Returns
-- log-sum-exp reduction of `X` along dimensions `dims`.
+- `Real`: Log-sum-exp reduction of `x` along dimensions `dims`.
 """
-function logsumexp(X; dims=:) where {T<:Real}
-    u = maximum(X, dims=dims)
-    toreturn = u .+ log.(sum(exp.(X .- u); dims=dims))
-    return toreturn
+
+logsumexp(x::AbstractArray; dims=:) = Tracker.track(logsumexp, x, dims=dims)
+
+function logsumexp(x::CuOrArray; dims=:)
+    u = maximum(x, dims=dims)
+    return u .+ log.(sum(exp.(x .- u), dims=dims))
 end
 
+@Tracker.grad function logsumexp(x; dims=:)
+    x = Tracker.data(x)
+    y = logsumexp(x, dims=dims)
+    return y, function (ȳ)
+        return (ȳ .* exp.(x .- y),)
+    end
+end
