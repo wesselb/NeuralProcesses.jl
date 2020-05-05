@@ -144,10 +144,11 @@ data_gen = DataGenerator(
     num_target=num_target
 )
 
-# Set the loss.
+# Set the loss and learning rate.
 if args["model"] == "convcnp"
     if args["loss"] == "loglik"
         loss = ConvCNPs.loglik
+        learning_rate = 5e-4
     elseif args["loss"] == "elbo"
         error("ELBO is not applicable to the ConvCNP.")
     else
@@ -155,9 +156,11 @@ if args["model"] == "convcnp"
     end
 elseif args["model"] == "convnp"
     if args["loss"] == "loglik"
-        loss(xs...) = ConvCNPs.loglik(xs..., num_samples=20)
+        loss(xs...) = ConvCNPs.loglik(xs..., num_samples=5)
+        learning_rate = 2e-4
     elseif args["loss"] == "elbo"
         loss(xs...) = ConvCNPs.elbo(xs..., num_samples=5)
+        learning_rate = 5e-4
     else
         error("Unknown loss \"" * args["loss"] * "\".")
     end
@@ -214,7 +217,7 @@ else
         model,
         loss,
         data_gen,
-        ADAM(5e-4),
+        ADAM(learning_rate),
         bson=bson,
         batches_per_epoch=2048,
         starting_epoch=args["starting-epoch"],
