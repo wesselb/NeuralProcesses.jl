@@ -4,7 +4,8 @@ using StatsFuns
 
 import ConvCNPs:
     untrack, ceil_odd, insert_dim, rbf, compute_dists2,
-    diagonal, batched_transpose, batched_mul
+    diagonal, batched_transpose, batched_mul,
+    logsumexp
 
 function test_gradient(f, xs...)
     # Construct scalar version of `f`.
