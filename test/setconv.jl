@@ -15,9 +15,9 @@ end
         num_channels = 2
 
         # Generate context and target set.
-        x_context = randn(n_context, dimensionality, batch_size)
-        y_context = randn(n_context, num_channels, batch_size)
-        x_target = randn(n_target, dimensionality, batch_size)
+        x_context = randn(Float32, n_context, dimensionality, batch_size)
+        y_context = randn(Float32, n_context, num_channels, batch_size)
+        x_target = randn(Float32, n_target, dimensionality, batch_size)
 
         # Compute with layer.
         layer = set_conv(num_channels + perform_encoding, scale)
@@ -38,14 +38,14 @@ end
 
             if perform_encoding
                 # Prepend density channel only for the encoding.
-                push!(channels, weights * ones(n_context))
+                push!(channels, weights * ones(Float32, n_context))
             end
 
             # Compute other channels.
             for j in 1:num_channels
                 channel = weights * y_context[:, j, i]
                 if perform_encoding
-                    channel ./= channels[1] .+ 1e-8
+                    channel ./= channels[1] .+ 1f-8
                 end
                 push!(channels, channel)
             end
@@ -55,6 +55,6 @@ end
         ref = insert_dim(cat(batches..., dims=3), pos=2)
 
         # Check that the brute-force calculation lines up with the layer.
-        @test out ≈ Float32.(ref)
+        @test out ≈ ref
     end
 end
