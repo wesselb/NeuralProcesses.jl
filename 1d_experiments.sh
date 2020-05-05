@@ -4,7 +4,7 @@ set -e
 
 MODELS="convnp"
 LOSSES="loglik"
-DATA_SETS="eq-small"
+DATA_SETS="eq matern52 weakly-periodic sawtooth"
 
 EPOCHS_INC=5
 EPOCHS_TOTAL=40
