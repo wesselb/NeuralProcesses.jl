@@ -236,7 +236,6 @@ Safe log-sum-exp reduction of array `x` along dimensions `dims`.
 # Returns
 - `Real`: Log-sum-exp reduction of `x` along dimensions `dims`.
 """
-
 logsumexp(x::AbstractArray; dims=:) = Tracker.track(logsumexp, x, dims=dims)
 
 function logsumexp(x::CuOrArray; dims=:)
