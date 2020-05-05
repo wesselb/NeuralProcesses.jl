@@ -329,6 +329,29 @@ function loglik(
     num_samples::Integer
 )
     
+    # Construct input locations for latent variable.
+    x_latent = model.disc(x_context, x_target) |> gpu
+
+    # Construct prior over latent variable.
+    qz = encode(model, x_context, y_context, x_latent)
+
+    # Sample latent variable and compute predictive statistics.
+    samples = sample_latent(model, qz..., num_samples)
+    μ = decode(model, x_latent, samples, x_target)
+    σ² = exp.(model.log_σ²)
+
+    # Compute the components of the ELBO.
+    y_target = insert_dim(y_target, pos=2)  # Ensure that `y_target` is a 4-tensor.
+    expectations = gaussian_logpdf(y_target, μ, σ²)
+
+    # Sum over data points and channels to assemble the expressions.
+    expectations = sum(expectations, dims=(1, 3))
+    
+    # Log-sum-exp over channels
+    logliks = logsumexp(expectations, dims=5)
+
+    # Return average over batches.
+    return -mean(logliks)
 end
 
 """

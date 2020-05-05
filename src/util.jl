@@ -1,4 +1,4 @@
-export gaussian_logpdf
+export gaussian_logpdf, logsumexp
 
 """
     untrack(model)
@@ -223,3 +223,22 @@ batched_mul(x::CuOrArray, y::CuOrArray) = first(_batched_mul(x, y))
         )
     end
 end
+
+"""
+    logsumexp(X; dims)
+
+    Safe log-sum-exp reduction of array `X` along dimensions `dims`.
+
+# Args
+- `X`: array to apply reductions to.
+- `dims`: diensions along which reduction is applied.
+
+# Returns
+- log-sum-exp reduction of `X` along dimensions `dims`.
+"""
+function logsumexp(X; dims=:) where {T<:Real}
+    u = maximum(X, dims=dims)
+    toreturn = u .+ log.(sum(exp.(X .- u); dims=dims))
+    return toreturn
+end
+
