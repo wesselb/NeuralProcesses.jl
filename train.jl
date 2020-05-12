@@ -224,18 +224,17 @@ else
             ) |> gpu
         elseif args["model"] == "anp"
             model = anp_1d(
-                dim_embedding=128,
-                num_encoder_layers=6,
+                dim_embedding=64,
+                num_encoder_layers=3,
                 num_encoder_heads=8,
-                num_decoder_layers=6
+                num_decoder_layers=3
             ) |> gpu
         elseif args["model"] == "np"
-            model = anp_1d(
-                dim_embedding=128,
-                num_encoder_layers=6,
-                num_decoder_layers=6
+            model = np_1d(
+                dim_embedding=64,
+                num_encoder_layers=3,
+                num_decoder_layers=3
             ) |> gpu
-        else
         else
             error("Unknown model \"" * args["model"] * "\".")
         end
