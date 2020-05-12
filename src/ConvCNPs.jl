@@ -17,14 +17,17 @@ else
 end
 
 include("util.jl")
+include("data.jl")
+include("conv.jl")
+
 include("discretisation.jl")
 include("setconv.jl")
-include("conv.jl")
 include("attention.jl")
-include("model/convcnp.jl")
-include("model/convnp.jl")
-include("model/correlatedconvcnp.jl")
-include("data.jl")
+include("model/cnp/convcnp.jl")
+include("model/cnp/correlatedconvcnp.jl")
+include("model/np/np.jl")
+include("model/np/convnp.jl")
+include("model/np/anp.jl")
 
 include("experiment/experiment.jl")
 

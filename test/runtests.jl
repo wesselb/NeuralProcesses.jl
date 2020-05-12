@@ -1,4 +1,6 @@
 using ConvCNPs
+using ConvCNPs.Experiment
+using Distributions
 using FiniteDifferences
 using Flux
 using Flux.Tracker
@@ -11,4 +13,5 @@ using Test
     include("setconv.jl")
     include("attention.jl")
     include("data.jl")
+    include("model.jl")
 end

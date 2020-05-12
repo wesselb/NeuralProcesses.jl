@@ -31,53 +31,49 @@ end
 @Flux.treelike CorrelatedConvCNP
 
 """
-    (model::CorrelatedConvCNP)(
-        x_context::AbstractArray,
-        y_context::AbstractArray,
-        x_target::AbstractArray
-    )
+    (model::CorrelatedConvCNP)(model::CorrelatedConvCNP)(xc, yc, xt)
 
 # Arguments
-- `x_context::AbstractArray`: Locations of observed values of shape `(n, d, batch)`.
-- `y_context::AbstractArray`: Observed values of shape `(n, channels, batch)`.
-- `x_target::AbstractArray`: Locations of target set of shape `(m, d, batch)`.
+- `xc`: Locations of observed values of shape `(n, d, batch)`.
+- `yc`: Observed values of shape `(n, channels, batch)`.
+- `xt`: Locations of target set of shape `(m, d, batch)`.
 
 # Returns
 - `Tuple{AbstractArray, AbstractArray}`: Tuple containing means and covariances.
 """
-function (model::CorrelatedConvCNP)(
-    x_context::AbstractArray,
-    y_context::AbstractArray,
-    x_target::AbstractArray
-)
-    # Compute discretisation of the functional embedding.
-    μ_x_latent = model.μ_disc(x_context, x_target) |> gpu
-    Σ_x_latent = model.Σ_disc(x_context, x_target) |> gpu
-
-    if size(x_context, 1) > 0
-        # The context set is non-empty. Compute encodings as usual.
-        μ_channels = encode(   model.μ_encoder, x_context, y_context, μ_x_latent)
-        Σ_channels = encode_pd(model.Σ_encoder, x_context, y_context, Σ_x_latent)
+function (model::CorrelatedConvCNP)(xc, yc, xt)
+    if !isnothing(xc) && size(xc, 1) > 0
+        # The context set is non-empty.
+        μ_xz = model.μ_disc(xc, xt) |> gpu
+        Σ_xz = model.Σ_disc(xc, xt) |> gpu
+        μ_channels = encode(   model.μ_encoder, xc, yc, μ_xz)
+        Σ_channels = encode_pd(model.Σ_encoder, xc, yc, Σ_xz)
     else
-        # The context set is empty. Set to empty encodings.
-        μ_channels = empty_encoding(   model.μ_encoder, μ_x_latent)
-        Σ_channels = empty_encoding_pd(model.Σ_encoder, Σ_x_latent)
+        # The context set is empty.
+        μ_xz = model.μ_disc(xt) |> gpu
+        Σ_xz = model.Σ_disc(xt) |> gpu
+        μ_channels = empty_encoding(   model.μ_encoder, μ_xz)
+        Σ_channels = empty_encoding_pd(model.Σ_encoder, Σ_xz)
     end
 
     # Apply the CNNs.
-    μ_channels = model.μ_conv(μ_channels)
+    μ_channels = with_dummy(model.μ_conv, μ_channels)
     Σ_channels = model.Σ_conv(Σ_channels)
 
     # Perform decoding.
-    μ_channels = decode(   model.μ_decoder, μ_x_latent, μ_channels, x_target)
-    Σ_channels = decode_pd(model.Σ_decoder, Σ_x_latent, Σ_channels, x_target)
+    μ_channels = decode(   model.μ_decoder, μ_xz, μ_channels, xt)
+    Σ_channels = decode_pd(model.Σ_decoder, Σ_xz, Σ_channels, xt)
 
     # Return predictive distribution.
     return model.predict(μ_channels, Σ_channels)
 end
 
 """
-    convcnp_1d_correlated(arch::Architecture, margin::Float32=0.1f0)
+    convcnp_1d_correlated(
+        μ_arch::Architecture,
+        Σ_arch::Architecture;
+        margin::Float32=0.1f0
+    )
 
 Construct a correlated ConvCNP for one-dimensional data.
 
@@ -116,44 +112,30 @@ function _predict_gaussian_correlated(μ_channels, Σ_channels)
 end
 
 """
-    loglik(
-        model::CorrelatedConvCNP,
-        epoch::Integer,
-        x_context::AbstractArray,
-        y_context::AbstractArray,
-        x_target::AbstractArray,
-        y_target::AbstractArray
-    )
+    loglik(model::CorrelatedConvCNP, epoch::Integer, xc, yc, xt, yt)
 
 # Arguments
 - `model::CorrelatedConvCNP`: Model.
 - `epoch::Integer`: Current epoch.
-- `x_context::AbstractArray`: Locations of observed values of shape `(n, d, batch)`.
-- `y_context::AbstractArray`: Observed values of shape `(n, channels, batch)`.
-- `x_target::AbstractArray`: Locations of target values of shape `(m, d, batch)`.
-- `y_target::AbstractArray`: Target values of shape `(m, channels, batch)`.
+- `xc`: Locations of observed values of shape `(n, d, batch)`.
+- `yc`: Observed values of shape `(n, channels, batch)`.
+- `xt`: Locations of target values of shape `(m, d, batch)`.
+- `yt`: Target values of shape `(m, channels, batch)`.
 
 # Returns
 - `Real`: Average negative log-likelihood.
 """
-function loglik(
-    model::CorrelatedConvCNP,
-    epoch::Integer,
-    x_context::AbstractArray,
-    y_context::AbstractArray,
-    x_target::AbstractArray,
-    y_target::AbstractArray
-)
-    size(y_target, 2) == 1 || error("Target outputs have more than one channel.")
+function loglik(model::CorrelatedConvCNP, epoch::Integer, xc, yc, xt, yt)
+    size(yt, 2) == 1 || error("Target outputs have more than one channel.")
 
-    n_target, _, batch_size = size(x_target)
+    n_target, _, batch_size = size(xt)
 
-    μ, Σ = model(x_context, y_context, x_target)
+    μ, Σ = model(xc, yc, xt)
 
     logpdf = 0f0
     ridge = gpu(Matrix(_epoch_to_reg(epoch) * I, n_target, n_target))
     for i = 1:batch_size
-        logpdf += gaussian_logpdf(y_target[:, 1, i], μ[:, i], Σ[:, :, i] .+ ridge)
+        logpdf += gaussian_logpdf(yt[:, 1, i], μ[:, i], Σ[:, :, i] .+ ridge)
     end
 
     return -logpdf / batch_size
@@ -164,16 +146,16 @@ _epoch_to_reg(epoch) = 10^(-min(1 + Float32(epoch), 5))
 """
     predict(
         model::CorrelatedConvCNP,
-        x_context::AbstractVector,
-        y_context::AbstractVector,
-        x_target::AbstractVector
+        xc::AbstractVector,
+        yc::AbstractVector,
+        xt::AbstractVector
     )
 
 # Arguments
 - `model::CorrelatedConvCNP`: Model.
-- `x_context::AbstractArray`: Locations of observed values of shape `(n, d, batch)`.
-- `y_context::AbstractArray`: Observed values of shape `(n, channels, batch)`.
-- `x_target::AbstractArray`: Locations of target values of shape `(m, d, batch)`.
+- `xc`: Locations of observed values of shape `(n, d, batch)`.
+- `yc`: Observed values of shape `(n, channels, batch)`.
+- `xt`: Locations of target values of shape `(m, d, batch)`.
 
 # Returns
 - `Tuple{AbstractArray, AbstractArray, AbstractArray, AbstractArray}`: Tuple containing
@@ -181,11 +163,11 @@ _epoch_to_reg(epoch) = 10^(-min(1 + Float32(epoch), 5))
 """
 function predict(
     model::CorrelatedConvCNP,
-    x_context::AbstractVector,
-    y_context::AbstractVector,
-    x_target::AbstractVector
+    xc::AbstractVector,
+    yc::AbstractVector,
+    xt::AbstractVector
 )
-    μ, Σ = untrack(model)(_expand_gpu.((x_context, y_context, x_target)))
+    μ, Σ = untrack(model)(expand_gpu.((xc, yc, xt)))
     μ = μ[:, 1, 1] |> cpu
     Σ = Σ[:, :, 1] |> cpu
     σ² = diag(Σ)

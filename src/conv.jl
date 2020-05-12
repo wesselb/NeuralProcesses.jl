@@ -35,8 +35,8 @@ _expand_padding(n, ::Val{2}) = (n, n)
         num_channels::Integer;
         points_per_unit::Float32=30f0,
         multiple::Integer=1,
-        in_channels::Integer=2,
-        out_channels::Integer=2,
+        num_in_channels::Integer=2,
+        num_out_channels::Integer=2,
         dimensionality::Integer=1,
         init_conv::Function=_init_conv_fixed_bias,
         init_depthwiseconv::Function=_init_depthwiseconv_fixed_bias
@@ -55,8 +55,8 @@ Build a CNN with a specified receptive field size.
 - `points_per_unit::Float32=30f0`: Points per unit for the discretisation. See
      `UniformDiscretisation1d`.
 - `multiple::Integer=1`: Multiple for the discretisation. See `UniformDiscretisation1d`.
-- `in_channels::Integer=2`: Number of input channels.
-- `out_channels::Integer=2`: Number of output channels.
+- `num_in_channels::Integer=2`: Number of input channels.
+- `num_out_channels::Integer=2`: Number of output channels.
 - `dimensionality::Integer=1`: Dimensionality of the filters.
 - `init_conv::Function=_init_conv_fixed_bias`: Initialiser for dense convolutions.
 - `init_depthwiseconv::Function=_init_depthwiseconv_fixed_bias`: Initialiser for depthwise
@@ -71,8 +71,8 @@ function build_conv(
     num_channels::Integer;
     points_per_unit::Float32=30f0,
     multiple::Integer=1,
-    in_channels::Integer=2,
-    out_channels::Integer=2,
+    num_in_channels::Integer=2,
+    num_out_channels::Integer=2,
     dimensionality::Integer=1,
     init_conv::Function=_init_conv_fixed_bias,
     init_depthwiseconv::Function=_init_depthwiseconv_fixed_bias
@@ -88,7 +88,7 @@ function build_conv(
 
     # Build layers of the conv net.
     layers = []
-    push!(layers, Conv(Flux.param.(init_conv((1, 1), in_channels=>num_channels))..., act))
+    push!(layers, Conv(Flux.param.(init_conv((1, 1), num_in_channels=>num_channels))..., act))
     for i = 1:num_layers
         push!(layers, DepthwiseConv(
             Flux.param.(init_depthwiseconv(kernel, num_channels=>num_channels))...,
@@ -99,7 +99,7 @@ function build_conv(
             act
         ))
     end
-    push!(layers, Conv(Flux.param.(init_conv((1, 1), num_channels=>out_channels))...))
+    push!(layers, Conv(Flux.param.(init_conv((1, 1), num_channels=>num_out_channels))...))
 
     return (
         conv=Chain(layers...),

@@ -6,11 +6,12 @@ using ..ConvCNPs
 
 using BSON
 using Flux
-using Stheno
-import StatsBase: std
+using Flux.Tracker
+using GPUArrays
 using Plots
 using Printf
-using GPUArrays
+import StatsBase: std
+using Stheno
 
 include("checkpoint.jl")
 
@@ -33,6 +34,16 @@ function eval_model(model, loss, data_gen, epoch; num_batches=256)
     return loss_value, loss_error
 end
 
+function nansafe(loss, xs...)
+    value = loss(xs...)
+    if isnan(value)
+        println("Encountered NaN loss! Returning zero.")
+        return Tracker.track(identity, 0f0)
+    else
+        return value
+    end
+end
+
 function train!(
     model,
     loss,
@@ -53,7 +64,7 @@ function train!(
         # Perform epoch.
         println("Epoch: $epoch")
         Flux.train!(
-            (xs...) -> loss(model, epoch, gpu.(xs)...),
+            (xs...) -> nansafe(loss, model, epoch, gpu.(xs)...),
             Flux.params(model),
             data_gen(batches_per_epoch),
             opt
@@ -111,7 +122,9 @@ function plot_task(
         plot!(plt, x, samples, c=:green, lw=0.5, dpi=200, label="")
     end
 
-    savefig(plt, "$path/epoch$epoch.png")
+    if !isnothing(path)
+        savefig(plt, "$path/epoch$epoch.png")
+    end
 end
 
 make_plot_true(process) = (plt, x_context, y_context, x_target) -> nothing

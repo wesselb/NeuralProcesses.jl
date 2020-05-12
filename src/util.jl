@@ -43,18 +43,18 @@ function insert_dim(x::T; pos::Integer) where T<: AbstractArray
 end
 
 """
-    rbf(dist2::AbstractArray)
+    rbf(dist²::AbstractArray)
 
 # Arguments
-- `dist2::AbstractArray`: Squared distances.
+- `dist²::AbstractArray`: Squared distances.
 
 # Returns
-- `AbstractArray`: RBF kernel evaluated at squared distances `dist2`.
+- `AbstractArray`: RBF kernel evaluated at squared distances `dist²`.
 """
-rbf(dist2::AbstractArray) = exp.(-0.5f0 .* dist2)
+rbf(dist²::AbstractArray) = exp.(-0.5f0 .* dist²)
 
 """
-    compute_dists2(x::AbstractArray, y::AbstractArray)
+    compute_dists²(x::AbstractArray, y::AbstractArray)
 
 Compute batched pairwise squared distances between 3-tensors `x` and `y`. The batch
 dimension is the last dimension.
@@ -66,12 +66,12 @@ dimension is the last dimension.
 # Returns:
 - `T`: Pairwise distances between and `x` and `y`.
 """
-compute_dists2(x::AbstractArray, y::AbstractArray) = compute_dists2(x, y, Val(size(x, 2)))
+compute_dists²(x::AbstractArray, y::AbstractArray) = compute_dists²(x, y, Val(size(x, 2)))
 
-compute_dists2(x::AbstractArray, y::AbstractArray, ::Val{1}) =
+compute_dists²(x::AbstractArray, y::AbstractArray, ::Val{1}) =
     (x .- permutedims(y, (2, 1, 3))).^2
 
-function compute_dists2(x::AbstractArray, y::AbstractArray, d::Val)
+function compute_dists²(x::AbstractArray, y::AbstractArray, d::Val)
     y = permutedims(y, (2, 1, 3))
     return sum(x.^2; dims=2) .+ sum(y.^2; dims=1) .- 2 .* batched_mul(x, y)
 end
@@ -250,3 +250,76 @@ end
         return (ȳ .* exp.(x .- y),)
     end
 end
+
+"""
+    expand_gpu(x::AbstractVector)
+
+Expand a vector to a three-tensor and move it to the GPU.
+
+# Arguments
+- `x::AbstractVector`: Vector to expand.
+
+# Returns
+- `AbstractArray`: `x` as three-tensor and on the GPU.
+"""
+expand_gpu(x::AbstractVector) = reshape(x, :, 1, 1) |> gpu
+
+"""
+    kl(μ₁, σ²₁, μ₂, σ²₂)
+
+Kullback--Leibler divergence between one-dimensional normal distributions.
+
+# Arguments
+- `μ₁`: Mean of `p`.
+- `σ²₁`: Variance of `p`.
+- `μ₂`: Mean of `q`.
+- `σ²₂`: Variance of `q`.
+
+# Returns
+- `AbstractArray`: `KL(p, q)`.
+"""
+function kl(μ₁, σ²₁, μ₂, σ²₂)
+    # Loop fusion introduces indexing, which severly bottlenecks GPU computation, so
+    # we roll out the computation like this.
+    # TODO: What is going on?
+    logdet = log.(σ²₂ ./ σ²₁)
+    z = μ₁ .- μ₂
+    quad = (σ²₁ .+ z .* z) ./ σ²₂
+    sum = logdet .+ quad .- 1
+    return sum ./ 2
+end
+
+"""
+    split_μ_σ²(channels)
+
+Split a three-tensor into means and variance on dimension two.
+
+# Arguments
+- `channels`: Three-tensor to split into means and variances on dimension two.
+
+# Returns
+- `Tuple{AbstractArray, AbstractArray}`: Tuple containing means and variances.
+"""
+function split_μ_σ²(channels)
+    mod(size(channels, 2), 2) == 0 || error("Number of channels must be even.")
+    # Half of the channels are used to determine the mean, and the other half are used to
+    # determine the variance.
+    i_split = div(size(channels, 2), 2)
+    μ = channels[:, 1:i_split, :]
+    σ² = NNlib.softplus.(channels[:, i_split + 1:end, :])
+    return μ, σ²
+end
+
+"""
+    with_dummy(f, x)
+
+Insert dimension two to `x` before applying `f` and remove dimension two afterwards.
+
+# Arguments
+- `f`: Function to apply.
+- `x`: Input to `f`.
+
+# Returns
+- `f(x)`.
+"""
+with_dummy(f, x) = dropdims(f(insert_dim(x, pos=2)), dims=2)

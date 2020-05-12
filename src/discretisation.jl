@@ -29,10 +29,10 @@ struct UniformDiscretisation1d <: Discretisation
 end
 
 """
-    (d::UniformDiscretisation1d)(xs::AbstractArray{T, 3}...) where T<:Real
+    (d::UniformDiscretisation1d)(xs::AbstractArray...)
 
 # Arguments
-- `xs::AbstractArray{T, 3}...`: Inputs to compute the discretisation for.
+- `xs::AbstractArray...`: Inputs to compute the discretisation for.
 
 # Returns
 - `T`: Discretisation.

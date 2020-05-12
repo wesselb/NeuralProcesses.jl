@@ -45,8 +45,7 @@ end
 - `num_batches::Integer`: Number of batches to sample.
 
 # Returns
-- Array of named tuple with fields `x_context`, `y_context`, `x_target`, and `y_target`,
-    in that order.
+- `Vector`: Vector of tasks.
 """
 function (generator::DataGenerator)(num_batches::Integer)
     return [_make_batch(
@@ -63,17 +62,17 @@ function _make_batch(generator::DataGenerator, num_context::Integer, num_target:
     tasks = []
     for i in 1:generator.batch_size
         # Determine context and target set.
-        x_context = rand(generator.x, num_context)
-        x_target = rand(generator.x, num_target)
+        xc = rand(generator.x, num_context)
+        xt = rand(generator.x, num_target)
 
         # Concatenate inputs and sample.
-        x = vcat(x_context, x_target)
+        x = vcat(xc, xt)
         y = rand(generator.process(x, 1e-10))
 
         push!(tasks, _float32.((
-            x_context,
+            xc,
             y[1:num_context],
-            x_target,
+            xt,
             y[num_context + 1:end]
         )))
     end
@@ -224,8 +223,7 @@ function Base.rand(fconvnp::FiniteBayesianConvNP)
         fconvnp.convnp.receptive_field / 2,
         1
     )
-    x_disc = disc(fconvnp.x)
-    x_disc = reshape(x_disc, length(x_disc), 1, 1)
+    xz = reshape(disc(fconvnp.x), :, 1, 1)
 
     # Construct CNN with random initialisation.
     conv = build_conv(
@@ -233,8 +231,8 @@ function Base.rand(fconvnp::FiniteBayesianConvNP)
         fconvnp.convnp.num_layers,
         fconvnp.convnp.num_channels;
         points_per_unit=fconvnp.convnp.points_per_unit,
-        in_channels=1,
-        out_channels=1,
+        num_in_channels=1,
+        num_out_channels=1,
         dimensionality=1,
         init_conv=_init_conv_random_bias,
         init_depthwiseconv=_init_depthwiseconv_random_bias
@@ -245,15 +243,15 @@ function Base.rand(fconvnp::FiniteBayesianConvNP)
     decoder = SetConv([log(scale)])
 
     # Draw random encoding.
-    encoding = randn(Float32, length(x_disc))
+    encoding = randn(Float32, length(xz))
 
     # Pass through CNN, which takes in images of height one.
     encoding = reshape(encoding, length(encoding), 1, 1, 1)
     latent = conv(encoding)
 
     # Perform decoding.
-    x_target = reshape(fconvnp.x, length(fconvnp.x), 1, 1)
-    sample = decode(decoder, x_disc, latent, x_target)[:, 1, 1]
+    xt = reshape(fconvnp.x, length(fconvnp.x), 1, 1)
+    sample = decode(decoder, xz, latent, xt)[:, 1, 1]
 
     # Normalise sample.
     sample = (sample .- mean(sample)) ./ std(sample)

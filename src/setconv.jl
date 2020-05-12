@@ -1,6 +1,4 @@
-export SetConv, set_conv,
-    encode, empty_encoding, decode,
-    encode_pd, empty_encoding_pd, decode_pd
+export SetConv, set_conv
 
 """
     SetConv{T<:AbstractVector{<:Real}}
@@ -24,7 +22,7 @@ Construct a set convolution layer.
 # Arguments
 - `num_channels::Integer`: Number of input channels. This should include the density
     channel, which is automatically prepended upon encoding.
-- `scale::Real`: Initialisation of the length scales.
+- `scale::Float32`: Initialisation of the length scales.
 
 # Returns
 - `SetConv`: Corresponding set convolution layer.
@@ -37,10 +35,10 @@ end
 _get_scales(layer) = reshape(exp.(layer.log_scales), 1, 1, length(layer.log_scales), 1)
 
 function _compute_weights(x, y, scales)
-    dists2 = compute_dists2(x, y)
-    dists2 = insert_dim(dists2, pos=3)  # Add channel dimension.
-    dists2 = dists2 ./ scales.^2
-    return rbf(dists2)
+    dists² = compute_dists²(x, y)
+    dists² = insert_dim(dists², pos=3)  # Add channel dimension.
+    dists² = dists² ./ scales.^2
+    return rbf(dists²)
 end
 
 function _prepend_density_channel(channels)
@@ -56,173 +54,123 @@ function _prepend_identity_channel(channels)
 end
 
 function _normalise_by_first_channel(channels)
-    normaliser = channels[:, :, 1:1, :]
-    others = channels[:, :, 2:end, :] ./ (normaliser .+ 1f-8)
-    return cat(normaliser, others, dims=3)
+    channel_dim = ndims(channels) - 1  # Channel dimension is second to last.
+    normaliser = _slice_at(channels, channel_dim, 1:1)
+    others = _slice_at(channels, channel_dim, 2:size(channels, channel_dim))
+    return cat(normaliser, others ./ (normaliser .+ 1f-8), dims=channel_dim)
 end
 
+_slice_at(x, i, slice) = getindex(x, ntuple(j -> i == j ? slice : Colon(), ndims(x))...)
+
 """
-    encode(
-        layer::SetConv,
-        x_context::AbstractArray,
-        y_context::AbstractArray,
-        x_latent::AbstractArray,
-    )
+    encode(layer::SetConv, xc, yc, xz)
 
 # Arguments
 - `layer::SetConv`: Set convolution layer.
-- `x_context::AbstractArray`: Locations of observed values of shape `(n, d, batch)`.
-- `y_context::AbstractArray`: Observed values of shape `(n, channels, batch)`.
-- `x_latent::AbstractArray`: Locations of latent function values of shape `(m, d, batch)`.
+- `xc`: Locations of context set of shape `(n, dims, batch)`.
+- `yc`: Observed values of context set of shape `(n, channels, batch)`.
+- `xz`: Locations of latent encoding of shape `(k, dims, batch)`.
 
 # Returns
-- `AbstractArray`: Output of layer of shape `(m, 1, channels + 1, batch)`.
+- `AbstractArray`: Output of layer of shape `(k, channels + 1, batch)`.
 """
-function encode(
-    layer::SetConv,
-    x_context::AbstractArray,
-    y_context::AbstractArray,
-    x_latent::AbstractArray;
-)
-    weights = _compute_weights(x_latent, x_context, _get_scales(layer))
-    channels = insert_dim(_prepend_density_channel(y_context), pos=2)
-    channels = batched_mul(weights, channels)
+function encode(layer::SetConv, xc, yc, xz)
+    weights = _compute_weights(xz, xc, _get_scales(layer))
+    channels = _prepend_density_channel(yc)
+    channels = with_dummy(c -> batched_mul(weights, c), channels)
     return _normalise_by_first_channel(channels)
 end
 
 """
-    empty_encoding(
-        layer::SetConv,
-        x_latent::AbstractArray,
-    )
+    empty_encoding(layer::SetConv, xz)
 
 # Arguments
 - `layer::SetConv`: Set convolution layer.
-- `x_latent::AbstractArray`: Locations of latent function values of shape `(n, d, batch)`.
+- `xz`: Locations of latent encoding of shape `(k, dims, batch)`.
 
 # Returns
-- `AbstractArray`: All zeros output of shape `(n, 1, channels + 1, batch)`.
+- `AbstractArray`: All zeros output of shape `(k, channels + 1, batch)`.
 """
-function empty_encoding(
-    layer::SetConv,
-    x_latent::AbstractArray
-)
+function empty_encoding(layer::SetConv, xz)
     return gpu(zeros(
-        eltype(x_latent),
-        size(x_latent, 1),        # Size of encoding
-        1,                        # Required to make it a 2D convolution
+        eltype(xz),
+        size(xz, 1),              # Size of encoding
         length(layer.log_scales), # Number of channels, including the density channel
-        size(x_latent, 3)         # Batch size
+        size(xz, 3)               # Batch size
     ))
 end
 
 """
-    decode(
-        layer::SetConv,
-        x_latent::AbstractArray,
-        channels::AbstractArray,
-        x_target::AbstractArray,
-    )
+    decode(layer::SetConv, xz, channels, xt)
 
 # Arguments
 - `layer::SetConv`: Set convolution layer.
-- `x_latent::AbstractArray`: Locations of latent function values of shape `(n, d, batch)`.
-- `channels::AbstractArray`: Channels of shape `(n, 1, channels, batch)`.
-- `x_target::AbstractArray`: Locations of target values of shape `(m, d, batch)`.
+- `xz`: Locations of latent encoding of shape `(k, dims, batch)`.
+- `channels`: Channels of shape `(k, channels, batch)`.
+- `xt`: Locations of target set of shape `(m, dims, batch)`.
 
 # Returns
-- `AbstractArray`: Output of layer of shape `(m, 1, channels, batch)`.
+- `AbstractArray`: Output of layer of shape `(m, channels, batch)`.
 """
-function decode(
-    layer::SetConv,
-    x_latent::AbstractArray,
-    channels::AbstractArray,
-    x_target::AbstractArray;
-)
-    weights = _compute_weights(x_target, x_latent, _get_scales(layer))
-    return batched_mul(weights, channels)
+function decode(layer::SetConv, xz, channels, xt)
+    weights = _compute_weights(xt, xz, _get_scales(layer))
+    return with_dummy(c -> batched_mul(weights, c), channels)
 end
 
 """
-    encode_pd(
-        layer::SetConv,
-        x_context::AbstractArray,
-        y_context::AbstractArray,
-        x_latent::AbstractArray,
-    )
+    encode_pd(layer::SetConv, xc, yc, xz)
 
 # Arguments
 - `layer::SetConv`: Set convolution layer.
-- `x_context::AbstractArray`: Locations of observed values of shape `(n, d, batch)`.
-- `y_context::AbstractArray`: Observed values of shape `(n, channels, batch)`.
-- `x_latent::AbstractArray`: Locations of latent function values of shape `(m, d, batch)`.
+- `xc`: Locations of context set of shape `(n, dims, batch)`.
+- `yc`: Observed values of context set of shape `(n, channels, batch)`.
+- `xz`: Locations of latent encoding of shape `(k, dims, batch)`.
 
 # Returns
-- `AbstractArray`: Output of layer of shape `(m, m, channels + 2, batch)`.
+- `AbstractArray`: Output of layer of shape `(k, k, channels + 2, batch)`.
 """
-function encode_pd(
-    layer::SetConv,
-    x_context::AbstractArray,
-    y_context::AbstractArray,
-    x_latent::AbstractArray,
-)
-    weights = _compute_weights(x_latent, x_context, _get_scales(layer))
-    channels = insert_dim(_prepend_density_channel(y_context), pos=1)
+function encode_pd(layer::SetConv, xc, yc, xz)
+    weights = _compute_weights(xz, xc, _get_scales(layer))
+    channels = insert_dim(_prepend_density_channel(yc), pos=1)
     channels = batched_mul(weights .* channels, batched_transpose(weights))
     channels = _normalise_by_first_channel(channels)
     return _prepend_identity_channel(channels)
 end
 
 """
-    empty_encoding_pd(
-        layer::SetConv,
-        x_latent::AbstractArray,
-    )
+    empty_encoding_pd(layer::SetConv, xz)
 
 # Arguments
 - `layer::SetConv`: Set convolution layer.
-- `x_latent::AbstractArray`: Locations of latent function values of shape `(n, d, batch)`.
+- `xz`: Locations of latent encoding of shape `(k, dims, batch)`.
 
 # Returns
-- `AbstractArray`: Output of shape `(n, n, channels + 2, batch)`.
+- `AbstractArray`: Output of shape `(k, k, channels + 2, batch)`.
 """
-function empty_encoding_pd(
-    layer::SetConv,
-    x_latent::AbstractArray
-)
+function empty_encoding_pd(layer::SetConv, xz)
     return _prepend_identity_channel(gpu(zeros(  # Also prepend identity channel
-        eltype(x_latent),
-        size(x_latent, 1),        # Size of encoding
-        size(x_latent, 1),        # Again size of encoding: encoding is square
+        eltype(xz),
+        size(xz, 1),              # Size of encoding
+        size(xz, 1),              # Again size of encoding: encoding is square
         length(layer.log_scales), # Number of channels, including the density channel
-        size(x_latent, 3)         # Batch size
+        size(xz, 3)               # Batch size
     )))
 end
 
 """
-    decode_pd(
-        layer::SetConv,
-        x_latent::AbstractArray,
-        channels::AbstractArray,
-        x_target::AbstractArray,
-    )
+    decode_pd(layer::SetConv, xz, channels, xt)
 
 # Arguments
 - `layer::SetConv`: Set convolution layer.
-- `x_latent::AbstractArray`: Locations of latent function values of shape `(n, d, batch)`.
-- `channels::AbstractArray`: Channels of shape `(n, n, channels, batch)`.
-- `x_target::AbstractArray`: Locations of target values of shape `(m, d, batch)`.
+- `xz`: Locations of latent encoding of shape `(k, dims, batch)`.
+- `channels`: Channels of shape `(k, k, channels, batch)`.
+- `xt`: Locations of target set of shape `(m, dims, batch)`.
 
 # Returns
 - `AbstractArray`: Output of layer of shape `(m, m, channels, batch)`.
 """
-function decode_pd(
-    layer::SetConv,
-    x_latent::AbstractArray,
-    channels::AbstractArray,
-    x_target::AbstractArray,
-)
-    weights = _compute_weights(x_target, x_latent, _get_scales(layer))
+function decode_pd(layer::SetConv, xz, channels, xt)
+    weights = _compute_weights(xt, xz, _get_scales(layer))
     Ls = batched_mul(weights, channels)
     return batched_mul(Ls, batched_transpose(Ls))
 end

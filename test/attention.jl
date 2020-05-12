@@ -3,7 +3,7 @@
         dim_x = 2
         dim_y = 3
         dim_embedding = 4
-        num_channels = 5
+        num_heads = 5
         batch_size = 6
         n = 7
         m = 8
@@ -12,21 +12,21 @@
             dim_x=dim_x,
             dim_y=dim_y,
             dim_embedding=dim_embedding,
-            num_channels=num_channels
+            num_heads=num_heads
         ))
 
-        x_context = randn(Float32, n, dim_x, batch_size)
-        y_context = randn(Float32, n, dim_y, batch_size)
-        x_target = randn(Float32, m, dim_x, batch_size)
+        xc = randn(Float32, n, dim_x, batch_size)
+        yc = randn(Float32, n, dim_y, batch_size)
+        xt = randn(Float32, m, dim_x, batch_size)
 
         # Perform encodings.
-        keys = layer.encoder_x(x_context)
-        queries = layer.encoder_x(x_target)
-        values = layer.encoder_xy(cat(x_context, y_context, dims=2))
+        keys = layer.encoder_x(xc)
+        queries = layer.encoder_x(xt)
+        values = layer.encoder_xy(cat(xc, yc, dims=2))
 
         # Brute-force the attention computation.
-        embeddings = zeros(Float32, m, dim_embedding, num_channels, batch_size)
-        for c = 1:num_channels
+        embeddings = zeros(Float32, m, dim_embedding, num_heads, batch_size)
+        for c = 1:num_heads
             for b = 1:batch_size
                 # Calculate weights.
                 weights = Array{Float32}(undef, n, m)
@@ -43,18 +43,18 @@
                 end
             end
         end
-        reference = layer.mixer(embeddings)
+        reference = layer.transformer(layer.mixer(embeddings), queries)
 
         # Check that the layer lines up with the brute-force reference.
-        @test layer(x_context, y_context, x_target) ≈ reference
+        @test layer(xc, yc, xt) ≈ reference
     end
 
-    @testset "BatchedLinear" begin
-        layer = ConvCNPs.untrack(BatchedLinear(2, 3))
+    @testset "BatchedMLP" begin
+        layer = ConvCNPs.untrack(ConvCNPs.BatchedMLP(Dense(2, 3)))
         x = randn(10, 2, 4, 5)
         y = Array{Float32}(undef, 10, 3, 4, 5)
         for i = 1:4, j = 1:5
-            y[:, :, i, j] = x[:, :, i, j] * layer.w .+ layer.b
+            y[:, :, i, j] = layer.mlp(x[:, :, i, j]')'
         end
         @test layer(x) ≈ y
     end

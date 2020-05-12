@@ -15,7 +15,7 @@ mutable struct Checkpoints
     top_num::Integer
 end
 
-Checkpoints() = Checkpoints(missing, Vector{Checkpoint}(), 5)
+Checkpoints() = Checkpoints(missing, Vector{Checkpoint}(), 3)
 
 Base.isless(c1::Checkpoint, c2::Checkpoint) = isless(c1.loss_value, c2.loss_value)
 
@@ -49,4 +49,4 @@ recent_model(checkpoints::Checkpoints) = checkpoints.recent.model
 recent_model(bson::String) = recent_model(load_checkpoints(bson))
 
 best_model(checkpoints::Checkpoints, position::Integer=1) = checkpoints.top[position].model
-best_model(bson::String, position::Integer=1) = best_model(load_checkpoints(checkpoints), position)
+best_model(bson::String, position::Integer=1) = best_model(load_checkpoints(bson), position)
