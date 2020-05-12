@@ -168,7 +168,7 @@ end
 Batch transpose tensor `x` where dimensions `1:2` are the matrix dimensions and dimension
 `3:end` are the batch dimensions.
 
-# Args
+# Arguments
 - `x`: Tensor to transpose.
 
 # Returns
@@ -229,7 +229,7 @@ end
 
 Safe log-sum-exp reduction of array `x` along dimensions `dims`.
 
-# Args
+# Arguments
 - `x::AbstractArray`: Array to apply reductions to.
 - `dims`: Dimensions along which reduction is applied.
 
@@ -252,6 +252,48 @@ end
 end
 
 """
+    repeat_gpu(x::AbstractArray, reps...)
+
+Version of `repeat` that has GPU-compatible gradients.
+
+# Arguments
+- `x::AbstractArray`: Array to repeat.
+- `reps...`: Repetitions.
+
+# Returns
+- `AbstractArray`: Repetition of `x`.
+"""
+repeat_gpu(x::AbstractArray, reps...) = Tracker.track(repeat_gpu, x, reps...)
+
+repeat_gpu(x::CuOrArray, reps...) = repeat(x, reps...)
+
+@Tracker.grad function repeat_gpu(x, reps...)
+    # Split into inner and outer repetitions.
+    inner = reps[1:min(ndims(x), length(reps))]
+    outer = reps[ndims(x) + 1:length(reps)]
+
+    # Check that no complicated repetitions happened.
+    for (i, r) in enumerate(inner)
+        if r > 1 && size(x, i) != 1
+            error("Gradient cannot deal with repetitions of dimensions of size not one.")
+        end
+    end
+
+    repeat(Tracker.data(x), reps...), function (ȳ)
+        # Sum inner repetitions.
+        x̄ = sum(ȳ, dims=findall(r -> r > 1, inner))
+
+        # Sum and drop outer repetitions.
+        if length(outer) > 0
+            dims = Tuple(ndims(x) + 1:length(reps))
+            x̄ = dropdims(sum(x̄, dims=dims), dims=dims)
+        end
+
+        return (x̄, ntuple(_ -> nothing, length(reps))...)
+    end
+end
+
+"""
     expand_gpu(x::AbstractVector)
 
 Expand a vector to a three-tensor and move it to the GPU.
@@ -267,7 +309,7 @@ expand_gpu(x::AbstractVector) = reshape(x, :, 1, 1) |> gpu
 """
     kl(μ₁, σ²₁, μ₂, σ²₂)
 
-Kullback--Leibler divergence between one-dimensional normal distributions.
+Kullback--Leibler divergence between one-dimensional Gaussian distributions.
 
 # Arguments
 - `μ₁`: Mean of `p`.

@@ -131,9 +131,9 @@ function decode(model::NP, xz, z, r, xt)
     num_samples = size(z, 4)
     # Repeat to be able to concatenate.
     return model.decoder(cat(
-        repeat(r, 1, 1, 1, num_samples),
+        repeat_gpu(r, 1, 1, 1, num_samples),
         z,
-        repeat(xt, 1, 1, 1, num_samples),
+        repeat_gpu(xt, 1, 1, 1, num_samples),
         dims=2
     ))
 end
@@ -167,7 +167,7 @@ function (model::NPEncoder)(xc, yc, xt)
     n_target = size(xt, 1)
     r = model.mlp(cat(xc, yc, dims=2))
     # Perform pooling operation and return tiled representation.
-    return repeat(mean(r, dims=1), n_target, 1, 1)
+    return repeat_gpu(mean(r, dims=1), n_target, 1, 1)
 end
 
 """

@@ -2,11 +2,6 @@ using Distributions
 using Flux.Tracker
 using StatsFuns
 
-import ConvCNPs:
-    untrack, ceil_odd, insert_dim, rbf, compute_dists2,
-    diagonal, batched_transpose, batched_mul,
-    logsumexp
-
 function test_gradient(f, xs...)
     # Construct scalar version of `f`.
     v = randn(size(f(xs...)))
@@ -36,42 +31,42 @@ end
         model = MyModel(param([1]))
 
         @test Tracker.istracked(model.θ)
-        @test !Tracker.istracked(untrack(model).θ)
+        @test !Tracker.istracked(ConvCNPs.untrack(model).θ)
     end
 
     @testset "ceil_odd" begin
-        @test ceil_odd(2) == 3
-        @test ceil_odd(2.5) == 3
-        @test ceil_odd(3) == 3
-        @test ceil_odd(3.5) == 5
+        @test ConvCNPs.ceil_odd(2) == 3
+        @test ConvCNPs.ceil_odd(2.5) == 3
+        @test ConvCNPs.ceil_odd(3) == 3
+        @test ConvCNPs.ceil_odd(3.5) == 5
     end
 
     @testset "insert_dim" begin
         x = randn(2, 3)
-        @test size(insert_dim(x, pos=1)) == (1, 2, 3)
-        @test size(insert_dim(x, pos=2)) == (2, 1, 3)
-        @test size(insert_dim(x, pos=3)) == (2, 3, 1)
+        @test size(ConvCNPs.insert_dim(x, pos=1)) == (1, 2, 3)
+        @test size(ConvCNPs.insert_dim(x, pos=2)) == (2, 1, 3)
+        @test size(ConvCNPs.insert_dim(x, pos=3)) == (2, 3, 1)
     end
 
     @testset "rbf" begin
-        @test rbf([5]) ≈ [exp(-2.5)]
+        @test ConvCNPs.rbf([5]) ≈ [exp(-2.5)]
     end
 
-    @testset "compute_dists2" begin
+    @testset "compute_dists²" begin
         # Test case of one-dimensional inputs.
         x = randn(3, 1, 2)
         y = randn(5, 1, 2)
         y_perm = permutedims(y, (2, 1, 3))
-        @test compute_dists2(x, y) == (x .- y_perm).^2
+        @test ConvCNPs.compute_dists²(x, y) == (x .- y_perm).^2
 
         # Test case of two-dimensional inputs.
         x = randn(3, 2, 2)
         y = randn(5, 2, 2)
         y_perm = permutedims(y, (2, 1, 3))
-        dists2 =
+        dists² =
             (x[:, 1:1, :] .- y_perm[1:1, :, :]).^2 .+
             (x[:, 2:2, :] .- y_perm[2:2, :, :]).^2
-        @test compute_dists2(x, y) ≈ dists2
+        @test ConvCNPs.compute_dists²(x, y) ≈ dists²
     end
 
     @testset "gaussian_logpdf" begin
@@ -96,14 +91,14 @@ end
 
     @testset "diagonal" begin
         x = randn(3)
-        @test diagonal(x) ≈ collect(Diagonal(x))
-        test_gradient(diagonal, x)
+        @test ConvCNPs.diagonal(x) ≈ collect(Diagonal(x))
+        test_gradient(ConvCNPs.diagonal, x)
     end
 
     @testset "batched_transpose" begin
         x = randn(3, 4, 5, 6)
-        @test batched_transpose(x) ≈ permutedims(x, (2, 1, 3, 4))
-        test_gradient(batched_transpose, x)
+        @test ConvCNPs.batched_transpose(x) ≈ permutedims(x, (2, 1, 3, 4))
+        test_gradient(ConvCNPs.batched_transpose, x)
     end
 
     @testset "batched_mul" begin
@@ -113,13 +108,51 @@ end
         for i = 1:5, j = 1:6
             z[:, :, i, j] = x[:, :, i, j] * y[:, :, i, j]
         end
-        @test batched_mul(x, y) ≈ z
-        test_gradient(batched_mul, x, y)
+        @test ConvCNPs.batched_mul(x, y) ≈ z
+        test_gradient(ConvCNPs.batched_mul, x, y)
     end
 
     @testset "logsumexp" begin
         x = randn(3, 4, 5)
-        @test StatsFuns.logsumexp(x, dims=1) ≈ logsumexp(x, dims=1)
-        test_gradient((y) -> logsumexp(y, dims=1), x)
+        @test StatsFuns.logsumexp(x, dims=1) ≈ ConvCNPs.logsumexp(x, dims=1)
+        test_gradient((y) -> ConvCNPs.logsumexp(y, dims=1), x)
+    end
+
+    @testset "repeat_gpu" begin
+        θ = randn(3, 2, 5, 3)
+        f(x) = sum(θ .* ConvCNPs.repeat_gpu(x, 1, 2, 1, 3))
+
+        x = randn(3, 1, 5)
+        @test f(x) ≈ sum(θ .* repeat(x, 1, 2, 1, 3))
+        test_gradient(f, x)
+    end
+
+    @testset "expand_gpu" begin
+        @test size(ConvCNPs.expand_gpu(randn(3))) == (3, 1, 1)
+    end
+
+    @testset "kl" begin
+        μ₁, σ²₁ = [1.2], [0.2]
+        μ₂, σ²₂ = [2.4], [0.1]
+
+        # Test against a Monte Carlo estimate.
+        samples = μ₁ .+ sqrt.(σ²₁) .* randn(1000000)
+        estimate =
+            mean(gaussian_logpdf(samples, μ₁, σ²₁) .- gaussian_logpdf(samples, μ₂, σ²₂))
+        @test ConvCNPs.kl(μ₁, σ²₁,  μ₂, σ²₂)[1] ≈ estimate atol=1e-2
+    end
+
+    @testset "split_μ_σ²" begin
+        μ, σ² = ConvCNPs.split_μ_σ²(randn(2, 4, 2))
+        @test size(μ) == (2, 2, 2)
+        @test size(σ²) == (2, 2, 2)
+        @test all(σ² .> 0)
+    end
+
+    @testset "with_dummy" begin
+        A = randn(2, 3)
+        x = randn(3)
+        @test ConvCNPs.with_dummy(y -> A * y, x) ≈ A * x
+        ConvCNPs.with_dummy(y -> @test(size(y) == (3, 1)), x)
     end
 end
