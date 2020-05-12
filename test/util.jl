@@ -139,7 +139,7 @@ end
         samples = μ₁ .+ sqrt.(σ²₁) .* randn(1000000)
         estimate =
             mean(gaussian_logpdf(samples, μ₁, σ²₁) .- gaussian_logpdf(samples, μ₂, σ²₂))
-        @test ConvCNPs.kl(μ₁, σ²₁,  μ₂, σ²₂)[1] ≈ estimate atol=1e-2
+        @test ConvCNPs.kl(μ₁, σ²₁,  μ₂, σ²₂)[1] ≈ estimate atol=5e-2
     end
 
     @testset "split_μ_σ²" begin
@@ -150,9 +150,7 @@ end
     end
 
     @testset "with_dummy" begin
-        A = randn(2, 3)
         x = randn(3)
-        @test ConvCNPs.with_dummy(y -> A * y, x) ≈ A * x
-        ConvCNPs.with_dummy(y -> @test(size(y) == (3, 1)), x)
+        @test ConvCNPs.with_dummy(y -> (@test(size(y) == (3, 1)); y), x) ≈ x
     end
 end
