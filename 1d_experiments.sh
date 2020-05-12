@@ -28,12 +28,8 @@ BIN="$JULIA train.jl --epochs $EPOCHS_INC"
 line () {
     echo "------------------------------------------------------"
 }
-section () {
-    line
-    echo ">>> $1"
-}
 
-section SETTINGS
+line
 echo "Binary: $BIN"
 echo "Models and losses:"
 for model_loss in $MODEL_LOSSES
@@ -43,15 +39,17 @@ do
 done
 echo "Data sets: $DATA_SETS"
 
-section TRAINING
+line
+echo TRAINING
 for model_loss in $MODEL_LOSSES
 do
     IFS="," read model loss <<< "$model_loss"
-    echo "Model: $model"
-    echo "Loss:  $loss"
+    line
+    echo "Model:    $model"
+    echo "Loss:     $loss"
     for data in $DATA_SETS
     do
-        section "Data set: $data"
+        echo "Data set: $data"
         $BIN --data $data --model $model --loss $loss --starting-epoch 1
         for starting_epoch in $(seq $EPOCHS_INC_PLUS_ONE $EPOCHS_INC $EPOCHS_TOTAL)
         do
@@ -61,15 +59,17 @@ do
     done
 done
 
-section EVALUATING
+line
+echo EVALUATING
 for model_loss in $MODEL_LOSSES
 do
     IFS="," read model loss <<< "$model_loss"
-    echo "Model: $model"
-    echo "Loss:  $loss"
+    line
+    echo "Model:    $model"
+    echo "Loss:     $loss"
     for data in $DATA_SETS
     do
-        section "Data set: $data"
+        echo "Data set: $data"
         $BIN --data $data --model $model --loss $loss --evaluate
     done
 done
