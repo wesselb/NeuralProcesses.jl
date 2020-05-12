@@ -93,10 +93,10 @@ function Transformer(dim_embedding::Integer, num_heads::Integer)
         LayerNorm(1, dim_embedding, 1),
         Chain(
             _compress_channels,
-            batched_mlp(dim_embedding * num_heads, dim_embedding, dim_embedding, 2)
+            batched_mlp(dim_embedding * num_heads, dim_embedding, dim_embedding, 1)
         ),
         LayerNorm(1, dim_embedding, 1),
-        batched_mlp(dim_embedding, dim_embedding, dim_embedding, 3)
+        batched_mlp(dim_embedding, dim_embedding, dim_embedding, 2)
     )
 end
 
@@ -285,7 +285,7 @@ function attention(;
         Chain(
             batched_mlp(
                 dim_x + dim_y,
-                dim_embedding * num_heads,
+                dim_x + dim_y,
                 dim_embedding * num_heads,
                 num_encoder_layers
             ),
@@ -293,7 +293,12 @@ function attention(;
         ),
         Chain(
             _compress_channels,
-            BatchedMLP(Dense(dim_embedding * num_heads, dim_embedding))
+            batched_mlp(
+                dim_embedding * num_heads,
+                dim_embedding,
+                dim_embedding,
+                1
+            )
         ),
         Transformer(dim_embedding, num_heads)
     )
