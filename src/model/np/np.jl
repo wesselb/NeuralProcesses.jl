@@ -73,8 +73,8 @@ Construct a deterministic encoding for the empty set.
 - `AbstractArray`: Empty deterministic encoding.
 """
 function empty_det_encoding(model::NP, xz)
-    n, _, batch_size = size(xz)
-    return zeros(Float32, n, model.dim_embedding, batch_size) |> gpu
+    k, _, batch_size = size(xz)
+    return zeros(Float32, k, model.dim_embedding, batch_size) |> gpu
 end
 
 """
@@ -92,7 +92,7 @@ Perform latent encoding.
 - `Tuple{AbstractArray, AbstractArray}`: Tuple containing means and variances of shapes
     `(k, latent_channels, batch)`
 """
-encode_lat(model::NP, xc, yc, xz ) = split_μ_σ²(model.encoder_lat(xc, yc, xz))
+encode_lat(model::NP, xc, yc, xz) = split_μ_σ²(model.encoder_lat(xc, yc, xz))
 
 """
     empty_lat_encoding(model::NP, xz)
@@ -107,9 +107,9 @@ Construct a latent encoding for the empty set.
 - `AbstractArray`: Empty latent encoding.
 """
 function empty_lat_encoding(model::NP, xz)
-    n, _, batch_size = size(xz)
-    μ = zeros(Float32, n, model.dim_embedding, batch_size) |> gpu
-    σ² = ones(Float32, n, model.dim_embedding, batch_size) |> gpu
+    k, _, batch_size = size(xz)
+    μ = zeros(Float32, k, model.dim_embedding, batch_size) |> gpu
+    σ² = ones(Float32, k, model.dim_embedding, batch_size) |> gpu
     return μ, σ²
 end
 

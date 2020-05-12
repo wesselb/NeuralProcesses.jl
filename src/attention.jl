@@ -45,16 +45,6 @@ function (layer::Attention)(xc, yc, xt)
     # Finish transformer architecture.
     out = layer.transformer(channels, queries)
 
-    if any(isnan.(out))
-        println("keys:", keys)
-        println("queries", queries)
-        println("values:", values)
-        println("weights:", weights)
-        println("channels:", channels)
-        println("out:", out)
-        error("nans!")
-    end
-
     return out
 end
 
@@ -175,7 +165,7 @@ end
 """
 function (layer::LayerNorm)(x)
     x = x .- mean(x, dims=layer.dims)
-    x = x ./ sqrt.(mean(x .* x, dims=layer.dims) .+ 1f-8)#(std(x, dims=layer.dims) .+ 1f-8)
+    x = x ./ sqrt.(mean(x .* x, dims=layer.dims) .+ 1f-8)
     return x .* layer.w .+ layer.b
 end
 
@@ -244,16 +234,14 @@ function batched_mlp(
     dim_out::Integer,
     num_layers::Integer
 )
-    act(x) = leakyrelu.(x, 0.1f0)
+    act(x) = leakyrelu(x, 0.1f0)
     if num_layers == 1
         return BatchedMLP(Dense(dim_in, dim_out))
     else
-        layers = Any[Dense(dim_in, dim_hidden)]
+        layers = Any[Dense(dim_in, dim_hidden, act)]
         for i = 1:num_layers - 2
-            push!(layers, act)
-            push!(layers, Dense(dim_hidden, dim_hidden))
+            push!(layers, Dense(dim_hidden, dim_hidden, act))
         end
-        push!(layers, act)
         push!(layers, Dense(dim_hidden, dim_out))
         return BatchedMLP(Chain(layers...))
     end

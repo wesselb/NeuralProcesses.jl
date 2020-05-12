@@ -87,8 +87,7 @@ function build_conv(
     act(x) = leakyrelu(x, 0.1f0)
 
     # Build layers of the conv net.
-    layers = []
-    push!(layers, Conv(Flux.param.(init_conv((1, 1), num_in_channels=>num_channels))..., act))
+    layers = Any[Conv(Flux.param.(init_conv((1, 1), num_in_channels=>num_channels))..., act)]
     for i = 1:num_layers
         push!(layers, DepthwiseConv(
             Flux.param.(init_depthwiseconv(kernel, num_channels=>num_channels))...,
