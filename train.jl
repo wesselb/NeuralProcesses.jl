@@ -50,10 +50,12 @@ if args["data"] == "eq-small"
     if args["model"] == "convcnp"
         num_context = DiscreteUniform(3, 50)
         num_target = DiscreteUniform(3, 50)
+        batch_size = 16
         num_channels = 16
     elseif args["model"] in ["convnp", "anp", "np"]
         num_context = DiscreteUniform(0, 50)
-        num_target = DiscreteUniform(50, 50)
+        num_target = DiscreteUniform(3, 50)
+        batch_size = 8
         num_encoder_channels = 8
         num_decoder_channels = 4
     else
@@ -66,10 +68,12 @@ elseif args["data"] == "eq"
     if args["model"] == "convcnp"
         num_context = DiscreteUniform(3, 50)
         num_target = DiscreteUniform(3, 50)
+        batch_size = 16
         num_channels = 64
     elseif args["model"] in ["convnp", "anp", "np"]
         num_context = DiscreteUniform(0, 50)
-        num_target = DiscreteUniform(50, 50)
+        num_target = DiscreteUniform(3, 50)
+        batch_size = 8
         num_encoder_channels = 32
         num_decoder_channels = 16
     else
@@ -82,10 +86,12 @@ elseif args["data"] == "matern52"
     if args["model"] == "convcnp"
         num_context = DiscreteUniform(3, 50)
         num_target = DiscreteUniform(3, 50)
+        batch_size = 16
         num_channels = 64
     elseif args["model"] in ["convnp", "anp", "np"]
         num_context = DiscreteUniform(0, 50)
-        num_target = DiscreteUniform(50, 50)
+        num_target = DiscreteUniform(3, 50)
+        batch_size = 8
         num_encoder_channels = 32
         num_decoder_channels = 16
     else
@@ -101,10 +107,12 @@ elseif args["data"] == "noisy-mixture"
     if args["model"] == "convcnp"
         num_context = DiscreteUniform(3, 50)
         num_target = DiscreteUniform(3, 50)
+        batch_size = 16
         num_channels = 64
     elseif args["model"] in ["convnp", "anp", "np"]
         num_context = DiscreteUniform(0, 50)
-        num_target = DiscreteUniform(50, 50)
+        num_target = DiscreteUniform(3, 50)
+        batch_size = 8
         num_encoder_channels = 32
         num_decoder_channels = 16
     else
@@ -117,10 +125,12 @@ elseif args["data"] == "weakly-periodic"
     if args["model"] == "convcnp"
         num_context = DiscreteUniform(3, 50)
         num_target = DiscreteUniform(3, 50)
+        batch_size = 16
         num_channels = 64
     elseif args["model"] in ["convnp", "anp", "np"]
         num_context = DiscreteUniform(0, 50)
-        num_target = DiscreteUniform(50, 50)
+        num_target = DiscreteUniform(3, 50)
+        batch_size = 8
         num_encoder_channels = 32
         num_decoder_channels = 16
     else
@@ -133,10 +143,12 @@ elseif args["data"] == "sawtooth"
     if args["model"] == "convcnp"
         num_context = DiscreteUniform(3, 100)
         num_target = DiscreteUniform(3, 100)
+        batch_size = 16
         num_channels = 32
     elseif args["model"] in ["convnp", "anp", "np"]
         num_context = DiscreteUniform(0, 100)
-        num_target = DiscreteUniform(100, 100)
+        num_target = DiscreteUniform(3, 100)
+        batch_size = 8
         num_encoder_channels = 16
         num_decoder_channels = 8
     else
@@ -157,7 +169,7 @@ mkpath("output/" * args["model"] * "/" * args["loss"] * "/" * args["data"])
 # Construct data generator.
 data_gen = DataGenerator(
     process;
-    batch_size=16,
+    batch_size=batch_size,
     x=Uniform(-2, 2),
     num_context=num_context,
     num_target=num_target
@@ -176,7 +188,7 @@ elseif args["model"] in ["convnp", "anp", "np"]
     if args["loss"] == "loglik"
         loss(xs...) = ConvCNPs.loglik(xs..., num_samples=20)
     elseif args["loss"] == "elbo"
-        loss(xs...) = ConvCNPs.elbo(xs..., num_samples=1)
+        loss(xs...) = ConvCNPs.elbo(xs..., num_samples=5)
     else
         error("Unknown loss \"" * args["loss"] * "\".")
     end
