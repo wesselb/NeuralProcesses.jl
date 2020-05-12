@@ -121,7 +121,7 @@ Perform decoding.
 # Arguments
 - `xz`: Locations of latent encoding of shape `(k, dims, batch)`.
 - `z`: Samples of shape `(k, latent_channels, batch, num_samples)`.
-- `r::Nothing`: Deterministic encoding. Must be `nothing`.
+- `r`: Deterministic encoding of shape `(k, dim_embedding, batch)`
 - `xt`: Locations of target set of shape `(m, dims, batch)`.
 
 # Returns
