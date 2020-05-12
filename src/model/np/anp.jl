@@ -40,7 +40,7 @@ function anp_1d(;
         NPEncoder(
             batched_mlp(
                 dim_x + dim_y,
-                2dim_embedding,
+                dim_embedding,
                 2dim_embedding,
                 num_encoder_layers
             )

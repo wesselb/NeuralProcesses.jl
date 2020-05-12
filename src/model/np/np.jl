@@ -158,16 +158,16 @@ end
 # Arguments
 - `xc`: Locations of context set of shape `(n, dims, batch)`.
 - `yc`: Observed values of context set of shape `(n, channels, batch)`.
-- `xt`: Locations of target set of shape `(m, dims, batch)`.
+- `xz`: Locations of latent encoding of shape `(k, dims, batch)`.
 
 # Returns
 - `AbstractArray`: Encoding.
 """
-function (model::NPEncoder)(xc, yc, xt)
-    n_target = size(xt, 1)
+function (model::NPEncoder)(xc, yc, xz)
+    n_latent = size(xz, 1)
     r = model.mlp(cat(xc, yc, dims=2))
     # Perform pooling operation and return tiled representation.
-    return repeat_gpu(mean(r, dims=1), n_target, 1, 1)
+    return repeat_gpu(mean(r, dims=1), n_latent, 1, 1)
 end
 
 """
@@ -254,7 +254,7 @@ function np_1d(;
         NPEncoder(
             batched_mlp(
                 dim_x + dim_y,
-                2dim_embedding,
+                dim_embedding,
                 2dim_embedding,
                 num_encoder_layers
             )
