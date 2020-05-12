@@ -84,23 +84,23 @@ function plot_task(
     model,
     data_gen,
     epoch,
-    plot_true = (plt, x_context, y_context, x_target) -> nothing;
+    plot_true = (plt, xc, yc, xt) -> nothing;
     path = "output"
 )
     x = collect(range(-3, 3, length=400))
 
     # Predict on a task.
-    x_context, y_context, x_target, y_target = map(x -> x[:, 1, 1], data_gen(1)[1])
-    μ, lower, upper, samples = predict(model, x_context, y_context, x)
+    xc, yc, xt, yt = map(x -> x[:, 1, 1], data_gen(1)[1])
+    μ, lower, upper, samples = predict(model, xc, yc, x)
 
     plt = plot()
 
     # Scatter target and context set.
-    scatter!(plt, x_target, y_target, c=:red, label="Target set", dpi=200)
-    scatter!(plt, x_context, y_context, c=:black, label="Context set", dpi=200)
+    scatter!(plt, xt, yt, c=:red, label="Target set", dpi=200)
+    scatter!(plt, xc, yc, c=:black, label="Context set", dpi=200)
 
     # Plot prediction of true, underlying model.
-    plot_true(plt, x_context, y_context, x)
+    plot_true(plt, xc, yc, x)
 
     # Plot prediction.
     if !isnothing(μ)
@@ -127,19 +127,19 @@ function plot_task(
     end
 end
 
-make_plot_true(process) = (plt, x_context, y_context, x_target) -> nothing
+make_plot_true(process) = (plt, xc, yc, xt) -> nothing
 
 function make_plot_true(process::GP)
-    function plot_true(plt, x_context, y_context, x_target)
-        x_context = Float64.(x_context)
-        y_context = Float64.(y_context)
-        x_target = Float64.(x_target)
-        posterior = process | Obs(process(x_context, 1e-10) ← y_context)
-        margs = marginals(posterior(x_target))
-        plot!(plt, x_target, mean.(margs), c=:blue, label="GP", dpi=200)
+    function plot_true(plt, xc, yc, xt)
+        xc = Float64.(xc)
+        yc = Float64.(yc)
+        xt = Float64.(xt)
+        posterior = process | Obs(process(xc, 1e-6) ← yc)
+        margs = marginals(posterior(xt))
+        plot!(plt, xt, mean.(margs), c=:blue, label="GP", dpi=200)
         plot!(
             plt,
-            x_target,
+            xt,
             mean.(margs) .- 2 .* std.(margs),
             c=:blue,
             linestyle=:dash,
@@ -148,7 +148,7 @@ function make_plot_true(process::GP)
         )
         plot!(
             plt,
-            x_target,
+            xt,
             mean.(margs) .+ 2 .* std.(margs),
             c=:blue,
             linestyle=:dash,
