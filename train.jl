@@ -17,11 +17,11 @@ using Distributions
 parser = ArgParseSettings()
 @add_arg_table! parser begin
     "--data"
-        help = "Data set: eq-small, eq, matern52, weakly-periodic, or sawtooth."
+        help = "Data set: eq-small, eq, matern52, noisy-mixture, weakly-periodic, or sawtooth."
         arg_type = String
         required = true
     "--model"
-        help = "Model: convcnp or convnp."
+        help = "Model: convcnp, convnp, anp, or np."
         arg_type = String
         required = true
     "--loss"
@@ -51,11 +51,11 @@ if args["data"] == "eq-small"
         num_context = DiscreteUniform(3, 50)
         num_target = DiscreteUniform(3, 50)
         num_channels = 16
-    elseif args["model"] == "convnp"
+    elseif args["model"] in ["convnp", "anp", "np"]
         num_context = DiscreteUniform(0, 50)
         num_target = DiscreteUniform(50, 50)
-        encoder_channels = 8
-        decoder_channels = 4
+        num_encoder_channels = 8
+        num_decoder_channels = 4
     else
         error("Unknown model \"" * args["model"] * "\".")
     end
@@ -67,11 +67,11 @@ elseif args["data"] == "eq"
         num_context = DiscreteUniform(3, 50)
         num_target = DiscreteUniform(3, 50)
         num_channels = 64
-    elseif args["model"] == "convnp"
+    elseif args["model"] in ["convnp", "anp", "np"]
         num_context = DiscreteUniform(0, 50)
         num_target = DiscreteUniform(50, 50)
-        encoder_channels = 32
-        decoder_channels = 16
+        num_encoder_channels = 32
+        num_decoder_channels = 16
     else
         error("Unknown model \"" * args["model"] * "\".")
     end
@@ -83,11 +83,30 @@ elseif args["data"] == "matern52"
         num_context = DiscreteUniform(3, 50)
         num_target = DiscreteUniform(3, 50)
         num_channels = 64
-    elseif args["model"] == "convnp"
+    elseif args["model"] in ["convnp", "anp", "np"]
         num_context = DiscreteUniform(0, 50)
         num_target = DiscreteUniform(50, 50)
-        encoder_channels = 32
-        decoder_channels = 16
+        num_encoder_channels = 32
+        num_decoder_channels = 16
+    else
+        error("Unknown model \"" * args["model"] * "\".")
+    end
+elseif args["data"] == "noisy-mixture"
+    process = GP(
+        stretch(eq(), 1 / 0.25) + eq() + 1e-3 * Stheno.Noise(),
+        GPC()
+    )
+    receptive_field = 4f0
+    points_per_unit = 64f0
+    if args["model"] == "convcnp"
+        num_context = DiscreteUniform(3, 50)
+        num_target = DiscreteUniform(3, 50)
+        num_channels = 64
+    elseif args["model"] in ["convnp", "anp", "np"]
+        num_context = DiscreteUniform(0, 50)
+        num_target = DiscreteUniform(50, 50)
+        num_encoder_channels = 32
+        num_decoder_channels = 16
     else
         error("Unknown model \"" * args["model"] * "\".")
     end
@@ -99,11 +118,11 @@ elseif args["data"] == "weakly-periodic"
         num_context = DiscreteUniform(3, 50)
         num_target = DiscreteUniform(3, 50)
         num_channels = 64
-    elseif args["model"] == "convnp"
+    elseif args["model"] in ["convnp", "anp", "np"]
         num_context = DiscreteUniform(0, 50)
         num_target = DiscreteUniform(50, 50)
-        encoder_channels = 32
-        decoder_channels = 16
+        num_encoder_channels = 32
+        num_decoder_channels = 16
     else
         error("Unknown model \"" * args["model"] * "\".")
     end
@@ -115,11 +134,11 @@ elseif args["data"] == "sawtooth"
         num_context = DiscreteUniform(3, 100)
         num_target = DiscreteUniform(3, 100)
         num_channels = 32
-    elseif args["model"] == "convnp"
+    elseif args["model"] in ["convnp", "anp", "np"]
         num_context = DiscreteUniform(0, 100)
         num_target = DiscreteUniform(100, 100)
-        encoder_channels = 16
-        decoder_channels = 8
+        num_encoder_channels = 16
+        num_decoder_channels = 8
     else
         error("Unknown model \"" * args["model"] * "\".")
     end
@@ -153,11 +172,11 @@ if args["model"] == "convcnp"
     else
         error("Unknown loss \"" * args["loss"] * "\".")
     end
-elseif args["model"] == "convnp"
+elseif args["model"] in ["convnp", "anp", "np"]
     if args["loss"] == "loglik"
         loss(xs...) = ConvCNPs.loglik(xs..., num_samples=20)
     elseif args["loss"] == "elbo"
-        loss(xs...) = ConvCNPs.elbo(xs..., num_samples=5)
+        loss(xs...) = ConvCNPs.elbo(xs..., num_samples=1)
     else
         error("Unknown loss \"" * args["loss"] * "\".")
     end
@@ -195,14 +214,28 @@ else
         elseif args["model"] == "convnp"
             model = convnp_1d(
                 receptive_field=receptive_field,
-                encoder_layers=8,
-                decoder_layers=4,
-                encoder_channels=encoder_channels,
-                decoder_channels=decoder_channels,
-                latent_channels=2,
+                num_encoder_layers=8,
+                num_decoder_layers=4,
+                num_encoder_channels=num_encoder_channels,
+                num_decoder_channels=num_decoder_channels,
+                num_latent_channels=2,
                 points_per_unit=points_per_unit,
                 margin=1f0
             ) |> gpu
+        elseif args["model"] == "anp"
+            model = anp_1d(
+                dim_embedding=128,
+                num_encoder_layers=6,
+                num_encoder_heads=8,
+                num_decoder_layers=6
+            ) |> gpu
+        elseif args["model"] == "np"
+            model = anp_1d(
+                dim_embedding=128,
+                num_encoder_layers=6,
+                num_decoder_layers=6
+            ) |> gpu
+        else
         else
             error("Unknown model \"" * args["model"] * "\".")
         end
