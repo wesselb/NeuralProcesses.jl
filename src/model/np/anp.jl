@@ -24,7 +24,7 @@ function anp_1d(;
     num_encoder_layers::Integer,
     num_encoder_heads::Integer,
     num_decoder_layers::Integer,
-    σ²::Float32=1f-3
+    σ²::Float32=1f-4
 )
     dim_x = 1
     dim_y = 1
