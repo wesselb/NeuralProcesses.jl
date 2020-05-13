@@ -163,18 +163,18 @@ end
 @Flux.treelike LayerNorm
 
 """
-    LayerNorm(shape...)
+    LayerNorm(shape::Integer...)
 
 Construct a `LayerNorm` layer.
 
 # Arguments
 - `shape...`: A tuple containing one integer per dimension. Set a dimension to `1` to not
-    normalise or set a dimenion to the size of that dimension to do normalise.
+    normalise. Set a dimension to the size of that dimension to do normalise.
 
 # Returns
 - `LayerNorm`: Corresponding layer.
 """
-function LayerNorm(shape...)
+function LayerNorm(shape::Integer...)
     return LayerNorm(
         param(ones(Float32, shape...)),
         param(zeros(Float32, shape...)),
@@ -292,21 +292,22 @@ function attention(;
     num_heads::Integer,
     num_encoder_layers::Integer=3
 )
+    dim_head = div(dim_embedding, num_heads)
     return Attention(
         Chain(
             batched_mlp(
                 dim_in    =dim_x,
-                dim_hidden=dim_embedding,
-                dim_out   =dim_embedding * num_heads,
-                num_layers=1
+                dim_hidden=dim_head * num_heads,
+                dim_out   =dim_head * num_heads,
+                num_layers=num_encoder_layers
             ),
             x -> _extract_channels(x, num_heads)
         ),
         Chain(
             batched_mlp(
                 dim_in    =dim_x + dim_y,
-                dim_hidden=dim_embedding,
-                dim_out   =dim_embedding * num_heads,
+                dim_hidden=dim_head * num_heads,
+                dim_out   =dim_head * num_heads,
                 num_layers=num_encoder_layers
             ),
             x -> _extract_channels(x, num_heads)
@@ -314,7 +315,7 @@ function attention(;
         Chain(
             _compress_channels,
             batched_mlp(
-                dim_in    =dim_embedding * num_heads,
+                dim_in    =dim_head * num_heads,
                 dim_hidden=dim_embedding,
                 dim_out   =dim_embedding,
                 num_layers=1

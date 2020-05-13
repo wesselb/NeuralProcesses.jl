@@ -1,6 +1,3 @@
-using Distributions
-using Stheno
-
 function test_generator(process)
     gen = DataGenerator(
         process,
