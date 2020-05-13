@@ -160,18 +160,18 @@ end
 @Flux.treelike LayerNorm
 
 """
-    LayerNorm(shape...)
+    LayerNorm(shape::Integer...)
 
 Construct a `LayerNorm` layer.
 
 # Arguments
 - `shape...`: A tuple containing one integer per dimension. Set a dimension to `1` to not
-    normalise or set a dimenion to the size of that dimension to do normalise.
+    normalise. Set a dimension to the size of that dimension to do normalise.
 
 # Returns
 - `LayerNorm`: Corresponding layer.
 """
-function LayerNorm(shape...)
+function LayerNorm(shape::Integer...)
     return LayerNorm(
         param(ones(Float32, shape...)),
         param(zeros(Float32, shape...)),
