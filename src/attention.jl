@@ -93,10 +93,20 @@ function Transformer(dim_embedding::Integer, num_heads::Integer)
         LayerNorm(1, dim_embedding, 1),
         Chain(
             _compress_channels,
-            batched_mlp(dim_embedding * num_heads, dim_embedding, dim_embedding, 1)
+            batched_mlp(
+                dim_in=dim_embedding * num_heads,
+                dim_hidden=dim_embedding,
+                dim_out=dim_embedding,
+                num_layers=1
+            )
         ),
         LayerNorm(1, dim_embedding, 1),
-        batched_mlp(dim_embedding, dim_embedding, dim_embedding, 2)
+        batched_mlp(
+            dim_in=dim_embedding,
+            dim_hidden=dim_embedding,
+            dim_out=dim_embedding,
+            num_layers=2
+        )
     )
 end
 
@@ -210,29 +220,29 @@ function (layer::BatchedMLP)(x)
 end
 
 """
-    batched_mlp(
+    batched_mlp(;
         dim_in::Integer,
-        dim_hidden::Integer,
+        dim_hidden::Integer=dim_in,
         dim_out::Integer,
         num_layers::Integer
     )
 
 Construct a batched MLP.
 
-# Arguments
+# Keywords
 - `dim_in::Integer`: Dimensionality of the input.
-- `dim_hidden::Integer`: Dimensionality of the hidden layers.
+- `dim_hidden::Integer=dim_in`: Dimensionality of the hidden layers.
 - `dim_out::Integer`: Dimensionality of the output.
 - `num_layers::Integer`: Number of layers.
 
 # Returns
 - `BatchedMLP`: Corresponding batched MLP.
 """
-function batched_mlp(
+function batched_mlp(;
     dim_in::Integer,
-    dim_hidden::Integer,
+    dim_hidden::Integer=dim_in,
     dim_out::Integer,
-    num_layers::Integer
+    num_layers::Integer,
 )
     act(x) = leakyrelu(x, 0.1f0)
     if num_layers == 1
@@ -275,29 +285,29 @@ function attention(;
     return Attention(
         Chain(
             batched_mlp(
-                dim_x,
-                dim_x,
-                dim_embedding * num_heads,
-                1
+                dim_in=dim_x,
+                dim_hidden=dim_embedding,
+                dim_out=dim_embedding * num_heads,
+                num_layers=1
             ),
             x -> _extract_channels(x, num_heads)
         ),
         Chain(
             batched_mlp(
-                dim_x + dim_y,
-                dim_x + dim_y,
-                dim_embedding * num_heads,
-                num_encoder_layers
+                dim_in=dim_x + dim_y,
+                dim_hidden=dim_embedding,
+                dim_out=dim_embedding * num_heads,
+                num_layers=num_encoder_layers
             ),
             x -> _extract_channels(x, num_heads)
         ),
         Chain(
             _compress_channels,
             batched_mlp(
-                dim_embedding * num_heads,
-                dim_embedding,
-                dim_embedding,
-                1
+                dim_in=dim_embedding * num_heads,
+                dim_hidden=dim_embedding,
+                dim_out=dim_embedding,
+                num_layers=1
             )
         ),
         Transformer(dim_embedding, num_heads)

@@ -74,7 +74,8 @@ Construct a deterministic encoding for the empty set.
 """
 function empty_det_encoding(model::NP, xz)
     k, _, batch_size = size(xz)
-    return zeros(Float32, k, model.dim_embedding, batch_size) |> gpu
+    r = zeros(Float32, k, model.dim_embedding, batch_size) |> gpu
+    return split_μ_σ²(model.encoder_det.ff₂(r))
 end
 
 """
@@ -108,9 +109,8 @@ Construct a latent encoding for the empty set.
 """
 function empty_lat_encoding(model::NP, xz)
     k, _, batch_size = size(xz)
-    μ = zeros(Float32, k, model.dim_embedding, batch_size) |> gpu
-    σ² = ones(Float32, k, model.dim_embedding, batch_size) |> gpu
-    return μ, σ²
+    r = zeros(Float32, k, model.dim_embedding, batch_size) |> gpu
+    return split_μ_σ²(model.encoder_lat.ff₂(r))
 end
 
 """
@@ -144,10 +144,12 @@ end
 Encoder for a NP.
 
 # Fields
-- `mlp`: MLP.
+- `ff₁`: Pre-pooling feed-forward net.
+- `ff₂`: Post-pooling feed-forward net.
 """
 struct NPEncoder
-    mlp
+    ff₁
+    ff₂
 end
 
 @Flux.treelike NPEncoder
@@ -163,11 +165,15 @@ end
 # Returns
 - `AbstractArray`: Encoding.
 """
-function (model::NPEncoder)(xc, yc, xz)
-    n_latent = size(xz, 1)
-    r = model.mlp(cat(xc, yc, dims=2))
-    # Perform pooling operation and return tiled representation.
-    return repeat_gpu(mean(r, dims=1), n_latent, 1, 1)
+function (encoder::NPEncoder)(xc, yc, xz)
+    # Perform pooling operation.
+    r = mean(encoder.ff₁(cat(xc, yc, dims=2)), dims=1)
+
+    # Pass through second net.
+    r = encoder.ff₂(r)
+
+    # Return tiled representation.
+    return repeat_gpu(r, size(xz, 1), 1, 1)
 end
 
 """
@@ -245,25 +251,35 @@ function np_1d(;
         dim_embedding,
         NPEncoder(
             batched_mlp(
-                dim_x + dim_y,
-                dim_embedding,
-                dim_embedding,
-                num_encoder_layers
+                dim_in=dim_x + dim_y,
+                dim_hidden=dim_embedding,
+                dim_out=dim_embedding,
+                num_layers=num_encoder_layers
+            ),
+            batched_mlp(
+                dim_in=dim_embedding,
+                dim_out=dim_embedding,
+                num_layers=2
             )
         ),
         NPEncoder(
             batched_mlp(
-                dim_x + dim_y,
-                dim_embedding,
-                2dim_embedding,
-                num_encoder_layers
+                dim_in=dim_x + dim_y,
+                dim_hidden=dim_embedding,
+                dim_out=dim_embedding,
+                num_layers=num_encoder_layers
+            ),
+            batched_mlp(
+                dim_in=dim_embedding,
+                dim_out=2dim_embedding,
+                num_layers=2
             )
         ),
         batched_mlp(
-            2dim_embedding + dim_x,
-            dim_embedding,
-            dim_y,
-            num_decoder_layers
+            dim_in=2dim_embedding + dim_x,
+            dim_hidden=dim_embedding,
+            dim_out=dim_y,
+            num_layers=num_decoder_layers,
         ),
         param([log(σ²)])
     )
