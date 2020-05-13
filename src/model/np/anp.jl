@@ -38,22 +38,22 @@ function anp_1d(;
         ),
         NPEncoder(
             batched_mlp(
-                dim_in=dim_x + dim_y,
+                dim_in    =dim_x + dim_y,
                 dim_hidden=dim_embedding,
-                dim_out=dim_embedding,
+                dim_out   =dim_embedding,
                 num_layers=num_encoder_layers
             ),
             batched_mlp(
-                dim_in=dim_embedding,
+                dim_in    =dim_embedding,
                 dim_hidden=dim_embedding,
-                dim_out=2dim_embedding,
+                dim_out   =2dim_embedding,
                 num_layers=2
             )
         ),
         batched_mlp(
-            dim_in=2dim_embedding + dim_x,
+            dim_in    =2dim_embedding + dim_x,
             dim_hidden=dim_embedding,
-            dim_out=dim_y,
+            dim_out   =dim_y,
             num_layers=num_decoder_layers,
         ),
         param([log(σ²)])

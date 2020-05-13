@@ -257,35 +257,36 @@ function np_1d(;
     return NP(
         NPEncoder(
             batched_mlp(
-                dim_in=dim_x + dim_y,
+                dim_in    =dim_x + dim_y,
                 dim_hidden=dim_embedding,
-                dim_out=dim_embedding,
+                dim_out   =dim_embedding,
                 num_layers=num_encoder_layers
             ),
             batched_mlp(
-                dim_in=dim_embedding,
-                dim_out=dim_embedding,
+                dim_in    =dim_embedding,
+                dim_hidden=dim_embedding,
+                dim_out   =dim_embedding,
                 num_layers=2
             )
         ),
         NPEncoder(
             batched_mlp(
-                dim_in=dim_x + dim_y,
+                dim_in    =dim_x + dim_y,
                 dim_hidden=dim_embedding,
-                dim_out=dim_embedding,
+                dim_out   =dim_embedding,
                 num_layers=num_encoder_layers
             ),
             batched_mlp(
-                dim_in=dim_embedding,
+                dim_in    =dim_embedding,
                 dim_hidden=dim_embedding,
-                dim_out=2dim_embedding,
+                dim_out   =2dim_embedding,
                 num_layers=2
             )
         ),
         batched_mlp(
-            dim_in=2dim_embedding + dim_x,
+            dim_in    =2dim_embedding + dim_x,
             dim_hidden=dim_embedding,
-            dim_out=dim_y,
+            dim_out   =dim_y,
             num_layers=num_decoder_layers,
         ),
         param([log(σ²)])
@@ -364,16 +365,11 @@ function elbo(model::AbstractNP, epoch::Integer, xc, yc, xt, yt; num_samples::In
     end
 
     # Construct posterior over latent variable.
-    qz = encode_lat(
-        model,
-        cat(xc, xt, dims=1),
-        cat(yc, yt, dims=1),
-        xz
-    )
+    qz = encode_lat(model, cat(xc, xt, dims=1), cat(yc, yt, dims=1), xz)
 
     # Sample latent variable and compute predictive statistics.
-    samples = _sample(qz..., num_samples)
-    μ = decode(model, xz, samples, r, xt)
+    z = _sample(qz..., num_samples)
+    μ = decode(model, xz, z, r, xt)
     σ² = exp.(model.log_σ²)
 
     # Compute the components of the ELBO.
