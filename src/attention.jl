@@ -289,12 +289,13 @@ function attention(;
     num_heads::Integer,
     num_encoder_layers::Integer=3
 )
+    dim_head = div(dim_embedding, num_heads)
     return Attention(
         Chain(
             batched_mlp(
                 dim_in    =dim_x,
-                dim_hidden=dim_embedding,
-                dim_out   =dim_embedding * num_heads,
+                dim_hidden=dim_head * num_heads,
+                dim_out   =dim_head * num_heads,
                 num_layers=num_encoder_layers
             ),
             x -> _extract_channels(x, num_heads)
@@ -302,8 +303,8 @@ function attention(;
         Chain(
             batched_mlp(
                 dim_in    =dim_x + dim_y,
-                dim_hidden=dim_embedding,
-                dim_out   =dim_embedding * num_heads,
+                dim_hidden=dim_head * num_heads,
+                dim_out   =dim_head * num_heads,
                 num_layers=num_encoder_layers
             ),
             x -> _extract_channels(x, num_heads)
@@ -311,7 +312,7 @@ function attention(;
         Chain(
             _compress_channels,
             batched_mlp(
-                dim_in    =dim_embedding * num_heads,
+                dim_in    =dim_head * num_heads,
                 dim_hidden=dim_embedding,
                 dim_out   =dim_embedding,
                 num_layers=1
