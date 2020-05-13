@@ -188,7 +188,6 @@ Encoder for a NP.
 
 # Fields
 - `ff₁`: Pre-pooling feed-forward net.
-- `dim_ff₁::Integer`: Dimensionality of the output of `ff₁`.
 - `ff₂`: Post-pooling feed-forward net.
 """
 struct NPEncoder
