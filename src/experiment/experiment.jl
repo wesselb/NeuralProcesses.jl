@@ -63,7 +63,7 @@ function train!(
     for epoch in starting_epoch:(starting_epoch + epochs - 1)
         # Perform epoch.
         println("Epoch: $epoch")
-        Flux.train!(
+        @time Flux.train!(
             (xs...) -> nansafe(loss, model, epoch, gpu.(xs)...),
             Flux.params(model),
             data_gen(batches_per_epoch),
