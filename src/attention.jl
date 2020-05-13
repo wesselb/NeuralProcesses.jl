@@ -158,7 +158,7 @@ Layer normalisation.
 struct LayerNorm
     w
     b
-    dims
+    dims::Tuple
 end
 
 @Flux.treelike LayerNorm
@@ -179,7 +179,7 @@ function LayerNorm(shape::Integer...)
     return LayerNorm(
         param(ones(Float32, shape...)),
         param(zeros(Float32, shape...)),
-        findall(x -> x > 1, shape)
+        Tuple(findall(x -> x > 1, shape))
     )
 end
 
