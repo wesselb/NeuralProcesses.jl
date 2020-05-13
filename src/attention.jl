@@ -37,7 +37,10 @@ function (layer::Attention)(xc, yc, xt)
 
     # Perform attention mechanism.
     weights = softmax(batched_mul(queries, batched_transpose(keys)), dims=2)
-    channels = batched_mul(weights, values)
+    channels = batched_mul(weights, values) 
+
+    # Normalise by the size of the queries to help initialisation.
+    channels = channels ./ Float32(sqrt(size(queries, 2)))
 
     # Mix heads.
     channels = layer.mixer(channels)
@@ -295,7 +298,7 @@ function attention(;
                 dim_in    =dim_x,
                 dim_hidden=dim_embedding,
                 dim_out   =dim_embedding * num_heads,
-                num_layers=num_encoder_layers
+                num_layers=1
             ),
             x -> _extract_channels(x, num_heads)
         ),
