@@ -199,6 +199,11 @@ dimensions and dimension `3:end` are the batch dimensions.
 batched_mul(x::AbstractArray, y::AbstractArray) = Tracker.track(batched_mul, x, y)
 
 function _to_rank_3(x)
+    # If `x` is already rank three, there is nothing to be done.
+    if ndims(x) == 3
+        return x, identity
+    end
+    # Reshape `x` into a three-tensor.
     size_x = size(x)
     return reshape(x, size_x[1:2]..., prod(size_x[3:end])), function (y)
         return reshape(y, size(y)[1:2]..., size_x[3:end]...)
