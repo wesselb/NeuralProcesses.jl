@@ -198,7 +198,7 @@ end
 @Flux.treelike NPEncoder
 
 """
-    (model::NPEncoder)(xc, yc, xt)
+    (model::NPEncoder)(xc, yc, xz)
 
 # Arguments
 - `xc`: Locations of context set of shape `(n, dims, batch)`.

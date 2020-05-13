@@ -136,9 +136,8 @@ end
         μ₂, σ²₂ = [2.4], [0.1]
 
         # Test against a Monte Carlo estimate.
-        samples = μ₁ .+ sqrt.(σ²₁) .* randn(1000000)
-        estimate =
-            mean(gaussian_logpdf(samples, μ₁, σ²₁) .- gaussian_logpdf(samples, μ₂, σ²₂))
+        x = μ₁ .+ sqrt.(σ²₁) .* randn(1000000)
+        estimate = mean(gaussian_logpdf(x, μ₁, σ²₁) .- gaussian_logpdf(x, μ₂, σ²₂))
         @test ConvCNPs.kl(μ₁, σ²₁,  μ₂, σ²₂)[1] ≈ estimate atol=5e-2
     end
 

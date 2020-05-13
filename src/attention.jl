@@ -4,7 +4,7 @@ export Attention, attention
     Attention
 
 # Fields
-- `encoder_x`: Encoder that transforms inputs into keys.
+- `encoder_x`: Encoder that transforms inputs into keys or queries.
 - `encoder_xy`: Encoder that transforms inputs and outputs into values.
 - `mixer`: Linear transform that mixes the heads together.
 - `transformer`: Completion of the transformer architecture.
