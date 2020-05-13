@@ -299,7 +299,7 @@ function attention(;
                 dim_in    =dim_x,
                 dim_hidden=dim_head * num_heads,
                 dim_out   =dim_head * num_heads,
-                num_layers=1
+                num_layers=num_encoder_layers
             ),
             x -> _extract_channels(x, num_heads)
         ),
