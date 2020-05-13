@@ -33,14 +33,15 @@
                 # Calculate weights.
                 weights = Array{Float32}(undef, n, m)
                 for i = 1:n, j = 1:m
-                    weights[i, j] = exp(dot(keys[i, :, c, b], queries[j, :, c, b]))
+                    key = keys[i, :, c, b]
+                    query = queries[j, :, c, b]
+                    # Normalise to control variance of product.
+                    product = dot(key, query) / Float32(sqrt(length(key)))
+                    weights[i, j] = exp(product)
                 end
                 for j = 1:m
                     weights[:, j] ./= sum(weights[:, j])
                 end
-
-                # Normalise by size of the embedding.
-                weights ./= Float32(sqrt(dim_embedding))
 
                 # Calculate embeddings.
                 for i = 1:n, j = 1:m
@@ -48,7 +49,6 @@
                 end
             end
         end
-
         reference = layer.transformer(layer.mixer(embeddings), queries)
 
         # Check that the layer lines up with the brute-force reference.
