@@ -5,6 +5,9 @@ using FiniteDifferences
 using Flux
 using Flux.Tracker
 using LinearAlgebra
+using NNlib
+using StatsFuns
+using Stheno
 using Test
 
 @testset "ConvCNPs.jl" begin

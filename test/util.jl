@@ -1,7 +1,3 @@
-using Distributions
-using Flux.Tracker
-using StatsFuns
-
 function test_gradient(f, xs...)
     # Construct scalar version of `f`.
     v = randn(size(f(xs...)))
@@ -120,7 +116,7 @@ end
 
     @testset "softmax" begin
         x = randn(3, 4, 5)
-        @test StatsFuns.softmax(x, dims=1) ≈ ConvCNPs.softmax(x, dims=1)
+        @test NNlib.softmax(x, dims=1) ≈ ConvCNPs.softmax(x, dims=1)
         test_gradient((y) -> ConvCNPs.softmax(y, dims=1), x)
     end
 
