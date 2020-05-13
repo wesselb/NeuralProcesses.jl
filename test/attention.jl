@@ -50,12 +50,13 @@
     end
 
     @testset "BatchedMLP" begin
-        layer = ConvCNPs.untrack(ConvCNPs.BatchedMLP(Dense(2, 3)))
+        layer = ConvCNPs.untrack(ConvCNPs.batched_mlp(
+            dim_in=2,
+            dim_out=3,
+            dim_hidden=10,
+            num_layers=3
+        ))
         x = randn(10, 2, 4, 5)
-        y = Array{Float32}(undef, 10, 3, 4, 5)
-        for i = 1:4, j = 1:5
-            y[:, :, i, j] = layer.mlp(x[:, :, i, j]')'
-        end
-        @test layer(x) ≈ y
+        @test size(layer(x)) == (10, 3, 4, 5)
     end
 end

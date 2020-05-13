@@ -218,22 +218,9 @@ end
 - `AbstractArray`: Result of applying `layer.mlp` to every batch in `x`.
 """
 function (layer::BatchedMLP)(x)
-    x, back = _to_rank_3(x)  # Merge all batch dimensions.
-
-    n, _, batch_size = size(x)
-
-    # Merge batch dimension into data dimension.
-    x = permutedims(x, (2, 1, 3))
-    x = reshape(x, :, n * batch_size)
-
-    # Apply MLP.
-    x = layer.mlp(x)
-
-    # Separate batch dimension from data dimension.
-    x = reshape(x, :, n, batch_size)
-    x = permutedims(x, (2, 1, 3))
-
-    return back(x)  # Unmerge batch dimensions.
+    x, back = _to_rank_3(x)
+    x = with_dummy(layer.mlp, x)
+    return back(x)
 end
 
 """
@@ -263,16 +250,19 @@ function batched_mlp(;
 )
     act(x) = leakyrelu(x, 0.1f0)
     if num_layers == 1
-        return BatchedMLP(Dense(dim_in, dim_out), dim_out)
+        return BatchedMLP(_dense(dim_in, dim_out), dim_out)
     else
-        layers = Any[Dense(dim_in, dim_hidden, act)]
+        layers = Any[_dense(dim_in, dim_hidden, act)]
         for i = 1:num_layers - 2
-            push!(layers, Dense(dim_hidden, dim_hidden, act))
+            push!(layers, _dense(dim_hidden, dim_hidden, act))
         end
-        push!(layers, Dense(dim_hidden, dim_out))
+        push!(layers, _dense(dim_hidden, dim_out))
         return BatchedMLP(Chain(layers...), dim_out)
     end
 end
+
+_dense(dim_in, dim_out, args...) =
+    Conv(Flux.param.(_init_conv_random_bias((1, 1), dim_in=>dim_out))..., args...)
 
 """
     attention(;

@@ -121,14 +121,15 @@ function decode(model::NP, xz, z, r, xt)
     n_target = size(xt, 1)
     num_samples = size(z, 4)
 
-    # If `r` is global, we also need to repeat it `n_target` times.
+    # Global variables needed to be repeated `n_target` times.
     n_r = size(r, 1) == 1 ? n_target : 1
+    n_z = size(z, 1) == 1 ? n_target : 1
 
     # Repeat to be able to concatenate.
     return model.decoder(cat(
-        repeat_gpu(r,  n_r,      1, 1, num_samples),
-        repeat_gpu(z,  n_target, 1, 1, 1          ),
-        repeat_gpu(xt, 1,        1, 1, num_samples),
+        repeat_gpu(r,  n_r, 1, 1, num_samples),
+        repeat_gpu(z,  n_z, 1, 1, 1          ),
+        repeat_gpu(xt, 1,   1, 1, num_samples),
         dims=2
     ))
 end
