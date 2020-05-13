@@ -39,15 +39,15 @@
                     weights[:, j] ./= sum(weights[:, j])
                 end
 
+                # Normalise by size of the embedding.
+                weights ./= Float32(sqrt(dim_embedding))
+
                 # Calculate embeddings.
                 for i = 1:n, j = 1:m
                     embeddings[j, :, c, b] .+= values[i, :, c, b] .* weights[i, j]
                 end
             end
         end
-
-        # Normalise by query size.
-        embeddings ./= Float32(sqrt(size(queries, 2)))
 
         reference = layer.transformer(layer.mixer(embeddings), queries)
 

@@ -36,11 +36,10 @@ function (layer::Attention)(xc, yc, xt)
     values = layer.encoder_xy(cat(xc, yc, dims=2))
 
     # Perform attention mechanism.
-    weights = softmax(batched_mul(queries, batched_transpose(keys)), dims=2)
+    dim_embedding = size(queries, 2)  # Keep variance constant
+    prods = batched_mul(queries, batched_transpose(keys)) ./ Float32(sqrt(dim_embedding))
+    weights = softmax(prods, dims=2)
     channels = batched_mul(weights, values)
-
-    # Normalise by the size of the queries to help initialisation.
-    channels = channels ./ Float32(sqrt(size(queries, 2)))
 
     # Mix heads.
     channels = layer.mixer(channels)
