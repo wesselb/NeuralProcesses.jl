@@ -29,7 +29,6 @@ function anp_1d(;
     dim_x = 1
     dim_y = 1
     return NP(
-        dim_embedding,
         attention(
             dim_x=dim_x,
             dim_y=dim_y,

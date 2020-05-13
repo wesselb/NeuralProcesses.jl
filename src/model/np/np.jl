@@ -13,14 +13,12 @@ abstract type AbstractNP end
 Neural Process.
 
 # Fields
-- `dim_embedding::Integer`: Dimensionality of the embedding.
 - `encoder_det`: Deterministic encoder.
 - `encoder_lat`: Latent encoder.
 - `decoder`: Decoder.
 - `log_σ²`: Natural logarithm of observation noise variance.
 """
 struct NP <: AbstractNP
-    dim_embedding::Integer
     encoder_det
     encoder_lat
     decoder
@@ -72,11 +70,7 @@ Construct a deterministic encoding for the empty set.
 # Returns
 - `AbstractArray`: Empty deterministic encoding.
 """
-function empty_det_encoding(model::NP, xz)
-    k, _, batch_size = size(xz)
-    r = zeros(Float32, k, model.dim_embedding, batch_size) |> gpu
-    return split_μ_σ²(model.encoder_det.ff₂(r))
-end
+empty_det_encoding(model::NP, xz) = empty_encoding(model.encoder_det, xz)
 
 """
     encode_lat(model::NP, xc, yc, xz)
@@ -107,11 +101,7 @@ Construct a latent encoding for the empty set.
 # Returns
 - `AbstractArray`: Empty latent encoding.
 """
-function empty_lat_encoding(model::NP, xz)
-    k, _, batch_size = size(xz)
-    r = zeros(Float32, k, model.dim_embedding, batch_size) |> gpu
-    return split_μ_σ²(model.encoder_lat.ff₂(r))
-end
+empty_lat_encoding(model::NP, xz) = split_μ_σ²(empty_encoding(model.encoder_lat, xz))
 
 """
     decode(model::NP, xz, z, r, xt)
@@ -128,52 +118,19 @@ Perform decoding.
 - `Tuple{AbstractArray, AbstractArray}`: Tuple containing means and variances.
 """
 function decode(model::NP, xz, z, r, xt)
+    n_target = size(xt, 1)
     num_samples = size(z, 4)
+
+    # If `r` is global, we also need to repeat it `n_target` times.
+    n_r = size(r, 1) == 1 ? n_target : 1
+
     # Repeat to be able to concatenate.
     return model.decoder(cat(
-        repeat_gpu(r, 1, 1, 1, num_samples),
-        z,
-        repeat_gpu(xt, 1, 1, 1, num_samples),
+        repeat_gpu(r,  n_r,      1, 1, num_samples),
+        repeat_gpu(z,  n_target, 1, 1, 1          ),
+        repeat_gpu(xt, 1,        1, 1, num_samples),
         dims=2
     ))
-end
-
-"""
-    struct NPEncoder
-
-Encoder for a NP.
-
-# Fields
-- `ff₁`: Pre-pooling feed-forward net.
-- `ff₂`: Post-pooling feed-forward net.
-"""
-struct NPEncoder
-    ff₁
-    ff₂
-end
-
-@Flux.treelike NPEncoder
-
-"""
-    (model::NPEncoder)(xc, yc, xt)
-
-# Arguments
-- `xc`: Locations of context set of shape `(n, dims, batch)`.
-- `yc`: Observed values of context set of shape `(n, channels, batch)`.
-- `xz`: Locations of latent encoding of shape `(k, dims, batch)`.
-
-# Returns
-- `AbstractArray`: Encoding.
-"""
-function (encoder::NPEncoder)(xc, yc, xz)
-    # Perform pooling operation.
-    r = mean(encoder.ff₁(cat(xc, yc, dims=2)), dims=1)
-
-    # Pass through second net.
-    r = encoder.ff₂(r)
-
-    # Return tiled representation.
-    return repeat_gpu(r, size(xz, 1), 1, 1)
 end
 
 """
@@ -222,6 +179,56 @@ function _sample(μ, σ², num_samples)
     return μ .+ sqrt.(σ²) .* noise
 end
 
+
+"""
+    struct NPEncoder
+
+Encoder for a NP.
+
+# Fields
+- `ff₁`: Pre-pooling feed-forward net.
+- `dim_ff₁::Integer`: Dimensionality of the output of `ff₁`.
+- `ff₂`: Post-pooling feed-forward net.
+"""
+struct NPEncoder
+    ff₁
+    ff₂
+end
+
+@Flux.treelike NPEncoder
+
+"""
+    (model::NPEncoder)(xc, yc, xt)
+
+# Arguments
+- `xc`: Locations of context set of shape `(n, dims, batch)`.
+- `yc`: Observed values of context set of shape `(n, channels, batch)`.
+- `xz`: Locations of latent encoding of shape `(k, dims, batch)`.
+
+# Returns
+- `AbstractArray`: Encoding.
+"""
+(encoder::NPEncoder)(xc, yc, xz) =
+    encoder.ff₂(mean(encoder.ff₁(cat(xc, yc, dims=2)), dims=1))
+
+"""
+    empty_encoding(encoder::NPEncoder, xz)
+
+Construct an encoding for the empty set.
+
+# Arguments
+- `encoder::NPEncoder` Model.
+- `xz`: Locations of encoding of shape `(k, dims, batch)`.
+
+# Returns
+- `AbstractArray`: Empty encoding.
+"""
+function empty_encoding(encoder::NPEncoder, xz)
+    batch_size = size(xz, 3)
+    r = zeros(Float32, 1, encoder.ff₁.dim_out, batch_size) |> gpu
+    return encoder.ff₂(r)
+end
+
 """
     np_1d(;
         dim_embedding::Integer,
@@ -248,7 +255,6 @@ function np_1d(;
     dim_x = 1
     dim_y = 1
     return NP(
-        dim_embedding,
         NPEncoder(
             batched_mlp(
                 dim_in=dim_x + dim_y,
@@ -271,6 +277,7 @@ function np_1d(;
             ),
             batched_mlp(
                 dim_in=dim_embedding,
+                dim_hidden=dim_embedding,
                 dim_out=2dim_embedding,
                 num_layers=2
             )

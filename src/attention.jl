@@ -43,9 +43,24 @@ function (layer::Attention)(xc, yc, xt)
     channels = layer.mixer(channels)
 
     # Finish transformer architecture.
-    out = layer.transformer(channels, queries)
+    return layer.transformer(channels, queries)
+end
 
-    return out
+"""
+    empty_encoding(layer::Attention, xt)
+
+Construct an encoding for the empty set.
+
+# Arguments
+- `layer::Attention`: Layer.
+- `xt`: Locations of target set of shape `(m, dims, batch)`.
+
+# Returns
+- `AbstractArray`: Empty encoding.
+"""
+function empty_encoding(layer::Attention, xt)
+    m, _, batch_size = size(xt)
+    return zeros(Float32, m, layer.transformer.ff₂.dim_out, batch_size) |> gpu
 end
 
 function _extract_channels(x, num_channels)
@@ -64,16 +79,16 @@ end
 Completion of the transformer architecture.
 
 # Fields
-- `ln₁`: First layer normalisation layer.
 - `ff₁`: Feed-forward net to apply to the queries.
-- `ln₂`: Second layer normalisation layer.
+- `ln₁`: First layer normalisation layer.
 - `ff₂`: Feed-forward net in the residual block.
+- `ln₂`: Second layer normalisation layer.
 """
 struct Transformer
-    ln₁
     ff₁
-    ln₂
+    ln₁
     ff₂
+    ln₂
 end
 
 @Flux.treelike Transformer
@@ -90,7 +105,6 @@ end
 """
 function Transformer(dim_embedding::Integer, num_heads::Integer)
     return Transformer(
-        LayerNorm(1, dim_embedding, 1),
         Chain(
             _compress_channels,
             batched_mlp(
@@ -106,7 +120,8 @@ function Transformer(dim_embedding::Integer, num_heads::Integer)
             dim_hidden=dim_embedding,
             dim_out=dim_embedding,
             num_layers=2
-        )
+        ),
+        LayerNorm(1, dim_embedding, 1)
     )
 end
 
@@ -183,10 +198,12 @@ end
     struct BatchedMLP
 
 # Fields
-- `mlp`: MLP to batch
+- `mlp`: MLP to batch.
+- `dim_out::Integer`: Dimensionality of the output.
 """
 struct BatchedMLP
     mlp
+    dim_out::Integer
 end
 
 @Flux.treelike BatchedMLP
@@ -246,14 +263,14 @@ function batched_mlp(;
 )
     act(x) = leakyrelu(x, 0.1f0)
     if num_layers == 1
-        return BatchedMLP(Dense(dim_in, dim_out))
+        return BatchedMLP(Dense(dim_in, dim_out), dim_out)
     else
         layers = Any[Dense(dim_in, dim_hidden, act)]
         for i = 1:num_layers - 2
             push!(layers, Dense(dim_hidden, dim_hidden, act))
         end
         push!(layers, Dense(dim_hidden, dim_out))
-        return BatchedMLP(Chain(layers...))
+        return BatchedMLP(Chain(layers...), dim_out)
     end
 end
 
