@@ -118,6 +118,12 @@ end
         test_gradient((y) -> ConvCNPs.logsumexp(y, dims=1), x)
     end
 
+    @testset "softmax" begin
+        x = randn(3, 4, 5)
+        @test StatsFuns.softmax(x, dims=1) ≈ ConvCNPs.softmax(x, dims=1)
+        test_gradient((y) -> ConvCNPs.softmax(y, dims=1), x)
+    end
+
     @testset "repeat_gpu" begin
         θ = randn(3, 2, 5, 3)
         f(x) = sum(θ .* ConvCNPs.repeat_gpu(x, 1, 2, 1, 3))

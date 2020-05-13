@@ -229,19 +229,27 @@ Safe log-sum-exp reduction of array `x` along dimensions `dims`.
 # Returns
 - `Real`: Log-sum-exp reduction of `x` along dimensions `dims`.
 """
-logsumexp(x::AbstractArray; dims=:) = Tracker.track(logsumexp, x, dims=dims)
-
-function logsumexp(x::CuOrArray; dims=:)
-    u = maximum(x, dims=dims)
+function logsumexp(x::AbstractArray; dims=:)
+    u = maximum(Tracker.data(x), dims=dims)  # Do not track the maximum!
     return u .+ log.(sum(exp.(x .- u), dims=dims))
 end
 
-@Tracker.grad function logsumexp(x; dims=:)
-    x = Tracker.data(x)
-    y = logsumexp(x, dims=dims)
-    return y, function (ȳ)
-        return (ȳ .* exp.(x .- y),)
-    end
+"""
+    softmax(x::AbstractArray; dims)
+
+Safe softmax array `x` along dimensions `dims`.
+
+# Arguments
+- `x::AbstractArray`: Array to apply softmax to.
+- `dims`: Dimensions along which the softmax is applied.
+
+# Returns
+- `Real`: Softmax of `x` along dimensions `dims`.
+"""
+function softmax(x::AbstractArray; dims=:)
+    u = maximum(Tracker.data(x), dims=dims)  # Do not track the maximum!
+    x = exp.(x .- u)
+    return x ./ sum(x, dims=dims)
 end
 
 """
