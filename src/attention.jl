@@ -37,7 +37,8 @@ function (layer::Attention)(xc, yc, xt)
 
     # Perform attention mechanism.
     weights = exp.(batched_mul(queries, batched_transpose(keys)))
-    channels = batched_mul(weights, values) ./ sum(weights, dims=2)
+    weights = weights ./ sum(weights, dims=2)  # Normalise weights: softmax
+    channels = batched_mul(weights, values)
 
     # Mix heads.
     channels = layer.mixer(channels)
