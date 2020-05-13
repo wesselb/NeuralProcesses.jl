@@ -248,7 +248,7 @@ function batched_mlp(;
     dim_out::Integer,
     num_layers::Integer,
 )
-    act(x) = leakyrelu(x, 0.1f0)
+    act(x) = leakyrelu(x, 0.01f0)  # Use a small leak here.
     if num_layers == 1
         return BatchedMLP(_dense(dim_in, dim_out), dim_out)
     else
