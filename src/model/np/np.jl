@@ -134,6 +134,20 @@ function decode(model::NP, xz, z, r, xt)
     ))
 end
 
+function _encode_det_lat(model, xc, yc, xt)
+    # Compute locations of the latent variable.
+    xz = encoding_locations(model, xc, xt)
+
+    # Compute deterministic and latent encoding.
+    if size(xc, 1) > 0
+        # Context set is non-empty.
+        return xz, encode_det(model, xc, yc, xz), encode_lat(model, xc, yc, xz)
+    else
+        # Context set is empty.
+        return xz, empty_det_encoding(model, xz), empty_lat_encoding(model, xz)
+    end
+end
+
 """
     (model::AbstractNP)(xc, yc, xt, num_samples::Integer)
 
@@ -148,22 +162,7 @@ end
 """
 
 function (model::AbstractNP)(xc, yc, xt, num_samples::Integer)
-    # Compute locations of the latent variable.
-    xz = encoding_locations(model, xc, xt)
-
-    # Compute deterministic encoding.
-    if size(xc, 1) > 0
-        r = encode_det(model, xc, yc, xz)
-    else
-        r = empty_det_encoding(model, xz)
-    end
-
-    # Construct prior over latent variable.
-    if size(xc, 1) > 0
-        pz = encode_lat(model, xc, yc, xz)
-    else
-        pz = empty_lat_encoding(model, xz)
-    end
+    xz, r, pz = _encode_det_lat(model, xc, yc, xt)
 
     # Sample latent variable.
     z = _sample(pz..., num_samples)
@@ -316,13 +315,18 @@ Log-expected-likelihood loss. This is a biased estimate of the log-likelihood.
 - `Real`: Average negative log-expected likelihood.
 """
 function loglik(model::AbstractNP, epoch::Integer, xc, yc, xt, yt; num_samples::Integer)
-    μ, σ² = model(xc, yc, xt, num_samples)
+    xz, r, pz = _encode_det_lat(model, xc, yc, xt)
 
-    # Compute the components of the ELBO.
-    logpdfs = gaussian_logpdf(yt, μ, σ²)
+    # Construct posterior over latent variable for an importance-weighted estimate.
+    qz = encode_lat(model, cat(xc, xt, dims=1), cat(yc, yt, dims=1), xz)
 
-    # Sum over data points and channels to assemble the log-pdfs.
-    logpdfs = sum(logpdfs, dims=(1, 2))
+    # Sample latent variable and perform decoding.
+    z = _sample(qz..., num_samples)
+    μ = decode(model, xz, z, r, xt)
+    σ² = exp.(model.log_σ²)
+
+    # Do an importance weighted estimate.
+    logpdfs = _logpdf(z, pz...) .- _logpdf(z, qz...) .+ _logpdf(yt, μ, σ²)
 
     # Log-mean-exp over samples.
     logpdfs = logsumexp(logpdfs, dims=4) .- Float32(log(num_samples))
@@ -330,6 +334,8 @@ function loglik(model::AbstractNP, epoch::Integer, xc, yc, xt, yt; num_samples::
     # Return average over batches.
     return -mean(logpdfs)
 end
+
+_logpdf(xs...) = sum(gaussian_logpdf(xs...), dims=(1, 2))
 
 """
     elbo(model::AbstractNP, epoch::Integer, xc, yc, xt, yt, num_samples::Integer)
@@ -351,40 +357,22 @@ Neural process ELBO-style loss.
 - `Real`: Average negative NP loss.
 """
 function elbo(model::AbstractNP, epoch::Integer, xc, yc, xt, yt; num_samples::Integer)
-    xz = encoding_locations(model, xc, xt)
-
-    # Compute deterministic encoding.
-    if size(xc, 1) > 0
-        r = encode_det(model, xc, yc, xz)
-    else
-        r = empty_det_encoding(model, xz)
-    end
-
-    # Construct prior over latent variable.
-    if size(xc, 1) > 0
-        pz = encode_lat(model, xc, yc, xz)
-    else
-        pz = empty_lat_encoding(model, xz)
-    end
+    xz, r, pz = _encode_det_lat(model, xc, yc, xt)
 
     # Construct posterior over latent variable.
     qz = encode_lat(model, cat(xc, xt, dims=1), cat(yc, yt, dims=1), xz)
 
-    # Sample latent variable and compute predictive statistics.
+    # Sample latent variable and perform decoding.
     z = _sample(qz..., num_samples)
     μ = decode(model, xz, z, r, xt)
     σ² = exp.(model.log_σ²)
 
     # Compute the components of the ELBO.
-    expectations = gaussian_logpdf(yt, μ, σ²)
-    kls = kl(qz..., pz...)
-
-    # Sum over data points and channels to assemble the expressions.
-    expectations = sum(expectations, dims=(1, 2))
-    kls = sum(kls, dims=(1, 2))
+    exps = sum(gaussian_logpdf(yt, μ, σ²), dims=(1, 2))
+    kls = sum(kl(qz..., pz...), dims=(1, 2))
 
     # Estimate ELBO from samples.
-    elbos = mean(expectations, dims=4) .- kls
+    elbos = mean(exps, dims=4) .- kls
 
     # Return average over batches.
     return -mean(elbos)
