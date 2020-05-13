@@ -151,6 +151,20 @@ end
 
     @testset "with_dummy" begin
         x = randn(3)
-        @test ConvCNPs.with_dummy(y -> (@test(size(y) == (3, 1)); y), x) ≈ x
+        @test ConvCNPs.with_dummy(y -> (@test(size(y) == (3, 1)); y), x) == x
+    end
+
+    @testset "to_rank_3" begin
+        # Test compression.
+        x = randn(3, 4, 5, 6)
+        y, back = ConvCNPs.to_rank_3(x)
+        @test y == reshape(x, 3, 4, :)
+        @test back(y) == x
+
+        # Test that rank-three tensors are left untouched.
+        x = randn(3, 4, 5)
+        y, back = ConvCNPs.to_rank_3(x)
+        @test x === y
+        @test back(x) === x
     end
 end

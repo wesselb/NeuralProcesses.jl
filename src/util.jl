@@ -198,21 +198,9 @@ dimensions and dimension `3:end` are the batch dimensions.
 """
 batched_mul(x::AbstractArray, y::AbstractArray) = Tracker.track(batched_mul, x, y)
 
-function _to_rank_3(x)
-    # If `x` is already rank three, there is nothing to be done.
-    if ndims(x) == 3
-        return x, identity
-    end
-    # Reshape `x` into a three-tensor.
-    size_x = size(x)
-    return reshape(x, size_x[1:2]..., prod(size_x[3:end])), function (y)
-        return reshape(y, size(y)[1:2]..., size_x[3:end]...)
-    end
-end
-
 function _batched_mul(x, y)
-    x, back = _to_rank_3(x)
-    y, _ = _to_rank_3(y)
+    x, back = to_rank_3(x)
+    y, _ = to_rank_3(y)
     return back(Flux.batched_mul(x, y)), x, y
 end
 
@@ -221,7 +209,7 @@ batched_mul(x::CuOrArray, y::CuOrArray) = first(_batched_mul(x, y))
 @Tracker.grad function batched_mul(x, y)
     z, x, y = _batched_mul(Tracker.data.((x, y))...)
     return z, function (ȳ)
-        ȳ, back = _to_rank_3(ȳ)
+        ȳ, back = to_rank_3(ȳ)
         return (
             back(Flux.batched_mul(ȳ, batched_transpose(y))),
             back(Flux.batched_mul(batched_transpose(x), ȳ))
@@ -370,3 +358,28 @@ Insert dimension two to `x` before applying `f` and remove dimension two afterwa
 - `f(x)`.
 """
 with_dummy(f, x) = dropdims(f(insert_dim(x, pos=2)), dims=2)
+
+"""
+    to_rank_3(x::AbstractArray)
+
+Transform `x` into a three-tensor by compression the dimensions `3:end`.
+
+# Arguments
+- `x::AbstractArray`: Tensor to compress.
+
+# Returns
+- `Tuple`: Tuple containing `x` as a three-tensor and a function to transform back to
+    the original dimensions.
+"""
+function to_rank_3(x::AbstractArray)
+    # If `x` is already rank three, there is nothing to be done.
+    if ndims(x) == 3
+        return x, identity
+    end
+
+    # Reshape `x` into a three-tensor.
+    size_x = size(x)
+    return reshape(x, size_x[1:2]..., prod(size_x[3:end])), function (y)
+        return reshape(y, size(y)[1:2]..., size_x[3:end]...)
+    end
+end

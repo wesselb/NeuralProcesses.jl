@@ -198,7 +198,7 @@ end
     struct BatchedMLP
 
 # Fields
-- `mlp`: MLP to batch.
+- `mlp`: MLP.
 - `dim_out::Integer`: Dimensionality of the output.
 """
 struct BatchedMLP
@@ -218,7 +218,7 @@ end
 - `AbstractArray`: Result of applying `layer.mlp` to every batch in `x`.
 """
 function (layer::BatchedMLP)(x)
-    x, back = _to_rank_3(x)
+    x, back = to_rank_3(x)
     x = with_dummy(layer.mlp, x)
     return back(x)
 end
@@ -231,7 +231,7 @@ end
         num_layers::Integer
     )
 
-Construct a batched MLP.
+Construct a batched MLP with one-by-one convolutions.
 
 # Keywords
 - `dim_in::Integer`: Dimensionality of the input.
@@ -246,9 +246,9 @@ function batched_mlp(;
     dim_in::Integer,
     dim_hidden::Integer=dim_in,
     dim_out::Integer,
-    num_layers::Integer,
+    num_layers::Integer
 )
-    act(x) = leakyrelu(x, 0.01f0)  # Use a small leak here.
+    act(x) = leakyrelu(x, 0.1f0)
     if num_layers == 1
         return BatchedMLP(_dense(dim_in, dim_out), dim_out)
     else
