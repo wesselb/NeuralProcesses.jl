@@ -37,7 +37,7 @@ function (layer::Attention)(xc, yc, xt)
 
     # Perform attention mechanism.
     weights = softmax(batched_mul(queries, batched_transpose(keys)), dims=2)
-    channels = batched_mul(weights, values) 
+    channels = batched_mul(weights, values)
 
     # Normalise by the size of the queries to help initialisation.
     channels = channels ./ Float32(sqrt(size(queries, 2)))
@@ -101,17 +101,18 @@ end
 
 # Arguments
 - `dim_embedding::Integer`: Dimensionality of the embedding.
+- `dim_heads::Integer`: Dimensionality of a head.
 - `num_heads::Integer`: Number of heads.
 
 # Returns
 - `Transformer`: Corresponding layer.
 """
-function Transformer(dim_embedding::Integer, num_heads::Integer)
+function Transformer(dim_embedding::Integer, dim_head::Integer, num_heads::Integer)
     return Transformer(
         Chain(
             _compress_channels,
             batched_mlp(
-                dim_in    =dim_embedding * num_heads,
+                dim_in    =dim_head * num_heads,
                 dim_hidden=dim_embedding,
                 dim_out   =dim_embedding,
                 num_layers=1
@@ -299,7 +300,7 @@ function attention(;
                 dim_in    =dim_x,
                 dim_hidden=dim_head * num_heads,
                 dim_out   =dim_head * num_heads,
-                num_layers=num_encoder_layers
+                num_layers=1
             ),
             x -> _extract_channels(x, num_heads)
         ),
@@ -321,6 +322,6 @@ function attention(;
                 num_layers=1
             )
         ),
-        Transformer(dim_embedding, num_heads)
+        Transformer(dim_embedding, dim_head, num_heads)
     )
 end

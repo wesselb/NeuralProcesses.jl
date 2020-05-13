@@ -2,7 +2,7 @@
     @testset "Attention" begin
         dim_x = 2
         dim_y = 3
-        dim_embedding = 4
+        dim_embedding = 20
         num_heads = 5
         batch_size = 6
         n = 7
@@ -24,8 +24,10 @@
         queries = layer.encoder_x(xt)
         values = layer.encoder_xy(cat(xc, yc, dims=2))
 
+        dim_head = div(dim_embedding, num_heads)
+
         # Brute-force the attention computation.
-        embeddings = zeros(Float32, m, dim_embedding, num_heads, batch_size)
+        embeddings = zeros(Float32, m, dim_head, num_heads, batch_size)
         for c = 1:num_heads
             for b = 1:batch_size
                 # Calculate weights.
@@ -43,6 +45,10 @@
                 end
             end
         end
+
+        # Normalise by query size.
+        embeddings ./= Float32(sqrt(size(queries, 2)))
+
         reference = layer.transformer(layer.mixer(embeddings), queries)
 
         # Check that the layer lines up with the brute-force reference.
