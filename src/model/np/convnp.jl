@@ -72,7 +72,8 @@ _repeat_samples(x, num_samples) = reshape(
         num_latent_channels::Integer,
         points_per_unit::Float32,
         margin::Float32=receptive_field,
-        σ²::Float32=1f-4
+        σ²::Float32=1f-3,
+        learn_σ²::Bool=true
     )
 
 # Keywords
@@ -87,7 +88,8 @@ _repeat_samples(x, num_samples) = reshape(
 - `num_latent_channels::Integer`: Number of channels of the latent variable.
 - `margin::Float32=receptive_field`: Margin for the discretisation. See
     `UniformDiscretisation1d`.
-- `σ²::Float32=1f-4`: Initialisation of the observation noise variance.
+- `σ²::Float32=1f-3`: Initialisation of the observation noise variance.
+- `learn_σ²::Bool=true`: Learn the observation noise.
 
 # Returns
 - `ConvNP`: Corresponding model.
@@ -101,7 +103,8 @@ function convnp_1d(;
     num_latent_channels::Integer,
     points_per_unit::Float32,
     margin::Float32=receptive_field,
-    σ²::Float32=1f-4
+    σ²::Float32=1f-3,
+    learn_σ²::Bool=true
 )
     # Build architecture for the encoder.
     arch_encoder = build_conv(
@@ -150,6 +153,6 @@ function convnp_1d(;
         encoder,
         arch_decoder.conv,
         set_conv(1, scale),
-        param([log(σ²)])
+        learn_σ² ? param([log(σ²)]) : [log(σ²)]
     )
 end
