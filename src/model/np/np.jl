@@ -103,6 +103,36 @@ Construct a latent encoding for the empty set.
 """
 empty_lat_encoding(model::NP, xz) = split_μ_σ²(empty_encoding(model.encoder_lat, xz))
 
+
+"""
+    encode(model::AbstractNP, xc, yc, xz)
+
+Perform determistic and latent encoding.
+
+# Arguments
+- `model::AbstractNP` Model.
+- `xc`: Locations of context set of shape `(n, dims, batch)`.
+- `yc`: Observed values of context set of shape `(n, channels, batch)`.
+- `xz`: Locations of latent encoding of shape `(k, dims, batch)`.
+
+# Returns
+- `Tuple`: Tuple containing locations of encodings, the deterministic encoding,
+    and the latent encoding.
+"""
+function encode(model::AbstractNP, xc, yc, xt)
+    # Compute locations of the encodings.
+    xz = encoding_locations(model, xc, xt)
+
+    # Compute deterministic and latent encoding.
+    if size(xc, 1) > 0
+        # Context set is non-empty.
+        return xz, encode_det(model, xc, yc, xz), encode_lat(model, xc, yc, xz)
+    else
+        # Context set is empty.
+        return xz, empty_det_encoding(model, xz), empty_lat_encoding(model, xz)
+    end
+end
+
 """
     decode(model::NP, xz, z, r, xt)
 
@@ -134,20 +164,6 @@ function decode(model::NP, xz, z, r, xt)
     ))
 end
 
-function _encode_det_lat(model, xc, yc, xt)
-    # Compute locations of the latent variable.
-    xz = encoding_locations(model, xc, xt)
-
-    # Compute deterministic and latent encoding.
-    if size(xc, 1) > 0
-        # Context set is non-empty.
-        return xz, encode_det(model, xc, yc, xz), encode_lat(model, xc, yc, xz)
-    else
-        # Context set is empty.
-        return xz, empty_det_encoding(model, xz), empty_lat_encoding(model, xz)
-    end
-end
-
 """
     (model::AbstractNP)(xc, yc, xt, num_samples::Integer)
 
@@ -162,7 +178,8 @@ end
 """
 
 function (model::AbstractNP)(xc, yc, xt, num_samples::Integer)
-    xz, r, pz = _encode_det_lat(model, xc, yc, xt)
+    # Perform deterministic and latent encoding.
+    xz, r, pz = encode(model, xc, yc, xt)
 
     # Sample latent variable.
     z = _sample(pz..., num_samples)
@@ -310,23 +327,42 @@ Log-expected-likelihood loss. This is a biased estimate of the log-likelihood.
 
 # Keywords
 - `num_samples::Integer`: Number of samples.
+- `importance_weighted::Bool=true`: Do an importance-weighted estimate.
 
 # Returns
 - `Real`: Average negative log-expected likelihood.
 """
-function loglik(model::AbstractNP, epoch::Integer, xc, yc, xt, yt; num_samples::Integer)
-    xz, r, pz = _encode_det_lat(model, xc, yc, xt)
+function loglik(
+    model::AbstractNP,
+    epoch::Integer,
+    xc,
+    yc,
+    xt,
+    yt;
+    num_samples::Integer,
+    importance_weighted::Bool=true
+)
+    if importance_weighted
+        # Perform deterministic and latent encoding.
+        xz, r, pz = encode(model, xc, yc, xt)
 
-    # Construct posterior over latent variable for an importance-weighted estimate.
-    qz = encode_lat(model, cat(xc, xt, dims=1), cat(yc, yt, dims=1), xz)
+        # Construct posterior over latent variable for an importance-weighted estimate.
+        qz = encode_lat(model, cat(xc, xt, dims=1), cat(yc, yt, dims=1), xz)
 
-    # Sample latent variable and perform decoding.
-    z = _sample(qz..., num_samples)
-    μ = decode(model, xz, z, r, xt)
-    σ² = exp.(model.log_σ²)
+        # Sample latent variable and perform decoding.
+        z = _sample(qz..., num_samples)
+        μ = decode(model, xz, z, r, xt)
+        σ² = exp.(model.log_σ²)
 
-    # Do an importance weighted estimate.
-    logpdfs = _logpdf(z, pz...) .- _logpdf(z, qz...) .+ _logpdf(yt, μ, σ²)
+        # Do an importance weighted estimate.
+        logpdfs = _logpdf(z, pz...) .- _logpdf(z, qz...) .+ _logpdf(yt, μ, σ²)
+    else
+        # Sample from the prior.
+        μ, σ² = model(xc, yc, xt, num_samples)
+
+        # Do a regular Monte Carlo estimate.
+        logpdfs = _logpdf(yt, μ, σ²)
+    end
 
     # Log-mean-exp over samples.
     logpdfs = logsumexp(logpdfs, dims=4) .- Float32(log(num_samples))
@@ -357,7 +393,8 @@ Neural process ELBO-style loss.
 - `Real`: Average negative NP loss.
 """
 function elbo(model::AbstractNP, epoch::Integer, xc, yc, xt, yt; num_samples::Integer)
-    xz, r, pz = _encode_det_lat(model, xc, yc, xt)
+    # Perform deterministic and latent encoding.
+    xz, r, pz = encode(model, xc, yc, xt)
 
     # Construct posterior over latent variable.
     qz = encode_lat(model, cat(xc, xt, dims=1), cat(yc, yt, dims=1), xz)
