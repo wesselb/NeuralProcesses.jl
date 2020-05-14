@@ -221,7 +221,18 @@ end
 """
 function (layer::BatchedMLP)(x)
     x, back = to_rank_3(x)
-    x = with_dummy(layer.mlp, x)
+    # x = with_dummy(layer.mlp, x)
+
+    n, _, batch_size = size(x)
+
+    x = permutedims(x, perm=(2, 1, 3))
+    x = reshape(x, :, n * batch_size)
+
+    x = layer.mlp(x)
+
+    x = reshape(x, :, n, batch_size)
+    x = permutedims(x, perm=(2, 1, 3))
+    
     return back(x)
 end
 
@@ -263,8 +274,9 @@ function batched_mlp(;
     end
 end
 
-_dense(dim_in, dim_out, args...) =
-    Conv(Flux.param.(_init_conv_random_bias((1, 1), dim_in=>dim_out))..., args...)
+# _dense(dim_in, dim_out, args...) =
+#     Conv(Flux.param.(_init_conv_random_bias((1, 1), dim_in=>dim_out))..., args...)
+_dense(dim_in, dim_out, args...) = Dense(dim_in, dim_out, args...)
 
 """
     attention(;
