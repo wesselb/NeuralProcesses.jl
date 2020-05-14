@@ -5,10 +5,13 @@ set -e
 MODEL_LOSSES="
     convcnp,loglik
     convnp,loglik
+    convnp,loglik-iw
     convnp,elbo
     anp,loglik
+    anp,loglik-iw
     anp,elbo
     np,loglik
+    np,loglik-iw
     np,elbo"
 DATA_SETS="
    eq
@@ -18,7 +21,7 @@ DATA_SETS="
    sawtooth"
 
 EPOCHS_INC=5
-EPOCHS_TOTAL=40
+EPOCHS_TOTAL=100
 
 JULIA=${1:-julia}
 
