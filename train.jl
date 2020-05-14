@@ -54,10 +54,11 @@ if args["data"] == "eq-small"
         num_channels = 16
     elseif args["model"] in ["convnp", "anp", "np"]
         num_context = DiscreteUniform(0, 50)
-        num_target = DiscreteUniform(3, 50)
-        batch_size = 8
+        num_target = DiscreteUniform(50, 50)
+        batch_size = 16
         num_encoder_channels = 8
         num_decoder_channels = 4
+        dim_embedding = 16
     else
         error("Unknown model \"" * args["model"] * "\".")
     end
@@ -72,10 +73,11 @@ elseif args["data"] == "eq"
         num_channels = 64
     elseif args["model"] in ["convnp", "anp", "np"]
         num_context = DiscreteUniform(0, 50)
-        num_target = DiscreteUniform(3, 50)
-        batch_size = 8
+        num_target = DiscreteUniform(50, 50)
+        batch_size = 16
         num_encoder_channels = 32
         num_decoder_channels = 16
+        dim_embedding = 64
     else
         error("Unknown model \"" * args["model"] * "\".")
     end
@@ -90,10 +92,11 @@ elseif args["data"] == "matern52"
         num_channels = 64
     elseif args["model"] in ["convnp", "anp", "np"]
         num_context = DiscreteUniform(0, 50)
-        num_target = DiscreteUniform(3, 50)
-        batch_size = 8
+        num_target = DiscreteUniform(50, 50)
+        batch_size = 16
         num_encoder_channels = 32
         num_decoder_channels = 16
+        dim_embedding = 64
     else
         error("Unknown model \"" * args["model"] * "\".")
     end
@@ -111,10 +114,11 @@ elseif args["data"] == "noisy-mixture"
         num_channels = 64
     elseif args["model"] in ["convnp", "anp", "np"]
         num_context = DiscreteUniform(0, 50)
-        num_target = DiscreteUniform(3, 50)
-        batch_size = 8
+        num_target = DiscreteUniform(50, 50)
+        batch_size = 16
         num_encoder_channels = 32
         num_decoder_channels = 16
+        dim_embedding = 64
     else
         error("Unknown model \"" * args["model"] * "\".")
     end
@@ -129,10 +133,11 @@ elseif args["data"] == "weakly-periodic"
         num_channels = 64
     elseif args["model"] in ["convnp", "anp", "np"]
         num_context = DiscreteUniform(0, 50)
-        num_target = DiscreteUniform(3, 50)
-        batch_size = 8
+        num_target = DiscreteUniform(50, 50)
+        batch_size = 16
         num_encoder_channels = 32
         num_decoder_channels = 16
+        dim_embedding = 64
     else
         error("Unknown model \"" * args["model"] * "\".")
     end
@@ -147,10 +152,11 @@ elseif args["data"] == "sawtooth"
         num_channels = 32
     elseif args["model"] in ["convnp", "anp", "np"]
         num_context = DiscreteUniform(0, 100)
-        num_target = DiscreteUniform(3, 100)
-        batch_size = 8
+        num_target = DiscreteUniform(100, 100)
+        batch_size = 16
         num_encoder_channels = 16
         num_decoder_channels = 8
+        dim_embedding = 64
     else
         error("Unknown model \"" * args["model"] * "\".")
     end
@@ -186,7 +192,7 @@ if args["model"] == "convcnp"
     end
 elseif args["model"] in ["convnp", "anp", "np"]
     if args["loss"] == "loglik"
-        loss(xs...) = ConvCNPs.loglik(xs..., num_samples=20)
+        loss(xs...) = ConvCNPs.loglik(xs..., num_samples=10)
     elseif args["loss"] == "elbo"
         loss(xs...) = ConvCNPs.elbo(xs..., num_samples=5)
     else
@@ -232,20 +238,23 @@ else
                 num_decoder_channels=num_decoder_channels,
                 num_latent_channels=2,
                 points_per_unit=points_per_unit,
-                margin=1f0
+                margin=1f0,
+                learn_σ²=false
             ) |> gpu
         elseif args["model"] == "anp"
             model = anp_1d(
-                dim_embedding=64,
-                num_encoder_layers=3,
+                dim_embedding=dim_embedding,
                 num_encoder_heads=8,
-                num_decoder_layers=3
+                num_encoder_layers=3,
+                num_decoder_layers=3,
+                learn_σ²=false
             ) |> gpu
         elseif args["model"] == "np"
             model = np_1d(
-                dim_embedding=64,
+                dim_embedding=dim_embedding,
                 num_encoder_layers=3,
-                num_decoder_layers=3
+                num_decoder_layers=3,
+                learn_σ²=false
             ) |> gpu
         else
             error("Unknown model \"" * args["model"] * "\".")
