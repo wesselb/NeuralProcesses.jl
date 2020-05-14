@@ -54,7 +54,7 @@ if args["data"] == "eq-small"
         num_channels = 16
     elseif args["model"] in ["convnp", "anp", "np"]
         num_context = DiscreteUniform(0, 50)
-        num_target = DiscreteUniform(50, 50)
+        num_target = DiscreteUniform(3, 50)
         batch_size = 16
         num_encoder_channels = 8
         num_decoder_channels = 4
@@ -73,7 +73,7 @@ elseif args["data"] == "eq"
         num_channels = 64
     elseif args["model"] in ["convnp", "anp", "np"]
         num_context = DiscreteUniform(0, 50)
-        num_target = DiscreteUniform(50, 50)
+        num_target = DiscreteUniform(3, 50)
         batch_size = 16
         num_encoder_channels = 32
         num_decoder_channels = 16
@@ -92,7 +92,7 @@ elseif args["data"] == "matern52"
         num_channels = 64
     elseif args["model"] in ["convnp", "anp", "np"]
         num_context = DiscreteUniform(0, 50)
-        num_target = DiscreteUniform(50, 50)
+        num_target = DiscreteUniform(3, 50)
         batch_size = 16
         num_encoder_channels = 32
         num_decoder_channels = 16
@@ -114,7 +114,7 @@ elseif args["data"] == "noisy-mixture"
         num_channels = 64
     elseif args["model"] in ["convnp", "anp", "np"]
         num_context = DiscreteUniform(0, 50)
-        num_target = DiscreteUniform(50, 50)
+        num_target = DiscreteUniform(3, 50)
         batch_size = 16
         num_encoder_channels = 32
         num_decoder_channels = 16
@@ -133,7 +133,7 @@ elseif args["data"] == "weakly-periodic"
         num_channels = 64
     elseif args["model"] in ["convnp", "anp", "np"]
         num_context = DiscreteUniform(0, 50)
-        num_target = DiscreteUniform(50, 50)
+        num_target = DiscreteUniform(3, 50)
         batch_size = 16
         num_encoder_channels = 32
         num_decoder_channels = 16
@@ -152,7 +152,7 @@ elseif args["data"] == "sawtooth"
         num_channels = 32
     elseif args["model"] in ["convnp", "anp", "np"]
         num_context = DiscreteUniform(0, 100)
-        num_target = DiscreteUniform(100, 100)
+        num_target = DiscreteUniform(3, 100)
         batch_size = 16
         num_encoder_channels = 16
         num_decoder_channels = 8
