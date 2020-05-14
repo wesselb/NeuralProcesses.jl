@@ -220,20 +220,21 @@ end
 - `AbstractArray`: Result of applying `layer.mlp` to every batch in `x`.
 """
 function (layer::BatchedMLP)(x)
-    x, back = to_rank_3(x)
-    # x = with_dummy(layer.mlp, x)
-
-    n, _, batch_size = size(x)
-
-    x = permutedims(x, perm=(2, 1, 3))
-    x = reshape(x, :, n * batch_size)
-
-    x = layer.mlp(x)
-
-    x = reshape(x, :, n, batch_size)
-    x = permutedims(x, perm=(2, 1, 3))
-    
-    return back(x)
+    return layer.mlp(x)
+    # x, back = to_rank_3(x)
+    # # x = with_dummy(layer.mlp, x)
+    #
+    # n, _, batch_size = size(x)
+    #
+    # x = permutedims(x, perm=(2, 1, 3))
+    # x = reshape(x, :, n * batch_size)
+    #
+    # x = layer.mlp(x)
+    #
+    # x = reshape(x, :, n, batch_size)
+    # x = permutedims(x, perm=(2, 1, 3))
+    #
+    # return back(x)
 end
 
 """
@@ -276,7 +277,24 @@ end
 
 # _dense(dim_in, dim_out, args...) =
 #     Conv(Flux.param.(_init_conv_random_bias((1, 1), dim_in=>dim_out))..., args...)
-_dense(dim_in, dim_out, args...) = Dense(dim_in, dim_out, args...)
+_dense(dim_in, dim_out, args...) = BatchedDense(dim_in, dim_out, args...)
+
+
+struct BatchedDense
+    w
+    b
+    act
+end
+
+function BatchedDense(dim_in::Integer, dim_out::Integer, act=identity)
+    return BatchedDense(
+        param(Flux.glorot_normal(dim_in, dim_out)),
+        param(zeros(Float32, 1, dim_out)),
+        act
+    )
+end
+
+(layer::BatchedDense)(x) = act.(batched_mul(x, layer.w) .+ layer.b)
 
 """
     attention(;
