@@ -232,7 +232,7 @@ function (layer::BatchedMLP)(x)
 
     x = reshape(x, :, n, batch_size)
     x = permutedims(x, perm=(2, 1, 3))
-    
+
     return back(x)
 end
 
@@ -241,7 +241,8 @@ end
         dim_in::Integer,
         dim_hidden::Integer=dim_in,
         dim_out::Integer,
-        num_layers::Integer
+        num_layers::Integer,
+        act=x -> leakyrelu(x, 0.1f0)
     )
 
 Construct a batched MLP with one-by-one convolutions.
@@ -251,6 +252,7 @@ Construct a batched MLP with one-by-one convolutions.
 - `dim_hidden::Integer=dim_in`: Dimensionality of the hidden layers.
 - `dim_out::Integer`: Dimensionality of the output.
 - `num_layers::Integer`: Number of layers.
+- `act=x -> leakyrelu(x, 0.1f0)`: Activation function to use.
 
 # Returns
 - `BatchedMLP`: Corresponding batched MLP.
@@ -259,9 +261,9 @@ function batched_mlp(;
     dim_in::Integer,
     dim_hidden::Integer=dim_in,
     dim_out::Integer,
-    num_layers::Integer
+    num_layers::Integer,
+    act=x -> leakyrelu(x, 0.1f0)
 )
-    act(x) = leakyrelu(x, 0.1f0)
     if num_layers == 1
         return BatchedMLP(_dense(dim_in, dim_out), dim_out)
     else

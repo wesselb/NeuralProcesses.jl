@@ -39,7 +39,8 @@ _expand_padding(n, ::Val{2}) = (n, n)
         num_out_channels::Integer=2,
         dimensionality::Integer=1,
         init_conv::Function=_init_conv_fixed_bias,
-        init_depthwiseconv::Function=_init_depthwiseconv_fixed_bias
+        init_depthwiseconv::Function=_init_depthwiseconv_fixed_bias,
+        act=x -> leakyrelu(x, 0.1f0)
     )
 
 Build a CNN with a specified receptive field size.
@@ -61,6 +62,7 @@ Build a CNN with a specified receptive field size.
 - `init_conv::Function=_init_conv_fixed_bias`: Initialiser for dense convolutions.
 - `init_depthwiseconv::Function=_init_depthwiseconv_fixed_bias`: Initialiser for depthwise
     separable convolutions.
+- `act=x -> leakyrelu(x, 0.1f0)`: Activation function to use.
 
 # Returns
 - `Architecture`: Corresponding CNN bundled with the specified points per unit and margin.
@@ -75,7 +77,8 @@ function build_conv(
     num_out_channels::Integer=2,
     dimensionality::Integer=1,
     init_conv::Function=_init_conv_fixed_bias,
-    init_depthwiseconv::Function=_init_depthwiseconv_fixed_bias
+    init_depthwiseconv::Function=_init_depthwiseconv_fixed_bias,
+    act=x -> leakyrelu(x, 0.1f0)
 )
     # Appropriate expand the kernels to the right dimensionality.
     kernel = _expand_kernel(
@@ -83,8 +86,6 @@ function build_conv(
         Val(dimensionality)
     )
     padding = _expand_padding(_compute_padding(kernel[1]), Val(dimensionality))
-
-    act(x) = leakyrelu(x, 0.1f0)
 
     # Build layers of the conv net.
     layers = Any[Conv(Flux.param.(init_conv((1, 1), num_in_channels=>num_channels))..., act)]
