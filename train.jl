@@ -58,7 +58,7 @@ if args["data"] == "eq-small"
         batch_size = 16
         num_encoder_channels = 8
         num_decoder_channels = 4
-        dim_embedding = 16
+        dim_embedding = 32
     else
         error("Unknown model \"" * args["model"] * "\".")
     end
@@ -77,7 +77,7 @@ elseif args["data"] == "eq"
         batch_size = 16
         num_encoder_channels = 32
         num_decoder_channels = 16
-        dim_embedding = 64
+        dim_embedding = 128
     else
         error("Unknown model \"" * args["model"] * "\".")
     end
@@ -96,7 +96,7 @@ elseif args["data"] == "matern52"
         batch_size = 16
         num_encoder_channels = 32
         num_decoder_channels = 16
-        dim_embedding = 64
+        dim_embedding = 128
     else
         error("Unknown model \"" * args["model"] * "\".")
     end
@@ -118,7 +118,7 @@ elseif args["data"] == "noisy-mixture"
         batch_size = 16
         num_encoder_channels = 32
         num_decoder_channels = 16
-        dim_embedding = 64
+        dim_embedding = 128
     else
         error("Unknown model \"" * args["model"] * "\".")
     end
@@ -137,7 +137,7 @@ elseif args["data"] == "weakly-periodic"
         batch_size = 16
         num_encoder_channels = 32
         num_decoder_channels = 16
-        dim_embedding = 64
+        dim_embedding = 128
     else
         error("Unknown model \"" * args["model"] * "\".")
     end
@@ -156,7 +156,7 @@ elseif args["data"] == "sawtooth"
         batch_size = 16
         num_encoder_channels = 16
         num_decoder_channels = 8
-        dim_embedding = 64
+        dim_embedding = 128
     else
         error("Unknown model \"" * args["model"] * "\".")
     end
