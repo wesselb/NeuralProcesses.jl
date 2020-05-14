@@ -246,7 +246,7 @@ end
         act=x -> leakyrelu(x, 0.1f0)
     )
 
-Construct a batched MLP with one-by-one convolutions.
+Construct a batched MLP.
 
 # Keywords
 - `dim_in::Integer`: Dimensionality of the input.
