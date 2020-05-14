@@ -37,7 +37,7 @@ function (layer::Attention)(xc, yc, xt)
 
     # Perform attention mechanism.
     products = batched_mul(queries, batched_transpose(keys))
-    products = products ./ Float32(sqrt(size(queries, 2)))  # Keep variance constant
+    products = products ./ Float32(sqrt(size(queries, 2)))  # Keep variance constant.
     channels = batched_mul(softmax(products, dims=2), values)
 
     # Mix heads.
