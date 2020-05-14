@@ -25,7 +25,7 @@ parser = ArgParseSettings()
         arg_type = String
         required = true
     "--loss"
-        help = "Loss: loglik or elbo."
+        help = "Loss: loglik, loglik-iw, or elbo."
         arg_type = String
         required = true
     "--starting-epoch"
@@ -185,14 +185,19 @@ data_gen = DataGenerator(
 if args["model"] == "convcnp"
     if args["loss"] == "loglik"
         loss = ConvCNPs.loglik
-    elseif args["loss"] == "elbo"
-        error("ELBO is not applicable to the ConvCNP.")
+    elseif args["loss"] in ["elbo", "loglik-iw"]
+        error(
+            "ELBO and importance-weighted log-likelihood are not applicable to the " *
+            "ConvCNP."
+        )
     else
         error("Unknown loss \"" * args["loss"] * "\".")
     end
 elseif args["model"] in ["convnp", "anp", "np"]
     if args["loss"] == "loglik"
-        loss(xs...) = ConvCNPs.loglik(xs..., num_samples=10)
+        loss(xs...) = ConvCNPs.loglik(xs..., num_samples=10, importance_weighted=false)
+    if args["loss"] == "loglik-iw"
+        loss(xs...) = ConvCNPs.loglik(xs..., num_samples=10, importance_weighted=true)
     elseif args["loss"] == "elbo"
         loss(xs...) = ConvCNPs.elbo(xs..., num_samples=5)
     else
