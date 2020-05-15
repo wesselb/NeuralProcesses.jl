@@ -281,14 +281,13 @@ repeat_gpu(x::CuOrArray, reps...) = repeat(x, reps...)
     end
 
     repeat(Tracker.data(x), reps...), function (ȳ)
-        # Sum inner repetitions.
-        x̄ = sum(ȳ, dims=findall(r -> r > 1, inner))
+        # Determine which dimensions to sum and to drop.
+        drop_dims = Tuple(ndims(x) + 1:length(reps))
+        sum_dims = (findall(r -> r > 1, inner)..., drop_dims...)
 
-        # Sum and drop outer repetitions.
-        if length(outer) > 0
-            dims = Tuple(ndims(x) + 1:length(reps))
-            x̄ = dropdims(sum(x̄, dims=dims), dims=dims)
-        end
+        x̄ = ȳ
+        length(sum_dims) > 0 && (x̄ = sum(x̄, dims=sum_dims))
+        length(drop_dims) > 0 && (x̄ = dropdims(x̄, dims=drop_dims))
 
         return (x̄, ntuple(_ -> nothing, length(reps))...)
     end

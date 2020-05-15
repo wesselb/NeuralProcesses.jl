@@ -24,22 +24,22 @@ end
 # Arguments
 - `xc`: Locations of context set of shape `(n, dims, batch)`.
 - `yc`: Observed values of context set of shape `(n, channels, batch)`.
-- `xt`: Locations of target set of shape `(m, dims, batch)`.
+- `xz`: Locations of latent encoding of shape `(k, dims, batch)`.
 
 # Returns
-- `AbstractArray`: Encodings of shape `(m, dim_embedding, batch)`.
+- `AbstractArray`: Encodings of shape `(k, dim_embedding, batch)`.
 """
-function (layer::Attention)(xc, yc, xt)
+function (layer::Attention)(xc, yc, xz)
     # Perform encodings.
     keys = layer.encoder_x(xc)
-    queries = layer.encoder_x(xt)
+    queries = layer.encoder_x(xz)
     values = layer.encoder_xy(cat(xc, yc, dims=2))
 
     # Perform attention mechanism.
     products = batched_mul(queries, batched_transpose(keys))
     products = products ./ Float32(sqrt(size(queries, 2)))  # Keep variance constant.
     channels = batched_mul(softmax(products, dims=2), values)
-
+    
     # Mix heads.
     channels = layer.mixer(channels)
 
@@ -48,20 +48,20 @@ function (layer::Attention)(xc, yc, xt)
 end
 
 """
-    empty_encoding(layer::Attention, xt)
+    empty_encoding(layer::Attention, xz)
 
 Construct an encoding for the empty set.
 
 # Arguments
 - `layer::Attention`: Layer.
-- `xt`: Locations of target set of shape `(m, dims, batch)`.
+- `xz`: Locations of encoding of shape `(k, dims, batch)`.
 
 # Returns
 - `AbstractArray`: Empty encoding.
 """
-function empty_encoding(layer::Attention, xt)
-    m, _, batch_size = size(xt)
-    return zeros(Float32, m, layer.transformer.ff₂.dim_out, batch_size) |> gpu
+function empty_encoding(layer::Attention, xz)
+    batch_size = size(xz, 3)
+    return zeros(Float32, 1, layer.transformer.ff₂.dim_out, batch_size) |> gpu
 end
 
 function _extract_channels(x, num_channels)
@@ -105,7 +105,7 @@ end
 # Returns
 - `Transformer`: Corresponding layer.
 """
-function Transformer(dim_embedding::Integer, dim_head::Integer, num_heads::Integer)
+function transformer(dim_embedding::Integer, dim_head::Integer, num_heads::Integer)
     return Transformer(
         Chain(
             _compress_channels,
@@ -116,14 +116,14 @@ function Transformer(dim_embedding::Integer, dim_head::Integer, num_heads::Integ
                 num_layers=1
             )
         ),
-        LayerNorm(1, dim_embedding, 1),
+        layer_norm(1, dim_embedding, 1),
         batched_mlp(
             dim_in    =dim_embedding,
             dim_hidden=dim_embedding,
             dim_out   =dim_embedding,
             num_layers=2
         ),
-        LayerNorm(1, dim_embedding, 1)
+        layer_norm(1, dim_embedding, 1)
     )
 end
 
@@ -162,7 +162,7 @@ end
 @Flux.treelike LayerNorm
 
 """
-    LayerNorm(shape::Integer...)
+    layer_norm(shape::Integer...)
 
 Construct a `LayerNorm` layer.
 
@@ -173,7 +173,7 @@ Construct a `LayerNorm` layer.
 # Returns
 - `LayerNorm`: Corresponding layer.
 """
-function LayerNorm(shape::Integer...)
+function layer_norm(shape::Integer...)
     return LayerNorm(
         param(ones(Float32, shape...)),
         param(zeros(Float32, shape...)),
@@ -250,7 +250,7 @@ Construct a batched MLP.
 
 # Keywords
 - `dim_in::Integer`: Dimensionality of the input.
-- `dim_hidden::Integer=dim_in`: Dimensionality of the hidden layers.
+- `dim_hidden::Integer`: Dimensionality of the hidden layers.
 - `dim_out::Integer`: Dimensionality of the output.
 - `num_layers::Integer`: Number of layers.
 - `act=x -> leakyrelu(x, 0.1f0)`: Activation function to use.
@@ -260,13 +260,13 @@ Construct a batched MLP.
 """
 function batched_mlp(;
     dim_in::Integer,
-    dim_hidden::Integer=dim_in,
+    dim_hidden::Integer,
     dim_out::Integer,
     num_layers::Integer,
     act=x -> leakyrelu(x, 0.1f0)
 )
     if num_layers == 1
-        return BatchedMLP(Dense(dim_in, dim_out), dim_out)
+        return BatchedMLP(Chain(Dense(dim_in, dim_out)), dim_out)
     else
         layers = Any[Dense(dim_in, dim_hidden, act)]
         for i = 1:num_layers - 2
@@ -302,6 +302,7 @@ function attention(;
     num_heads::Integer,
     num_encoder_layers::Integer=3
 )
+
     dim_head = div(dim_embedding, num_heads)
     return Attention(
         Chain(
@@ -331,6 +332,6 @@ function attention(;
                 num_layers=1
             )
         ),
-        Transformer(dim_embedding, dim_head, num_heads)
+        transformer(dim_embedding, dim_head, num_heads)
     )
 end
