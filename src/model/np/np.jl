@@ -13,14 +13,14 @@ abstract type AbstractNP end
 Neural Process.
 
 # Fields
-- `encoder_det`: Deterministic encoder.
 - `encoder_lat`: Latent encoder.
+- `encoder_det`: Deterministic encoder.
 - `decoder`: Decoder.
 - `log_σ²`: Natural logarithm of observation noise variance.
 """
 struct NP <: AbstractNP
-    encoder_det
     encoder_lat
+    encoder_det
     decoder
     log_σ²
 end
@@ -126,10 +126,10 @@ function encode(model::AbstractNP, xc, yc, xt)
     # Compute deterministic and latent encoding.
     if size(xc, 1) > 0
         # Context set is non-empty.
-        return xz, encode_det(model, xc, yc, xz), encode_lat(model, xc, yc, xz)
+        return xz, encode_lat(model, xc, yc, xz), encode_det(model, xc, yc, xz)
     else
         # Context set is empty.
-        return xz, empty_det_encoding(model, xz), empty_lat_encoding(model, xz)
+        return xz, empty_lat_encoding(model, xz), empty_det_encoding(model, xz)
     end
 end
 
@@ -179,7 +179,7 @@ end
 
 function (model::AbstractNP)(xc, yc, xt, num_samples::Integer)
     # Perform deterministic and latent encoding.
-    xz, r, pz = encode(model, xc, yc, xt)
+    xz, pz, r = encode(model, xc, yc, xt)
 
     # Sample latent variable.
     z = _sample(pz..., num_samples)
@@ -284,7 +284,7 @@ function np_1d(;
             batched_mlp(
                 dim_in    =dim_embedding,
                 dim_hidden=dim_embedding,
-                dim_out   =dim_embedding,
+                dim_out   =2dim_embedding,
                 num_layers=2
             )
         ),
@@ -298,7 +298,7 @@ function np_1d(;
             batched_mlp(
                 dim_in    =dim_embedding,
                 dim_hidden=dim_embedding,
-                dim_out   =2dim_embedding,
+                dim_out   =dim_embedding,
                 num_layers=2
             )
         ),
@@ -344,7 +344,7 @@ function loglik(
 )
     if importance_weighted
         # Perform deterministic and latent encoding.
-        xz, r, pz = encode(model, xc, yc, xt)
+        xz, pz, r = encode(model, xc, yc, xt)
 
         # Construct posterior over latent variable for an importance-weighted estimate.
         qz = encode_lat(model, cat(xc, xt, dims=1), cat(yc, yt, dims=1), xz)
@@ -394,7 +394,7 @@ Neural process ELBO-style loss.
 """
 function elbo(model::AbstractNP, epoch::Integer, xc, yc, xt, yt; num_samples::Integer)
     # Perform deterministic and latent encoding.
-    xz, r, pz = encode(model, xc, yc, xt)
+    xz, pz, r = encode(model, xc, yc, xt)
 
     # Construct posterior over latent variable.
     qz = encode_lat(model, cat(xc, xt, dims=1), cat(yc, yt, dims=1), xz)

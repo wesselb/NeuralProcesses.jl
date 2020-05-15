@@ -32,13 +32,6 @@ function anp_1d(;
     dim_x = 1
     dim_y = 1
     return NP(
-        attention(
-            dim_x=dim_x,
-            dim_y=dim_y,
-            dim_embedding=dim_embedding,
-            num_heads=num_encoder_heads,
-            num_encoder_layers=num_encoder_layers
-        ),
         NPEncoder(
             batched_mlp(
                 dim_in    =dim_x + dim_y,
@@ -52,6 +45,13 @@ function anp_1d(;
                 dim_out   =2dim_embedding,
                 num_layers=2
             )
+        ),
+        attention(
+            dim_x=dim_x,
+            dim_y=dim_y,
+            dim_embedding=dim_embedding,
+            num_heads=num_encoder_heads,
+            num_encoder_layers=num_encoder_layers
         ),
         batched_mlp(
             dim_in    =2dim_embedding + dim_x,
