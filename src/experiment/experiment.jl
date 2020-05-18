@@ -79,11 +79,11 @@ function train!(
     batches_per_epoch = div(tasks_per_epoch, data_gen.batch_size)
 
     # Display the settings of the training run.
-    @printf("Epochs:               %6d\n", epochs)
-    @printf("Starting epoch:       %6d\n", starting_epoch)
-    @printf("Tasks per epoch:      %6d\n", batches_per_epoch * data_gen.batch_size)
-    @printf("Batch size:           %6d\n", data_gen.batch_size)
-    @printf("Batches per epoch:    %6d\n", batches_per_epoch)
+    @printf("Epochs:               %-6d\n", epochs)
+    @printf("Starting epoch:       %-6d\n", starting_epoch)
+    @printf("Tasks per epoch:      %-6d\n", batches_per_epoch * data_gen.batch_size)
+    @printf("Batch size:           %-6d\n", data_gen.batch_size)
+    @printf("Batches per epoch:    %-6d\n", batches_per_epoch)
 
     # Evaluate once before training.
     eval_model(model, loss, data_gen, 1)
@@ -109,7 +109,7 @@ function train!(
 end
 
 function report_num_params(model)
-    @printf("Number of parameters: %6d\n", sum(map(length, Flux.params(model))))
+    @printf("Number of parameters: %-6d\n", sum(map(length, Flux.params(model))))
 end
 
 function plot_task(
