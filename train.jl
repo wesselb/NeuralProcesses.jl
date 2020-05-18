@@ -50,10 +50,8 @@ if args["data"] == "eq-small"
     num_context = DiscreteUniform(0, 50)
     num_target = DiscreteUniform(3, 50)
     if args["model"] == "convcnp"
-        batch_size = 16
         num_channels = 16
     elseif args["model"] in ["convnp", "anp", "np"]
-        batch_size = 16
         num_encoder_channels = 8
         num_decoder_channels = 4
         dim_embedding = 32
@@ -67,10 +65,8 @@ elseif args["data"] == "eq"
     num_context = DiscreteUniform(0, 50)
     num_target = DiscreteUniform(3, 50)
     if args["model"] == "convcnp"
-        batch_size = 16
         num_channels = 64
     elseif args["model"] in ["convnp", "anp", "np"]
-        batch_size = 16
         num_encoder_channels = 32
         num_decoder_channels = 16
         dim_embedding = 128
@@ -84,10 +80,8 @@ elseif args["data"] == "matern52"
     num_context = DiscreteUniform(0, 50)
     num_target = DiscreteUniform(3, 50)
     if args["model"] == "convcnp"
-        batch_size = 16
         num_channels = 64
     elseif args["model"] in ["convnp", "anp", "np"]
-        batch_size = 16
         num_encoder_channels = 32
         num_decoder_channels = 16
         dim_embedding = 128
@@ -104,10 +98,8 @@ elseif args["data"] == "noisy-mixture"
     num_context = DiscreteUniform(0, 50)
     num_target = DiscreteUniform(3, 50)
     if args["model"] == "convcnp"
-        batch_size = 16
         num_channels = 64
     elseif args["model"] in ["convnp", "anp", "np"]
-        batch_size = 16
         num_encoder_channels = 32
         num_decoder_channels = 16
         dim_embedding = 128
@@ -121,10 +113,8 @@ elseif args["data"] == "weakly-periodic"
     num_context = DiscreteUniform(0, 50)
     num_target = DiscreteUniform(3, 50)
     if args["model"] == "convcnp"
-        batch_size = 16
         num_channels = 64
     elseif args["model"] in ["convnp", "anp", "np"]
-        batch_size = 16
         num_encoder_channels = 32
         num_decoder_channels = 16
         dim_embedding = 128
@@ -138,10 +128,8 @@ elseif args["data"] == "sawtooth"
     num_context = DiscreteUniform(0, 100)
     num_target = DiscreteUniform(3, 100)
     if args["model"] == "convcnp"
-        batch_size = 16
         num_channels = 32
     elseif args["model"] in ["convnp", "anp", "np"]
-        batch_size = 16
         num_encoder_channels = 16
         num_decoder_channels = 8
         dim_embedding = 128
@@ -163,7 +151,7 @@ mkpath("output/" * args["model"] * "/" * args["loss"] * "/" * args["data"])
 # Construct data generator.
 data_gen = DataGenerator(
     process;
-    batch_size=batch_size,
+    batch_size=8,
     x=Uniform(-2, 2),
     num_context=num_context,
     num_target=num_target
