@@ -20,7 +20,7 @@ DATA_SETS="
    weakly-periodic
    sawtooth"
 
-EPOCHS_INC=20
+EPOCHS_INC=50
 EPOCHS_TOTAL=200
 
 JULIA=${1:-julia}
