@@ -276,6 +276,7 @@ else
         bson=bson,
         starting_epoch=args["starting-epoch"],
         epochs=args["epochs"],
+        tasks_per_epoch=2^14,
         path=path
     )
 end
