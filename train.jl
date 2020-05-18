@@ -48,14 +48,12 @@ if args["data"] == "eq-small"
     process = GP(stretch(eq(), 1 / 0.25), GPC())
     receptive_field = 1f0
     points_per_unit = 32f0
+    num_context = DiscreteUniform(0, 50)
+    num_target = DiscreteUniform(3, 50)
     if args["model"] == "convcnp"
-        num_context = DiscreteUniform(3, 50)
-        num_target = DiscreteUniform(3, 50)
         batch_size = 16
         num_channels = 16
     elseif args["model"] in ["convnp", "anp", "np"]
-        num_context = DiscreteUniform(0, 50)
-        num_target = DiscreteUniform(3, 50)
         batch_size = 16
         num_encoder_channels = 8
         num_decoder_channels = 4
