@@ -77,26 +77,26 @@ function compute_dists²(x::AbstractArray, y::AbstractArray, d::Val)
 end
 
 """
-    gaussian_logpdf(x::AbstractArray, μ::AbstractArray, σ²::AbstractArray)
+    gaussian_logpdf(x::AbstractArray, μ::AbstractArray, σ::AbstractArray)
 
 One-dimensional Gaussian log-pdf.
 
 # Arguments
 - `x::AbstractArray`: Values to evaluate log-pdf at.
 - `μ::AbstractArray`: Means.
-- `σ²::AbstractArray`: Variances.
+- `σ::AbstractArray`: Standard deviations.
 
 # Returns
-- `AbstractArray`: Log-pdf at `x`.
+- `AbstractArray`: Log-pdfs at `x`.
 """
-function gaussian_logpdf(x::AbstractArray, μ::AbstractArray, σ²::AbstractArray)
+function gaussian_logpdf(x::AbstractArray, μ::AbstractArray, σ::AbstractArray)
     # Loop fusion introduces indexing, which severly bottlenecks GPU computation, so
     # we roll out the computation like this.
     # TODO: What is going on?
     logconst = 1.837877f0
-    logdet = log.(σ²)
-    z = x .- μ
-    quad = (z .* z) ./ σ²
+    logdet = 2 .* log.(σ)
+    z = (x .- μ) ./ σ
+    quad = z .* z
     sum = logconst .+ logdet .+ quad
     return -sum ./ 2
 end
@@ -109,7 +109,7 @@ Multi-dimensional Gaussian log-pdf.
 # Arguments
 - `x::AbstractVector`: Value to evaluate log-pdf at.
 - `μ::AbstractVector`: Mean.
-- `σ²::AbstractMatrix`: Covariance matrix.
+- `Σ::AbstractMatrix`: Covariance matrix.
 
 # Returns
 - `Real`: Log-pdf at `x`.
@@ -307,50 +307,49 @@ Expand a vector to a three-tensor and move it to the GPU.
 expand_gpu(x::AbstractVector) = reshape(x, :, 1, 1) |> gpu
 
 """
-    kl(μ₁, σ²₁, μ₂, σ²₂)
+    kl(μ₁, σ₁, μ₂, σ₂)
 
 Kullback--Leibler divergence between one-dimensional Gaussian distributions.
 
 # Arguments
 - `μ₁`: Mean of `p`.
-- `σ²₁`: Variance of `p`.
+- `σ₁`: Standard deviation of `p`.
 - `μ₂`: Mean of `q`.
-- `σ²₂`: Variance of `q`.
+- `σ₂`: Standard deviation of `q`.
 
 # Returns
 - `AbstractArray`: `KL(p, q)`.
 """
-function kl(μ₁, σ²₁, μ₂, σ²₂)
+function kl(μ₁, σ₁, μ₂, σ₂)
     # Loop fusion introduces indexing, which severly bottlenecks GPU computation, so
     # we roll out the computation like this.
     # TODO: What is going on?
-    logdet = log.(σ²₂ ./ σ²₁)
+    logdet = 2 .* log.(σ₂ ./ σ₁)
     z = μ₁ .- μ₂
-    quad = (σ²₁ .+ z .* z) ./ σ²₂
+    quad = (σ₁.^2 .+ z .* z) ./ σ₂.^2
     sum = logdet .+ quad .- 1
     return sum ./ 2
 end
 
 """
-    split_μ_σ²(channels)
+    split_μ_σ(channels)
 
-Split a three-tensor into means and variance on dimension two.
+Split a three-tensor into means and standard deviations on dimension two.
 
 # Arguments
-- `channels`: Three-tensor to split into means and variances on dimension two.
+- `channels`: Three-tensor to split into means and standard deviations on dimension two.
 
 # Returns
-- `Tuple{AbstractArray, AbstractArray}`: Tuple containing means and variances.
+- `Tuple{AbstractArray, AbstractArray}`: Tuple containing means and standard deviations.
 """
-function split_μ_σ²(channels)
+function split_μ_σ(channels)
     mod(size(channels, 2), 2) == 0 || error("Number of channels must be even.")
     # Half of the channels are used to determine the mean, and the other half are used to
-    # determine the variance.
+    # determine the standard deviation.
     i_split = div(size(channels, 2), 2)
     μ = channels[:, 1:i_split, :]
-    # Add a small ridge to prevent `sqrt` from NaNing out.
-    σ² = NNlib.softplus.(channels[:, i_split + 1:end, :]) .+ 1f-8
-    return μ, σ²
+    σ = NNlib.softplus.(channels[:, i_split + 1:end, :])
+    return μ, σ
 end
 
 """

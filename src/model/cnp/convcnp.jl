@@ -31,7 +31,7 @@ end
 - `xt`: Locations of target set of shape `(m, d, batch)`.
 
 # Returns
-- `Tuple{AbstractArray, AbstractArray}`: Tuple containing means and variances.
+- `Tuple{AbstractArray, AbstractArray}`: Tuple containing means and standard deviations.
 """
 function (model::ConvCNP)(xc, yc, xt)
     if !isnothing(xc) && size(xc, 1) > 0
@@ -98,7 +98,7 @@ function convcnp_1d(;
         set_conv(2, scale),  # Account for density channel.
         arch.conv,
         set_conv(2, scale),
-        split_μ_σ²
+        split_μ_σ
     )
 end
 
@@ -146,8 +146,8 @@ function predict(
     yc::AbstractVector,
     xt::AbstractVector
 )
-    μ, σ² = untrack(model)(expand_gpu.((xc, yc, xt))...)
+    μ, σ = untrack(model)(expand_gpu.((xc, yc, xt))...)
     μ = μ[:, 1, 1] |> cpu
-    σ² = σ²[:, 1, 1] |> cpu
-    return μ, μ .- 2 .* sqrt.(σ²), μ .+ 2 .* sqrt.(σ²), nothing
+    σ = σ[:, 1, 1] |> cpu
+    return μ, μ .- 2 .* σ, μ .+ 2 .* σ, nothing
 end

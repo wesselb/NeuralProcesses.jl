@@ -6,8 +6,8 @@ export anp_1d
         num_encoder_layers::Integer,
         num_encoder_heads::Integer,
         num_decoder_layers::Integer,
-        σ²::Float32=1f-3,
-        learn_σ²::Bool=true
+        σ::Float32=1f-2,
+        learn_σ::Bool=true
     )
 
 # Arguments
@@ -15,8 +15,8 @@ export anp_1d
 - `num_encoder_layers::Integer`: Number of layers in the encoder.
 - `num_encoder_heads::Integer`: Number of heads in the decoder.
 - `num_decoder_layers::Integer`: Number of layers in the decoder.
-- `σ²::Float32=1f-3`: Initialisation of the observation noise variance.
-- `learn_σ²::Bool=true`: Learn the observation noise.
+- `σ::Float32=1f-2`: Initialisation of the observation noise.
+- `learn_σ::Bool=true`: Learn the observation noise.
 
 # Returns
 - `NP`: Corresponding model.
@@ -26,8 +26,8 @@ function anp_1d(;
     num_encoder_layers::Integer,
     num_encoder_heads::Integer,
     num_decoder_layers::Integer,
-    σ²::Float32=1f-3,
-    learn_σ²::Bool=true
+    σ::Float32=1f-2,
+    learn_σ::Bool=true
 )
     dim_x = 1
     dim_y = 1
@@ -59,6 +59,6 @@ function anp_1d(;
             dim_out   =dim_y,
             num_layers=num_decoder_layers,
         ),
-        learn_σ² ? param([log(σ²)]) : [log(σ²)]
+        learn_σ ? param([log(σ)]) : [log(σ)]
     )
 end

@@ -170,10 +170,10 @@ function predict(
     μ, Σ = untrack(model)(expand_gpu.((xc, yc, xt)))
     μ = μ[:, 1, 1] |> cpu
     Σ = Σ[:, :, 1] |> cpu
-    σ² = diag(Σ)
+    σ = sqrt.(diag(Σ))
 
     # Produce three posterior samples.
     samples = cholesky(y_cov).U' * randn(length(x), 3) .+ y_mean
 
-    return μ, μ .- 2 .* sqrt.(σ²), μ .+ 2 .* sqrt.(σ²), samples
+    return μ, μ .- 2 .* σ, μ .+ 2 .* σ, samples
 end

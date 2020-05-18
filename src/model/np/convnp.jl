@@ -10,14 +10,14 @@ Convolutional NP model.
 - `encoder::ConvCNP`: Encoder.
 - `conv::Chain`: CNN that approximates ρ.
 - `decoder::SetConv`: Decoder.
-- `log_σ²`: Natural logarithm of observation noise variance.
+- `log_σ`: Natural logarithm of observation noise.
 """
 struct ConvNP <: AbstractNP
     disc::Discretisation
     encoder::ConvCNP
     conv::Chain
     decoder::SetConv
-    log_σ²
+    log_σ
 end
 
 @Flux.treelike ConvNP
@@ -72,8 +72,8 @@ _repeat_samples(x, num_samples) = reshape(
         num_latent_channels::Integer,
         points_per_unit::Float32,
         margin::Float32=receptive_field,
-        σ²::Float32=1f-3,
-        learn_σ²::Bool=true
+        σ::Float32=1f-2,
+        learn_σ::Bool=true
     )
 
 # Keywords
@@ -88,8 +88,8 @@ _repeat_samples(x, num_samples) = reshape(
 - `num_latent_channels::Integer`: Number of channels of the latent variable.
 - `margin::Float32=receptive_field`: Margin for the discretisation. See
     `UniformDiscretisation1d`.
-- `σ²::Float32=1f-3`: Initialisation of the observation noise variance.
-- `learn_σ²::Bool=true`: Learn the observation noise.
+- `σ::Float32=1f-2`: Initialisation of the observation noise.
+- `learn_σ::Bool=true`: Learn the observation noise.
 
 # Returns
 - `ConvNP`: Corresponding model.
@@ -103,8 +103,8 @@ function convnp_1d(;
     num_latent_channels::Integer,
     points_per_unit::Float32,
     margin::Float32=receptive_field,
-    σ²::Float32=1f-3,
-    learn_σ²::Bool=true
+    σ::Float32=1f-2,
+    learn_σ::Bool=true
 )
     # Build architecture for the encoder.
     arch_encoder = build_conv(
@@ -114,7 +114,7 @@ function convnp_1d(;
         points_per_unit=points_per_unit,
         dimensionality=1,
         num_in_channels=2,  # Account for density channel.
-        num_out_channels=2num_latent_channels  # Outputs means and variances.
+        num_out_channels=2num_latent_channels  # Outputs means and standard deviations.
     )
 
     # Build architecture for the encoder.
@@ -139,7 +139,7 @@ function convnp_1d(;
         set_conv(2, scale),  # Account for density channel.
         arch_encoder.conv,
         set_conv(2num_latent_channels, scale),
-        split_μ_σ²
+        split_μ_σ
     )
 
     # Put model together.
@@ -153,6 +153,6 @@ function convnp_1d(;
         encoder,
         arch_decoder.conv,
         set_conv(1, scale),
-        learn_σ² ? param([log(σ²)]) : [log(σ²)]
+        learn_σ ? param([log(σ)]) : [log(σ)]
     )
 end

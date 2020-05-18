@@ -68,7 +68,7 @@ end
     @testset "gaussian_logpdf" begin
         # Test one-dimensional logpdf.
         dist = Normal(1, 2)
-        @test logpdf(dist, 3) ≈ gaussian_logpdf([3], [1], [2^2])[1]
+        @test logpdf(dist, 3) ≈ gaussian_logpdf([3], [1], [2])[1]
 
         # Test multi-dimensional logpdf.
         function dummy(x, μ, L)
@@ -134,20 +134,20 @@ end
     end
 
     @testset "kl" begin
-        μ₁, σ²₁ = [1.2], [0.2]
-        μ₂, σ²₂ = [2.4], [0.1]
+        μ₁, σ₁ = [1.2], [0.2]
+        μ₂, σ₂ = [2.4], [0.1]
 
         # Test against a Monte Carlo estimate.
-        x = μ₁ .+ sqrt.(σ²₁) .* randn(1000000)
-        estimate = mean(gaussian_logpdf(x, μ₁, σ²₁) .- gaussian_logpdf(x, μ₂, σ²₂))
-        @test ConvCNPs.kl(μ₁, σ²₁,  μ₂, σ²₂)[1] ≈ estimate atol=5e-2
+        x = μ₁ .+ σ₁ .* randn(1000000)
+        estimate = mean(gaussian_logpdf(x, μ₁, σ₁) .- gaussian_logpdf(x, μ₂, σ₂))
+        @test ConvCNPs.kl(μ₁, σ₁,  μ₂, σ₂)[1] ≈ estimate atol=5e-2
     end
 
-    @testset "split_μ_σ²" begin
-        μ, σ² = ConvCNPs.split_μ_σ²(randn(2, 4, 2))
+    @testset "split_μ_σ" begin
+        μ, σ = ConvCNPs.split_μ_σ(randn(2, 4, 2))
         @test size(μ) == (2, 2, 2)
-        @test size(σ²) == (2, 2, 2)
-        @test all(σ² .> 0)
+        @test size(σ) == (2, 2, 2)
+        @test all(σ .> 0)
     end
 
     @testset "with_dummy" begin

@@ -16,13 +16,13 @@ Neural Process.
 - `encoder_lat`: Latent encoder.
 - `encoder_det`: Deterministic encoder.
 - `decoder`: Decoder.
-- `log_σ²`: Natural logarithm of observation noise variance.
+- `log_σ`: Natural logarithm of observation noise.
 """
 struct NP <: AbstractNP
     encoder_lat
     encoder_det
     decoder
-    log_σ²
+    log_σ
 end
 
 @Flux.treelike NP
@@ -84,10 +84,10 @@ Perform latent encoding.
 - `xz`: Locations of latent encoding of shape `(k, dims, batch)`.
 
 # Returns
-- `Tuple{AbstractArray, AbstractArray}`: Tuple containing means and variances of shapes
-    `(k, latent_channels, batch)`
+- `Tuple{AbstractArray, AbstractArray}`: Tuple containing means and standard deviations of
+    shapes `(k, latent_channels, batch)`
 """
-encode_lat(model::NP, xc, yc, xz) = split_μ_σ²(model.encoder_lat(xc, yc, xz))
+encode_lat(model::NP, xc, yc, xz) = split_μ_σ(model.encoder_lat(xc, yc, xz))
 
 """
     empty_lat_encoding(model::NP, xz)
@@ -101,7 +101,7 @@ Construct a latent encoding for the empty set.
 # Returns
 - `AbstractArray`: Empty latent encoding.
 """
-empty_lat_encoding(model::NP, xz) = split_μ_σ²(empty_encoding(model.encoder_lat, xz))
+empty_lat_encoding(model::NP, xz) = split_μ_σ(empty_encoding(model.encoder_lat, xz))
 
 
 """
@@ -145,7 +145,7 @@ Perform decoding.
 - `xt`: Locations of target set of shape `(m, dims, batch)`.
 
 # Returns
-- `Tuple{AbstractArray, AbstractArray}`: Tuple containing means and variances.
+- `Tuple{AbstractArray, AbstractArray}`: Tuple containing means and standard deviations.
 """
 function decode(model::NP, xz, z, r, xt)
     n_target = size(xt, 1)
@@ -174,7 +174,7 @@ end
 - `num_samples::Integer`: Number of samples.
 
 # Returns
-- `Tuple{AbstractArray, AbstractArray}`: Tuple containing means and variances.
+- `Tuple{AbstractArray, AbstractArray}`: Tuple containing means and standard deviations.
 """
 
 function (model::AbstractNP)(xc, yc, xt, num_samples::Integer)
@@ -188,12 +188,12 @@ function (model::AbstractNP)(xc, yc, xt, num_samples::Integer)
     channels = decode(model, xz, z, r, xt)
 
     # Return the predictions with noise.
-    return channels, exp.(model.log_σ²)
+    return channels, exp.(model.log_σ)
 end
 
-function _sample(μ, σ², num_samples)
+function _sample(μ, σ, num_samples)
     noise = randn(Float32, size(μ)..., num_samples) |> gpu
-    return μ .+ sqrt.(σ²) .* noise
+    return μ .+ σ .* noise
 end
 
 
@@ -250,16 +250,16 @@ end
         dim_embedding::Integer,
         num_encoder_layers::Integer,
         num_decoder_layers::Integer,
-        σ²::Float32=1f-3,
-        learn_σ²::Bool=true
+        σ::Float32=1f-2,
+        learn_σ::Bool=true
     )
 
 # Arguments
 - `dim_embedding::Integer`: Dimensionality of the embedding.
 - `num_encoder_layers::Integer`: Number of layers in the encoder.
 - `num_decoder_layers::Integer`: Number of layers in the decoder.
-- `σ²::Float32=1f-3`: Initialisation of the observation noise variance.
-- `learn_σ²::Bool=true`: Learn the observation noise.
+- `σ::Float32=1f-2`: Initialisation of the observation noise.
+- `learn_σ::Bool=true`: Learn the observation noise.
 
 # Returns
 - `NP`: Corresponding model.
@@ -268,8 +268,8 @@ function np_1d(;
     dim_embedding::Integer,
     num_encoder_layers::Integer,
     num_decoder_layers::Integer,
-    σ²::Float32=1f-3,
-    learn_σ²::Bool=true
+    σ::Float32=1f-2,
+    learn_σ::Bool=true
 )
     dim_x = 1
     dim_y = 1
@@ -308,7 +308,7 @@ function np_1d(;
             dim_out   =dim_y,
             num_layers=num_decoder_layers,
         ),
-        learn_σ² ? param([log(σ²)]) : [log(σ²)]
+        learn_σ ? param([log(σ)]) : [log(σ)]
     )
 end
 
@@ -352,16 +352,16 @@ function loglik(
         # Sample latent variable and perform decoding.
         z = _sample(qz..., num_samples)
         μ = decode(model, xz, z, r, xt)
-        σ² = exp.(model.log_σ²)
+        σ = exp.(model.log_σ)
 
         # Do an importance weighted estimate.
-        logpdfs = _logpdf(z, pz...) .- _logpdf(z, qz...) .+ _logpdf(yt, μ, σ²)
+        logpdfs = _logpdf(z, pz...) .- _logpdf(z, qz...) .+ _logpdf(yt, μ, σ)
     else
         # Sample from the prior.
-        μ, σ² = model(xc, yc, xt, num_samples)
+        μ, σ = model(xc, yc, xt, num_samples)
 
         # Do a regular Monte Carlo estimate.
-        logpdfs = _logpdf(yt, μ, σ²)
+        logpdfs = _logpdf(yt, μ, σ)
     end
 
     # Log-mean-exp over samples.
@@ -402,10 +402,10 @@ function elbo(model::AbstractNP, epoch::Integer, xc, yc, xt, yt; num_samples::In
     # Sample latent variable and perform decoding.
     z = _sample(qz..., num_samples)
     μ = decode(model, xz, z, r, xt)
-    σ² = exp.(model.log_σ²)
+    σ = exp.(model.log_σ)
 
     # Compute the components of the ELBO.
-    exps = sum(gaussian_logpdf(yt, μ, σ²), dims=(1, 2))
+    exps = sum(gaussian_logpdf(yt, μ, σ), dims=(1, 2))
     kls = sum(kl(qz..., pz...), dims=(1, 2))
 
     # Estimate ELBO from samples.
@@ -444,7 +444,7 @@ function predict(
     xt::AbstractVector;
     num_samples::Integer=10
 )
-    μ, σ² = untrack(model)(expand_gpu.((xc, yc, xt))..., num_samples)
+    μ, σ = untrack(model)(expand_gpu.((xc, yc, xt))..., num_samples)
     samples = μ[:, 1, 1, :] |> cpu
     return nothing, nothing, nothing, samples
 end
