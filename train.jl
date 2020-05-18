@@ -48,7 +48,7 @@ if args["data"] == "eq-small"
     receptive_field = 1f0
     points_per_unit = 32f0
     num_context = DiscreteUniform(0, 50)
-    num_target = DiscreteUniform(3, 50)
+    num_target = DiscreteUniform(50, 50)
     if args["model"] == "convcnp"
         num_channels = 16
     elseif args["model"] in ["convnp", "anp", "np"]
@@ -63,7 +63,7 @@ elseif args["data"] == "eq"
     receptive_field = 2f0
     points_per_unit = 64f0
     num_context = DiscreteUniform(0, 50)
-    num_target = DiscreteUniform(3, 50)
+    num_target = DiscreteUniform(50, 50)
     if args["model"] == "convcnp"
         num_channels = 64
     elseif args["model"] in ["convnp", "anp", "np"]
@@ -78,7 +78,7 @@ elseif args["data"] == "matern52"
     receptive_field = 2f0
     points_per_unit = 64f0
     num_context = DiscreteUniform(0, 50)
-    num_target = DiscreteUniform(3, 50)
+    num_target = DiscreteUniform(50, 50)
     if args["model"] == "convcnp"
         num_channels = 64
     elseif args["model"] in ["convnp", "anp", "np"]
@@ -96,7 +96,7 @@ elseif args["data"] == "noisy-mixture"
     receptive_field = 4f0
     points_per_unit = 64f0
     num_context = DiscreteUniform(0, 50)
-    num_target = DiscreteUniform(3, 50)
+    num_target = DiscreteUniform(50, 50)
     if args["model"] == "convcnp"
         num_channels = 64
     elseif args["model"] in ["convnp", "anp", "np"]
@@ -111,7 +111,7 @@ elseif args["data"] == "weakly-periodic"
     receptive_field = 4f0
     points_per_unit = 64f0
     num_context = DiscreteUniform(0, 50)
-    num_target = DiscreteUniform(3, 50)
+    num_target = DiscreteUniform(50, 50)
     if args["model"] == "convcnp"
         num_channels = 64
     elseif args["model"] in ["convnp", "anp", "np"]
@@ -126,7 +126,7 @@ elseif args["data"] == "sawtooth"
     receptive_field = 16f0
     points_per_unit = 64f0
     num_context = DiscreteUniform(0, 100)
-    num_target = DiscreteUniform(3, 100)
+    num_target = DiscreteUniform(100, 100)
     if args["model"] == "convcnp"
         num_channels = 32
     elseif args["model"] in ["convnp", "anp", "np"]
@@ -151,7 +151,7 @@ mkpath("output/" * args["model"] * "/" * args["loss"] * "/" * args["data"])
 # Construct data generator.
 data_gen = DataGenerator(
     process;
-    batch_size=8,
+    batch_size=16,
     x=Uniform(-2, 2),
     num_context=num_context,
     num_target=num_target
@@ -216,7 +216,7 @@ else
                 num_latent_channels=2,
                 points_per_unit=points_per_unit,
                 margin=1f0,
-                σ=1f-2,
+                σ=5f-2,
                 learn_σ=false
             ) |> gpu
         elseif args["model"] == "anp"
@@ -225,7 +225,7 @@ else
                 num_encoder_heads=8,
                 num_encoder_layers=3,
                 num_decoder_layers=3,
-                σ=1f-2,
+                σ=5f-2,
                 learn_σ=false
             ) |> gpu
         elseif args["model"] == "np"
@@ -233,7 +233,7 @@ else
                 dim_embedding=dim_embedding,
                 num_encoder_layers=3,
                 num_decoder_layers=3,
-                σ=1f-2,
+                σ=5f-2,
                 learn_σ=false
             ) |> gpu
         else
