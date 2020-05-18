@@ -193,7 +193,8 @@ end
 
 function _sample(μ, σ², num_samples)
     noise = randn(Float32, size(μ)..., num_samples) |> gpu
-    return μ .+ sqrt.(σ²) .* noise
+    # Add a small ridge to prevent NaNs when the variance is near zero.
+    return μ .+ sqrt.(σ² .+ 1f-8) .* noise
 end
 
 
