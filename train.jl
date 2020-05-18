@@ -5,6 +5,7 @@ Pkg.resolve()
 Pkg.instantiate()
 
 using ArgParse
+using PyPlot
 using BSON
 using ConvCNPs
 using ConvCNPs.Experiment
@@ -66,14 +67,12 @@ elseif args["data"] == "eq"
     process = GP(stretch(eq(), 1 / 0.25), GPC())
     receptive_field = 2f0
     points_per_unit = 64f0
+    num_context = DiscreteUniform(0, 50)
+    num_target = DiscreteUniform(3, 50)
     if args["model"] == "convcnp"
-        num_context = DiscreteUniform(3, 50)
-        num_target = DiscreteUniform(3, 50)
         batch_size = 16
         num_channels = 64
     elseif args["model"] in ["convnp", "anp", "np"]
-        num_context = DiscreteUniform(0, 50)
-        num_target = DiscreteUniform(3, 50)
         batch_size = 16
         num_encoder_channels = 32
         num_decoder_channels = 16
@@ -85,14 +84,12 @@ elseif args["data"] == "matern52"
     process = GP(stretch(matern52(), 1 / 0.25), GPC())
     receptive_field = 2f0
     points_per_unit = 64f0
+    num_context = DiscreteUniform(0, 50)
+    num_target = DiscreteUniform(3, 50)
     if args["model"] == "convcnp"
-        num_context = DiscreteUniform(3, 50)
-        num_target = DiscreteUniform(3, 50)
         batch_size = 16
         num_channels = 64
     elseif args["model"] in ["convnp", "anp", "np"]
-        num_context = DiscreteUniform(0, 50)
-        num_target = DiscreteUniform(3, 50)
         batch_size = 16
         num_encoder_channels = 32
         num_decoder_channels = 16
@@ -107,14 +104,12 @@ elseif args["data"] == "noisy-mixture"
     )
     receptive_field = 4f0
     points_per_unit = 64f0
+    num_context = DiscreteUniform(0, 50)
+    num_target = DiscreteUniform(3, 50)
     if args["model"] == "convcnp"
-        num_context = DiscreteUniform(3, 50)
-        num_target = DiscreteUniform(3, 50)
         batch_size = 16
         num_channels = 64
     elseif args["model"] in ["convnp", "anp", "np"]
-        num_context = DiscreteUniform(0, 50)
-        num_target = DiscreteUniform(3, 50)
         batch_size = 16
         num_encoder_channels = 32
         num_decoder_channels = 16
@@ -126,14 +121,12 @@ elseif args["data"] == "weakly-periodic"
     process = GP(stretch(eq(), 1 / 0.5) * stretch(Stheno.PerEQ(), 1 / 0.25), GPC())
     receptive_field = 4f0
     points_per_unit = 64f0
+    num_context = DiscreteUniform(0, 50)
+    num_target = DiscreteUniform(3, 50)
     if args["model"] == "convcnp"
-        num_context = DiscreteUniform(3, 50)
-        num_target = DiscreteUniform(3, 50)
         batch_size = 16
         num_channels = 64
     elseif args["model"] in ["convnp", "anp", "np"]
-        num_context = DiscreteUniform(0, 50)
-        num_target = DiscreteUniform(3, 50)
         batch_size = 16
         num_encoder_channels = 32
         num_decoder_channels = 16
@@ -145,14 +138,12 @@ elseif args["data"] == "sawtooth"
     process = Sawtooth()
     receptive_field = 16f0
     points_per_unit = 64f0
+    num_context = DiscreteUniform(0, 100)
+    num_target = DiscreteUniform(3, 100)
     if args["model"] == "convcnp"
-        num_context = DiscreteUniform(3, 100)
-        num_target = DiscreteUniform(3, 100)
         batch_size = 16
         num_channels = 32
     elseif args["model"] in ["convnp", "anp", "np"]
-        num_context = DiscreteUniform(0, 100)
-        num_target = DiscreteUniform(3, 100)
         batch_size = 16
         num_encoder_channels = 16
         num_decoder_channels = 8
@@ -275,7 +266,5 @@ else
         bson=bson,
         starting_epoch=args["starting-epoch"],
         epochs=args["epochs"],
-        tasks_per_epoch=2^14,
-        path=path
     )
 end
