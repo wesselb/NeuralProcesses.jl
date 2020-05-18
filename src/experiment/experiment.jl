@@ -48,7 +48,7 @@ function eval_model(model, loss, data_gen, epoch; num_batches=256)
     return loss_value, loss_error
 end
 
-_nanreport = Flux.throttle(() -> println("Encountered NaN loss! Returning zero."))
+_nanreport = Flux.throttle(() -> println("Encountered NaN loss! Returning zero."), 1)
 
 function nansafe(loss, report, xs...)
     value = loss(xs...)
