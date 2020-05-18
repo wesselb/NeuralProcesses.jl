@@ -64,7 +64,7 @@
             bson=nothing,
             starting_epoch=1,
             epochs=2,
-            batches_per_epoch=128,
+            tasks_per_epoch=200,
             path=nothing
         )
     end

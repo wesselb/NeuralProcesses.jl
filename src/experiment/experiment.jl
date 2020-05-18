@@ -19,25 +19,41 @@ pyplot()
 
 function eval_model(model, loss, data_gen, epoch; num_batches=256)
     model = ConvCNPs.untrack(model)
-    values = map(
-        x -> loss(model, epoch, gpu.(x)...),
+    values, target_sizes = map(
+        x -> (loss(model, epoch, gpu.(x)...), size(x[3], 1)),
         data_gen(num_batches)
     )
+
+    # Compute and print loss.
     loss_value = mean(values)
     loss_error = 2std(values) / sqrt(length(values))
-    @printf(
-        "Loss: %.3f +- %.3f (%d batches)\n",
-        loss_value,
-        loss_error,
+    @printf("Loss: %8.3f +- %7.3f (%d batches)\n", loss_value, loss_error, num_batches)
+
+    # Normalise by average size of target set.
+    normalised_values = values ./ mean(target_sizes)
+    @printf("Loss: %8.3f +- %7.3f (%d batches; normalised)\n",
+        mean(normalised_values),
+        2std(normalised_values) / sqrt(length(values)),
         num_batches
     )
+
+    # Normalise by the target set size.
+    global_normalised_values = values ./ target_sizes
+    @printf("Loss: %8.3f +- %7.3f (%d batches; global mean)\n",
+        mean(global_normalised_values),
+        2std(global_normalised_values) / sqrt(length(values)),
+        num_batches
+    )
+
     return loss_value, loss_error
 end
 
-function nansafe(loss, xs...)
+_nanreport = Flux.throttle(() -> println("Encountered NaN loss! Returning zero."))
+
+function nansafe(loss, report, xs...)
     value = loss(xs...)
     if isnan(value)
-        println("Encountered NaN loss! Returning zero.")
+        _nanreport()
         return Tracker.track(identity, 0f0)
     else
         return value
@@ -52,10 +68,20 @@ function train!(
     bson=nothing,
     starting_epoch=1,
     epochs=100,
-    batches_per_epoch=2048,
+    tasks_per_epoch=1000,
     path="output"
 )
     GPUArrays.allowscalar(false)
+
+    # Divide out batch size to get the number of batches per epoch.
+    batches_per_epoch = div(tasks_per_epoch, data_gen.batch_size)
+
+    # Display the settings of the training run.
+    @printf("Epochs:            %4d\n", epochs)
+    @printf("Starting epoch:    %4d\n", starting_epoch)
+    @printf("Tasks per epoch:   %4d\n", batches_per_epoch * data_gen.batch_size)
+    @printf("Batch size:        %4d\n", data_gen.batch_size)
+    @printf("Batches per epoch: %4d\n", batches_per_epoch)
 
     # Evaluate once before training.
     eval_model(model, loss, data_gen, 1)

@@ -272,9 +272,8 @@ else
         model,
         loss,
         data_gen,
-        ADAM(5e-4),
+        ADAM(1e-4),
         bson=bson,
-        batches_per_epoch=1024,
         starting_epoch=args["starting-epoch"],
         epochs=args["epochs"],
         path=path
