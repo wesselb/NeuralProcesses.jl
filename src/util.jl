@@ -348,7 +348,8 @@ function split_μ_σ²(channels)
     # determine the variance.
     i_split = div(size(channels, 2), 2)
     μ = channels[:, 1:i_split, :]
-    σ² = NNlib.softplus.(channels[:, i_split + 1:end, :])
+    # Add a small ridge to prevent `sqrt` from NaNing out.
+    σ² = NNlib.softplus.(channels[:, i_split + 1:end, :]) .+ 1f-8
     return μ, σ²
 end
 
