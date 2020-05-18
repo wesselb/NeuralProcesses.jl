@@ -207,10 +207,6 @@ else
     error("Unknown model \"" * args["model"] * "\".")
 end
 
-function report_num_params(model)
-    println("Number of parameters: ", sum(map(length, Flux.params(model))))
-end
-
 if args["evaluate"]
     # Use the best models for evaluation.
     for checkpoint in load_checkpoints(bson).top
