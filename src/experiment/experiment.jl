@@ -25,30 +25,27 @@ function eval_model(model, loss, data_gen, epoch; num_batches=256)
     )
 
     # Compute and print loss.
-    loss_value = mean(values)
-    loss_error = 2std(values) / sqrt(length(values))
+    loss_value, loss_error = _mean_error(values)
     @printf("Loss: %8.3f +- %7.3f (%d batches)\n", loss_value, loss_error, num_batches)
 
     # Normalise by average size of target set.
-    normalised_values = values ./ mean(target_sizes)
     @printf(
         "Loss: %8.3f +- %7.3f (%d batches; normalised)\n",
-        mean(normalised_values),
-        2std(normalised_values) / sqrt(length(values)),
+        _mean_error(values ./ mean(target_sizes))...,
         num_batches
     )
 
     # Normalise by the target set size.
-    global_normalised_values = values ./ target_sizes
     @printf(
         "Loss: %8.3f +- %7.3f (%d batches; global mean)\n",
-        mean(global_normalised_values),
-        2std(global_normalised_values) / sqrt(length(values)),
+        _mean_error(values ./ target_sizes)...,
         num_batches
     )
 
     return loss_value, loss_error
 end
+
+_mean_error(xs) = (mean(xs), 2std(xs) / sqrt(length(xs)))
 
 _nanreport = Flux.throttle(() -> println("Encountered NaN loss! Returning zero."), 1)
 
