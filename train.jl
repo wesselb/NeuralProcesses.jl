@@ -229,7 +229,7 @@ else
                 points_per_unit=points_per_unit,
                 margin=1f0,
                 σ=1f-2,
-                learn_σ=true
+                learn_σ=false
             ) |> gpu
         elseif args["model"] == "anp"
             model = anp_1d(
@@ -238,7 +238,7 @@ else
                 num_encoder_layers=3,
                 num_decoder_layers=3,
                 σ=1f-2,
-                learn_σ=true
+                learn_σ=false
             ) |> gpu
         elseif args["model"] == "np"
             model = np_1d(
@@ -246,7 +246,7 @@ else
                 num_encoder_layers=3,
                 num_decoder_layers=3,
                 σ=1f-2,
-                learn_σ=true
+                learn_σ=false
             ) |> gpu
         else
             error("Unknown model \"" * args["model"] * "\".")
