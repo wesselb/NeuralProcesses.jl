@@ -5,7 +5,6 @@ Pkg.resolve()
 Pkg.instantiate()
 
 using ArgParse
-using PyPlot
 using BSON
 using ConvCNPs
 using ConvCNPs.Experiment
@@ -263,6 +262,8 @@ else
         ADAM(1e-4),
         bson=bson,
         starting_epoch=args["starting-epoch"],
+        tasks_per_epoch=2^14,
         epochs=args["epochs"],
+        path=path
     )
 end
