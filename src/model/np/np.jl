@@ -103,7 +103,6 @@ Construct a latent encoding for the empty set.
 """
 empty_lat_encoding(model::NP, xz) = split_μ_σ(empty_encoding(model.encoder_lat, xz))
 
-
 """
     encode(model::AbstractNP, xc, yc, xz)
 

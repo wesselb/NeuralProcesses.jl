@@ -19,10 +19,12 @@ pyplot()
 
 function eval_model(model, loss, data_gen, epoch; num_batches=256)
     model = ConvCNPs.untrack(model)
-    values, target_sizes = map(
+    tuples = map(
         x -> (loss(model, epoch, gpu.(x)...), size(x[3], 1)),
         data_gen(num_batches)
     )
+    values = map(x -> x[1], tuples)
+    target_sizes = map(x -> x[2], tuples)
 
     # Compute and print loss.
     loss_value, loss_error = _mean_error(values)
