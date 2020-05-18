@@ -195,9 +195,9 @@ if args["model"] == "convcnp"
     end
 elseif args["model"] in ["convnp", "anp", "np"]
     if args["loss"] == "loglik"
-        loss(xs...) = ConvCNPs.loglik(xs..., num_samples=10, importance_weighted=false)
+        loss(xs...) = ConvCNPs.loglik(xs..., num_samples=20, importance_weighted=false)
     elseif args["loss"] == "loglik-iw"
-        loss(xs...) = ConvCNPs.loglik(xs..., num_samples=10, importance_weighted=true)
+        loss(xs...) = ConvCNPs.loglik(xs..., num_samples=20, importance_weighted=true)
     elseif args["loss"] == "elbo"
         loss(xs...) = ConvCNPs.elbo(xs..., num_samples=5)
     else
