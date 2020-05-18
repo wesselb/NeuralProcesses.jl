@@ -56,6 +56,7 @@
 
     for (model, loss) in model_losses
         # Test model training for a few epochs.
+        report_num_params(model)
         train!(
             model,
             loss,

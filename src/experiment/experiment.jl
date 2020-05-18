@@ -1,6 +1,6 @@
 module Experiment
 
-export predict, loss, eval_model, train!, plot_task
+export predict, loss, eval_model, train!, report_num_params, plot_task
 
 using ..ConvCNPs
 
@@ -31,7 +31,8 @@ function eval_model(model, loss, data_gen, epoch; num_batches=256)
 
     # Normalise by average size of target set.
     normalised_values = values ./ mean(target_sizes)
-    @printf("Loss: %8.3f +- %7.3f (%d batches; normalised)\n",
+    @printf(
+        "Loss: %8.3f +- %7.3f (%d batches; normalised)\n",
         mean(normalised_values),
         2std(normalised_values) / sqrt(length(values)),
         num_batches
@@ -39,7 +40,8 @@ function eval_model(model, loss, data_gen, epoch; num_batches=256)
 
     # Normalise by the target set size.
     global_normalised_values = values ./ target_sizes
-    @printf("Loss: %8.3f +- %7.3f (%d batches; global mean)\n",
+    @printf(
+        "Loss: %8.3f +- %7.3f (%d batches; global mean)\n",
         mean(global_normalised_values),
         2std(global_normalised_values) / sqrt(length(values)),
         num_batches
@@ -77,11 +79,11 @@ function train!(
     batches_per_epoch = div(tasks_per_epoch, data_gen.batch_size)
 
     # Display the settings of the training run.
-    @printf("Epochs:            %4d\n", epochs)
-    @printf("Starting epoch:    %4d\n", starting_epoch)
-    @printf("Tasks per epoch:   %4d\n", batches_per_epoch * data_gen.batch_size)
-    @printf("Batch size:        %4d\n", data_gen.batch_size)
-    @printf("Batches per epoch: %4d\n", batches_per_epoch)
+    @printf("Epochs:               %6d\n", epochs)
+    @printf("Starting epoch:       %6d\n", starting_epoch)
+    @printf("Tasks per epoch:      %6d\n", batches_per_epoch * data_gen.batch_size)
+    @printf("Batch size:           %6d\n", data_gen.batch_size)
+    @printf("Batches per epoch:    %6d\n", batches_per_epoch)
 
     # Evaluate once before training.
     eval_model(model, loss, data_gen, 1)
@@ -104,6 +106,10 @@ function train!(
             checkpoint!(bson, model, epoch, loss_value, loss_error)
         end
     end
+end
+
+function report_num_params(model)
+    @printf("Number of parameters: %6d\n", sum(map(length, Flux.params(model))))
 end
 
 function plot_task(
