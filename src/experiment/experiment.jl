@@ -50,7 +50,7 @@ end
 
 _nanreport = Flux.throttle(() -> println("Encountered NaN loss! Returning zero."), 1)
 
-function nansafe(loss, report, xs...)
+function nansafe(loss, xs...)
     value = loss(xs...)
     if isnan(value)
         _nanreport()
