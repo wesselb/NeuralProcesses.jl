@@ -213,20 +213,16 @@ if args["evaluate"]
         (
             "interpolation beyond training range",
             build_data_gen(Uniform(-4, 4), UniformUnion(Uniform(-4, -2), Uniform(2, 4)))
-        )
+        ),
         (
             "extrapolation beyond training range",
             build_data_gen(Uniform(-2, 2), UniformUnion(Uniform(-4, -2), Uniform(2, 4)))
         )
     ]
         println("Evaluation task: $name")
-
-        # Use the best models for evaluation.
-        for checkpoint in load_checkpoints(bson).top
-            model = checkpoint.model |> gpu
-            report_num_params(model)
-            eval_model(model, loss, data_gen, 100, num_batches=10000)
-        end
+        model = best_model(bson) |> gpu  # Use the best model for evaluation.
+        report_num_params(model)
+        eval_model(model, loss, data_gen, 100, num_batches=10000)
     end
 else
     # Construct data generator for training.
