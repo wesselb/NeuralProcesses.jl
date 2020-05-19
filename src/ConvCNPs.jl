@@ -7,6 +7,7 @@ using NNlib
 using Printf
 using Random
 using Statistics
+using StatsBase
 
 if Flux.has_cuarrays()
     include("gpu.jl")

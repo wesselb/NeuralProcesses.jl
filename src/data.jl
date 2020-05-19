@@ -1,4 +1,4 @@
-export DataGenerator, Sawtooth, BayesianConvNP, Mixture
+export DataGenerator, UniformUnion, Sawtooth, BayesianConvNP, Mixture
 
 """
     DataGenerator
@@ -8,7 +8,8 @@ export DataGenerator, Sawtooth, BayesianConvNP, Mixture
     back a distribution that can be fed to `randn` to sample values corresponding to those
     inputs `x` at observation noise `noise`.
 - `batch_size::Integer=16`: Number of tasks in a batch.
-- `x::Distribution=Uniform(-2, 2)`: Distribution to sample inputs from.
+- `x_context::Distribution=Uniform(-2, 2)`: Distribution to sample context inputs from.
+- `x_target::Distribution=Uniform(-2, 2)`: Distribution to sample target inputs from.
 - `num_context::Distribution=DiscreteUniform(10, 10)`: Distribution of number of context
     points in a task.
 - `num_target::Distribution=DiscreteUniform(100, 100)`: Distribution of number of target
@@ -17,26 +18,62 @@ export DataGenerator, Sawtooth, BayesianConvNP, Mixture
 struct DataGenerator
     process
     batch_size::Integer
-    x::Distribution
+    x_context::Distribution
+    x_target::Distribution
     num_context::Distribution
     num_target::Distribution
 
     function DataGenerator(
         process;
         batch_size::Integer=16,
-        x::Distribution=Uniform(-2, 2),
+        x_context::Distribution=Uniform(-2, 2),
+        x_target::Distribution=Uniform(-2, 2),
         num_context::Distribution=DiscreteUniform(10, 10),
         num_target::Distribution=DiscreteUniform(100, 100)
     )
         return new(
             process,
             batch_size,
-            x,
+            x_context,
+            x_target,
             num_context,
             num_target
         )
     end
 end
+
+"""
+    struct UniformUnion{T<:Real} <: ContinuousUnivariateDistribution
+
+A union of various `Uniform`s.
+
+# Fields
+- `uniforms::Vector{Uniform{T}}`: Underlying `Uniforms`s.
+- `probs::ProbabilityWeights`: Probabilities associated to every `Uniform`.
+"""
+struct UniformUnion{T<:Real} <: ContinuousUnivariateDistribution
+    uniforms::Vector{Uniform{T}}
+    probs::ProbabilityWeights
+end
+
+"""
+    UniformUnion(uniforms::Uniform...)
+
+Construct a `UnionUniform` and weight the uniforms according to the size of their domain.
+
+# Arguments
+- `uniforms::Uniform...`: Underlying `Uniform`s.
+
+# Returns
+- `UniformUnion`: Associated `UniformUnion`.
+"""
+function UniformUnion(uniforms::Uniform...)
+    lengths = [maximum(d) - minimum(d) for d in uniforms]
+    return UniformUnion(collect(uniforms), pweights([x / sum(lengths) for x in lengths]))
+end
+
+Base.rand(u::UniformUnion) = rand(sample(u.uniforms, u.probs))
+Base.rand(u::UniformUnion, n::Int64) = [rand(u) for _ = 1:n]
 
 """
     (generator::DataGenerator)(num_batches::Integer)
@@ -62,8 +99,8 @@ function _make_batch(generator::DataGenerator, num_context::Integer, num_target:
     tasks = []
     for i in 1:generator.batch_size
         # Determine context and target set.
-        xc = rand(generator.x, num_context)
-        xt = rand(generator.x, num_target)
+        xc = rand(generator.x_context, num_context)
+        xt = rand(generator.x_target, num_target)
 
         # Concatenate inputs and sample.
         x = vcat(xc, xt)

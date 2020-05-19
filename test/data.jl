@@ -2,7 +2,8 @@ function test_generator(process)
     gen = DataGenerator(
         process,
         batch_size=10,
-        x=Uniform(-1, 3),
+        x_context=Uniform(-1, 3),
+        x_target=Uniform(5, 10),
         num_context=DiscreteUniform(0, 5),
         num_target=DiscreteUniform(8, 8)
     )
@@ -25,12 +26,16 @@ function test_generator(process)
     @test all([size(batch[4], 1) == 8 for batch in epoch])
 
     for batch in epoch
-        # Check `x`.
-        for x in [batch[1], batch[3]]
-            if !isempty(x)
-                @test minimum(x) >= -1
-                @test maximum(x) <= 3
-            end
+        # Check `x_context`.
+        if !isempty(batch[1])
+            @test minimum(batch[1]) >= -1
+            @test maximum(batch[1]) <= 3
+        end
+
+        # Check `x_target`.
+        if !isempty(batch[3])
+            @test minimum(batch[3]) >= 5
+            @test maximum(batch[3]) <= 10
         end
 
         # Check `batch_size`.
@@ -45,6 +50,15 @@ function test_generator(process)
 end
 
 @testset "data.jl" begin
+    @testset "UniformUnion" begin
+        n = 10000
+        dist = UniformUnion(Uniform(1, 2), Uniform(3, 5))
+        x = rand(dist, n)
+
+        # Check that the probabilities are calculated correctly.
+        @test sum(x .<= 2) ≈ n / 3 rtol=5e-2
+        @test sum(x .>= 3) ≈ 2n / 3 rtol=5e-2
+    end
     @testset "Generate from sawtooth" begin
         test_generator(Sawtooth())
     end
@@ -52,6 +66,6 @@ end
         test_generator(BayesianConvNP())
     end
     @testset "Generate from a mixture" begin
-        test_generator(Mixture(Sawtooth(), BayesianConvNP()))
+        test_generator(Mixture(Sawtooth()))
     end
 end

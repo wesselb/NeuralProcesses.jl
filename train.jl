@@ -166,15 +166,6 @@ path = "output/" * args["model"] * "/" * args["loss"] * "/" * args["data"]
 mkpath("models/" * args["model"] * "/" * args["loss"] * "/" * args["data"])
 mkpath("output/" * args["model"] * "/" * args["loss"] * "/" * args["data"])
 
-# Construct data generator.
-data_gen = DataGenerator(
-    process,
-    batch_size=16,
-    x=Uniform(-2, 2),
-    num_context=num_context,
-    num_target=num_target
-)
-
 # Set the loss.
 if args["model"] == "convcnp"
     if args["loss"] == "loglik"
@@ -201,14 +192,46 @@ else
     error("Unknown model \"" * args["model"] * "\".")
 end
 
+function build_data_gen(x_context, x_target)
+    return DataGenerator(
+        process,
+        batch_size=16,
+        x_context=x_context,
+        x_target=x_target,
+        num_context=num_context,
+        num_target=num_target
+    )
+end
+
 if args["evaluate"]
-    # Use the best models for evaluation.
-    for checkpoint in load_checkpoints(bson).top
-        model = checkpoint.model |> gpu
-        report_num_params(model)
-        eval_model(model, loss, data_gen, 100, num_batches=10000)
+    # Loop over various data generators for various tasks.
+    for (name, data_gen) in [
+        (
+            "interpolation on training range",
+            build_data_gen(Uniform(-2, 2), Uniform(-2, 2))
+        ),
+        (
+            "interpolation beyond training range",
+            build_data_gen(Uniform(-4, 4), UniformUnion(Uniform(-4, -2), Uniform(2, 4)))
+        )
+        (
+            "extrapolation beyond training range",
+            build_data_gen(Uniform(-2, 2), UniformUnion(Uniform(-4, -2), Uniform(2, 4)))
+        )
+    ]
+        println("Evaluation task: $name")
+
+        # Use the best models for evaluation.
+        for checkpoint in load_checkpoints(bson).top
+            model = checkpoint.model |> gpu
+            report_num_params(model)
+            eval_model(model, loss, data_gen, 100, num_batches=10000)
+        end
     end
 else
+    # Construct data generator for training.
+    data_gen = build_data_gen(Uniform(-2, 2), Uniform(-2, 2))
+
     if args["starting-epoch"] > 1
         # Continue training from most recent model.
         model = recent_model(bson) |> gpu
