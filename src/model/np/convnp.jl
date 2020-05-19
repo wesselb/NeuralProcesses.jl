@@ -33,8 +33,7 @@ encode_det(model::ConvNP, xc, yc, xz) = nothing
 empty_det_encoding(model::ConvNP, xz) = nothing
 
 function decode(model::ConvNP, xz, z, r::Nothing, xt)
-    num_batches = size(z, 3)
-    num_samples = size(z, 4)
+    _, _, num_batches, num_samples = size(z)
 
     # Merge samples into batches.
     z = reshape(z, size(z)[1:2]..., num_batches * num_samples)
@@ -55,6 +54,9 @@ function decode(model::ConvNP, xz, z, r::Nothing, xt)
 
     return channels
 end
+
+decode(model::ConvNP, xz, z::Tuple, r::Nothing, xt) =
+    decode(model, xz, repeat_cat(z..., dims=2), r, xt)
 
 _repeat_samples(x, num_samples) = reshape(
     repeat(x, ntuple(_ -> 1, ndims(x))..., num_samples),
@@ -144,7 +146,7 @@ function convnp_1d(;
         set_conv(2num_latent_channels, scale),
         # Insert the global variable by performing a mean pooling of half the latent
         # channels here.
-        x -> split_μ_σ(global_variable ? _split_mean_pool(x) : x)
+        global_variable ? x -> split_μ_σ.(_split_mean_pool(x)) : split_μ_σ
     )
 
     # Put model together.
@@ -163,15 +165,7 @@ function convnp_1d(;
 end
 
 function _split_mean_pool(x)
-    # Split tensor in half.
-    i_split = div(size(x, 2), 2)
-    pool = x[:, 1:i_split, :]
-    others = x[:, i_split + 1:end, :]
-
-    # Perform mean pooling.
-    n = size(x, 1)
-    pool = repeat_gpu(mean(pool, dims=1), n, 1, 1)
-
-    # Put back together and return.
-    return cat(pool, others, dims=2)
+    # Perform mean pooling on the first half of the channels.
+    x₁, x₂ = split(x, 2)
+    return mean(x₁, dims=1), x₂
 end

@@ -55,12 +55,10 @@ end
 
 function _normalise_by_first_channel(channels)
     channel_dim = ndims(channels) - 1  # Channel dimension is second to last.
-    normaliser = _slice_at(channels, channel_dim, 1:1)
-    others = _slice_at(channels, channel_dim, 2:size(channels, channel_dim))
+    normaliser = slice_at(channels, channel_dim, 1:1)
+    others = slice_at(channels, channel_dim, 2:size(channels, channel_dim))
     return cat(normaliser, others ./ (normaliser .+ 1f-8), dims=channel_dim)
 end
-
-_slice_at(x, i, slice) = getindex(x, ntuple(j -> i == j ? slice : Colon(), ndims(x))...)
 
 """
     encode(layer::SetConv, xc, yc, xz)
@@ -148,7 +146,7 @@ end
 - `AbstractArray`: Output of shape `(k, k, channels + 2, batch)`.
 """
 function empty_encoding_pd(layer::SetConv, xz)
-    return _prepend_identity_channel(gpu(zeros(  # Also prepend identity channel
+    return _prepend_identity_channel(gpu(zeros(  # Also prepend identity channel.
         eltype(xz),
         size(xz, 1),              # Size of encoding
         size(xz, 1),              # Again size of encoding: encoding is square

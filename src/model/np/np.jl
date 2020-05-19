@@ -146,22 +146,7 @@ Perform decoding.
 # Returns
 - `Tuple{AbstractArray, AbstractArray}`: Tuple containing means and standard deviations.
 """
-function decode(model::NP, xz, z, r, xt)
-    n_target = size(xt, 1)
-    num_samples = size(z, 4)
-
-    # Global variables needed to be repeated `n_target` times.
-    n_r = size(r, 1) == 1 ? n_target : 1
-    n_z = size(z, 1) == 1 ? n_target : 1
-
-    # Repeat to be able to concatenate.
-    return model.decoder(cat(
-        repeat_gpu(r,  n_r, 1, 1, num_samples),
-        repeat_gpu(z,  n_z, 1, 1, 1          ),
-        repeat_gpu(xt, 1,   1, 1, num_samples),
-        dims=2
-    ))
-end
+decode(model::NP, xz, z, r, xt) = model.decoder(repeat_cat(z, r, xt, dims=2))
 
 """
     (model::AbstractNP)(xc, yc, xt, num_samples::Integer)
@@ -190,11 +175,13 @@ function (model::AbstractNP)(xc, yc, xt, num_samples::Integer)
     return channels, exp.(model.log_σ)
 end
 
-function _sample(μ, σ, num_samples)
-    noise = randn(Float32, size(μ)..., num_samples) |> gpu
-    return μ .+ σ .* noise
+function _sample(μ::AbstractArray, σ::AbstractArray, num_samples::Integer)
+    ε = randn(Float32, size(μ)..., num_samples) |> gpu
+    return μ .+ σ .* ε
 end
 
+_sample(d₁::Tuple, d₂::Tuple, num_samples::Integer) =
+    (_sample(d₁..., num_samples), _sample(d₂..., num_samples))
 
 """
     struct NPEncoder
@@ -312,7 +299,16 @@ function np_1d(;
 end
 
 """
-    loglik(model::AbstractNP, epoch::Integer, xc, yc, xt, yt; num_samples::Integer)
+    loglik(
+        model::AbstractNP,
+        epoch::Integer,
+        xc,
+        yc,
+        xt,
+        yt;
+        num_samples::Integer,
+        importance_weighted::Bool=true
+    )
 
 Log-expected-likelihood loss. This is a biased estimate of the log-likelihood.
 
@@ -350,18 +346,20 @@ function loglik(
 
         # Sample latent variable and perform decoding.
         z = _sample(qz..., num_samples)
-        μ = decode(model, xz, z, r, xt)
-        σ = exp.(model.log_σ)
+        μ, σ = decode(model, xz, z, r, xt), exp.(model.log_σ)
 
         # Do an importance weighted estimate.
-        logpdfs = _logpdf(z, pz...) .- _logpdf(z, qz...) .+ _logpdf(yt, μ, σ)
+        weights = _logpdf(z, pz...) .- _logpdf(z, qz...)
     else
         # Sample from the prior.
         μ, σ = model(xc, yc, xt, num_samples)
 
         # Do a regular Monte Carlo estimate.
-        logpdfs = _logpdf(yt, μ, σ)
+        weights = 0
     end
+
+    # Perform Monte Carlo estimate.
+    logpdfs = weights .+ _logpdf(yt, μ, σ)
 
     # Log-mean-exp over samples.
     logpdfs = logsumexp(logpdfs, dims=4) .- Float32(log(num_samples))
@@ -370,12 +368,14 @@ function loglik(
     return -mean(logpdfs)
 end
 
-_logpdf(xs...) = sum(gaussian_logpdf(xs...), dims=(1, 2))
+_logpdf(xs::AbstractArray...) = sum(gaussian_logpdf(xs...), dims=(1, 2))
+_logpdf(ys::Tuple, ds::Tuple...) =
+    reduce((x, y) -> x .+ y, [_logpdf(y, d...) for (y, d) in zip(ys, ds)])
 
 """
     elbo(model::AbstractNP, epoch::Integer, xc, yc, xt, yt, num_samples::Integer)
 
-Neural process ELBO-style loss.
+Neural process ELBO-style loss. Subsumes the context set into the target set.
 
 # Arguments
 - `model::AbstractNP`: Model.
@@ -404,12 +404,11 @@ function elbo(model::AbstractNP, epoch::Integer, xc, yc, xt, yt; num_samples::In
 
     # Sample latent variable and perform decoding.
     z = _sample(qz..., num_samples)
-    μ = decode(model, xz, z, r, x_all)
-    σ = exp.(model.log_σ)
+    μ, σ = decode(model, xz, z, r, x_all), exp.(model.log_σ)
 
     # Compute the components of the ELBO.
-    exps = sum(gaussian_logpdf(y_all, μ, σ), dims=(1, 2))
-    kls = sum(kl(qz..., pz...), dims=(1, 2))
+    exps = _sum(gaussian_logpdf(y_all, μ, σ))
+    kls = _sum(kl(qz..., pz...))
 
     # Estimate ELBO from samples.
     elbos = mean(exps, dims=4) .- kls
@@ -417,6 +416,9 @@ function elbo(model::AbstractNP, epoch::Integer, xc, yc, xt, yt; num_samples::In
     # Return average over batches.
     return -mean(elbos)
 end
+
+_sum(x::AbstractArray) = sum(x, dims=(1, 2))  # Sum over data points and channels.
+_sum(xs::Tuple) = reduce((x, y) -> x .+ y, _sum.(xs))
 
 """
     predict(

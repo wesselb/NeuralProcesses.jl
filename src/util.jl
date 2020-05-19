@@ -293,6 +293,31 @@ repeat_gpu(x::CuOrArray, reps...) = repeat(x, reps...)
     end
 end
 
+function repeat_cat(xs...; dims)
+    # Determine the maximum rank.
+    max_rank = maximum(ndims.(xs))
+
+    # Get the sizes of the inputs, extending to the maximum rank.
+    sizes = [(size(x)..., ntuple(_ -> 1, max_rank - ndims(x))...) for x in xs]
+
+    # Determine the maximum size of each dimension.
+    max_size = maximum.(zip(sizes...))
+
+    # Determine the repetitions for each input.
+    reps = [div.(max_size, s) for s in sizes]
+
+    # Do not repeat along the concatenation dimension.
+    for i in 1:length(reps)
+        reps[i][dims] = 1
+    end
+
+    # Repeat every element appropriately many times.
+    xs = [repeat_gpu(x, r...) for (x, r) in zip(xs, reps)]
+
+    # Return concatenation.
+    return cat(xs..., dims=dims)
+end
+
 """
     expand_gpu(x::AbstractVector)
 
@@ -325,12 +350,42 @@ function kl(μ₁, σ₁, μ₂, σ₂)
     # we roll out the computation like this.
     # TODO: What is going on?
     logdet = log.(σ₂ ./ σ₁)
-    logdet = 2 .* logdet
+    logdet = 2 .* logdet  # This cannot be combined with the `log`.
     z = μ₁ .- μ₂
-    σ₁², σ₂² = σ₁.^2, σ₂.^2
+    σ₁², σ₂² = σ₁.^2, σ₂.^2  # This must be separated from the calulation in `quad`.
     quad = (σ₁² .+ z .* z) ./ σ₂²
     sum = logdet .+ quad .- 1
     return sum ./ 2
+end
+
+"""
+    kl(p₁::Tuple, p₂::Tuple, q₁::Tuple, q₂::Tuple)
+
+Kullback--Leibler divergences between multiple one-dimensional Gaussian distributions.
+
+# Arguments
+- `p₁::Tuple`: Means and standard deviations corresponding to `p₁`.
+- `p₂::Tuple`: Means and standard deviations corresponding to `p₂`.
+- `q₁::Tuple`: Means and standard deviations corresponding to `q₁`.
+- `q₂::Tuple`: Means and standard deviations corresponding to `q₂`.
+
+# Returns
+- `Tuple{AbstractArray, AbstractArray}`: `KL(p₁, q₁)` and `KL(p₂, q₂)`.
+"""
+kl(p₁::Tuple, p₂::Tuple, q₁::Tuple, q₂::Tuple) = kl(p₁..., q₁...), kl(p₂..., q₂...)
+
+slice_at(x, i, slice) = getindex(x, ntuple(j -> i == j ? slice : Colon(), ndims(x))...)
+
+function split(x, dim)
+    mod(size(x, dim), 2) == 0 || error("Size of dimension $dim must be even.")
+    i = div(size(x, dim), 2)  # Determine index at which to split.
+    return slice_at(x, dim, 1:i), slice_at(x, dim, i + 1:size(x, dim))
+end
+
+function split(x)
+    mod(length(x), 2) == 0 || error("Length of input must be even")
+    i = div(length(x), 2)  # Determine index at which to split.
+    return x[1:i], x[i + 1:end]
 end
 
 """
@@ -345,13 +400,8 @@ Split a three-tensor into means and standard deviations on dimension two.
 - `Tuple{AbstractArray, AbstractArray}`: Tuple containing means and standard deviations.
 """
 function split_μ_σ(channels)
-    mod(size(channels, 2), 2) == 0 || error("Number of channels must be even.")
-    # Half of the channels are used to determine the mean, and the other half are used to
-    # determine the standard deviation.
-    i_split = div(size(channels, 2), 2)
-    μ = channels[:, 1:i_split, :]
-    σ = NNlib.softplus.(channels[:, i_split + 1:end, :])
-    return μ, σ
+    μ, transformed_σ = split(channels, 2)
+    return μ, NNlib.softplus.(transformed_σ)
 end
 
 """
