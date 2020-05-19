@@ -2,7 +2,8 @@
     data_gen = DataGenerator(
         Sawtooth(),
         batch_size=4,
-        x=Uniform(-2, 2),
+        x_context=Uniform(-2, 2),
+        x_target=Uniform(-2, 2),
         num_context=DiscreteUniform(0, 3),
         num_target=DiscreteUniform(1, 3)
     )

@@ -66,6 +66,6 @@ end
         test_generator(BayesianConvNP())
     end
     @testset "Generate from a mixture" begin
-        test_generator(Mixture(Sawtooth()))
+        test_generator(Mixture(Sawtooth(), BayesianConvNP()))
     end
 end
