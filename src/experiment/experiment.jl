@@ -28,18 +28,24 @@ function eval_model(model, loss, data_gen, epoch; num_batches=256)
 
     # Compute and print loss.
     loss_value, loss_error = _mean_error(values)
-    @printf("Loss: %8.3f +- %7.3f (%d batches)\n", loss_value, loss_error, num_batches)
+    println("Losses:")
+    @printf(
+        "    %8.3f +- %7.3f (%d batches)\n",
+        loss_value,
+        loss_error,
+        num_batches
+    )
 
     # Normalise by average size of target set.
     @printf(
-        "Loss: %8.3f +- %7.3f (%d batches; normalised)\n",
+        "    %8.3f +- %7.3f (%d batches; normalised)\n",
         _mean_error(values ./ mean(target_sizes))...,
         num_batches
     )
 
     # Normalise by the target set size.
     @printf(
-        "Loss: %8.3f +- %7.3f (%d batches; global mean)\n",
+        "    %8.3f +- %7.3f (%d batches; global mean)\n",
         _mean_error(values ./ target_sizes)...,
         num_batches
     )
