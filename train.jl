@@ -231,10 +231,10 @@ else
                 num_decoder_layers=4,
                 num_encoder_channels=num_encoder_channels,
                 num_decoder_channels=num_decoder_channels,
-                num_latent_channels=2,
+                num_latent_channels=8,
                 points_per_unit=points_per_unit,
                 margin=1f0,
-                σ=5f-2,
+                σ=2f-2,
                 learn_σ=false,
                 global_variable=args["model"] == "convnp-global"
             ) |> gpu
@@ -244,7 +244,7 @@ else
                 num_encoder_heads=8,
                 num_encoder_layers=3,
                 num_decoder_layers=3,
-                σ=5f-2,
+                σ=2f-2,
                 learn_σ=false
             ) |> gpu
         elseif args["model"] == "np"
@@ -252,7 +252,7 @@ else
                 dim_embedding=dim_embedding,
                 num_encoder_layers=3,
                 num_decoder_layers=3,
-                σ=5f-2,
+                σ=2f-2,
                 learn_σ=false
             ) |> gpu
         else
