@@ -21,7 +21,18 @@
         num_encoder_channels=2,
         num_decoder_channels=1,
         num_latent_channels=2,
-        points_per_unit=5f0
+        points_per_unit=5f0,
+        global_variable=false
+    )
+    convnp_global = convnp_1d(
+        receptive_field=1f0,
+        num_encoder_layers=2,
+        num_decoder_layers=3,
+        num_encoder_channels=2,
+        num_decoder_channels=1,
+        num_latent_channels=2,
+        points_per_unit=5f0,
+        global_variable=true
     )
     anp = anp_1d(
         dim_embedding=10,
@@ -39,7 +50,7 @@
     model_losses = Any[(convcnp, ConvCNPs.loglik)]
 
     # NPs:
-    for model in [convnp, anp, np]
+    for model in [convnp, convnp_global, anp, np]
         push!(model_losses, (
             model,
             (xs...) -> ConvCNPs.loglik(xs..., num_samples=2, importance_weighted=false)

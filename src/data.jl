@@ -1,4 +1,4 @@
-export DataGenerator, Sawtooth, BayesianConvNP
+export DataGenerator, Sawtooth, BayesianConvNP, Mixture
 
 """
     DataGenerator
@@ -81,6 +81,23 @@ function _make_batch(generator::DataGenerator, num_context::Integer, num_target:
     return map(x -> cat(x...; dims=3), zip(tasks...))
 end
 
+
+"""
+    FDD{T}
+
+Finite-dimensional distribution of a process at particular inputs.
+
+# Fields
+- `x`: Inputs.
+- `σ²`: Noise variance.
+- `process::T`: Underlying process.
+"""
+struct FDD{T}
+    x
+    σ²
+    process::T
+end
+
 """
     Sawtooth
 
@@ -106,53 +123,24 @@ struct Sawtooth
     end
 end
 
-"""
-    FiniteSawtooth{T<:Real}
+(s::Sawtooth)(x, noise) = FDD(x, noise, s)
 
-Finite-dimensional distribution of a `Sawtooth` at particular inputs.
-
-# Fields
-- `x::Vector{T}`: Inputs.
-- `noise::T`: Noise variance.
-- `sawtooth::Sawtooth`: Corresponding sawtooth.
-"""
-struct FiniteSawtooth{T<:Real}
-    x::Vector{T}
-    noise::T
-    sawtooth::Sawtooth
-end
-
-"""
-    (s::Sawtooth)(x, noise)
-
-Construct the finite-dimensional distribution of a `Sawtooth` at inputs `x` and observation
-noise variance `noise`.
-
-# Arguments
-- `x`: Inputs.
-- `noise`: Noise variance.
-
-# Returns
-- `FiniteSawtooth`: Corresponding finite-dimensional distribution.
-"""
-(s::Sawtooth)(x, noise) = FiniteSawtooth(x, noise, s)
-
-function Base.rand(fs::FiniteSawtooth)
+function Base.rand(s::FDD{Sawtooth})
     # Sample parameters for particular sawtooth wave.
     amp = 1
-    freq = rand(fs.sawtooth.freq_dist)
-    shift = rand(fs.sawtooth.shift_dist)
-    trunc = rand(fs.sawtooth.trunc_dist)
+    freq = rand(s.process.freq_dist)
+    shift = rand(s.process.shift_dist)
+    trunc = rand(s.process.trunc_dist)
 
     # Apply shift.
-    x = fs.x .+ shift
+    x = s.x .+ shift
 
     # Construct expansion.
     k = collect(range(1, trunc + 1, step=1))'
     f = 0.5amp .- (amp / pi) .* sum((-1).^k .* sin.(2pi .* k .* freq .* x) ./ k, dims=2)
 
     # Add noise and return.
-    return f .+ sqrt(fs.noise) .* randn(eltype(x), size(x)...)
+    return f .+ sqrt(s.σ²) .* randn(eltype(x), size(x)...)
 end
 
 """
@@ -185,61 +173,32 @@ struct BayesianConvNP
     end
 end
 
-"""
-    FiniteBayesianConvNP{T<:Real}
+(convnp::BayesianConvNP)(x, noise) = FDD(x, noise, convnp)
 
-Finite-dimensional distribution of a `BayesianConvNP` at particular inputs.
-
-# Fields
-- `x::Vector{T}`: Inputs.
-- `noise::T`: Noise variance.
-- `convnp::BayesianConvNP`: Corresponding `BayesianConvNP`.
-"""
-struct FiniteBayesianConvNP{T<:Real}
-    x::Vector{T}
-    noise::T
-    convnp::BayesianConvNP
-end
-
-"""
-    (convnp::BayesianConvNP)(x, noise)
-
-Construct the finite-dimensional distribution of a `BayesianConvNP` at inputs `x` and
-observation noise variance `noise`.
-
-# Arguments
-- `x`: Inputs.
-- `noise`: Noise variance.
-
-# Returns
-- `FiniteBayesianConvNP`: Corresponding finite-dimensional distribution.
-"""
-(convnp::BayesianConvNP)(x, noise) = FiniteBayesianConvNP(x, noise, convnp)
-
-function Base.rand(fconvnp::FiniteBayesianConvNP)
+function Base.rand(convnp::FDD{BayesianConvNP})
     # Contruct discretisation.
     disc = UniformDiscretisation1d(
-        fconvnp.convnp.points_per_unit,
-        fconvnp.convnp.receptive_field / 2,
+        convnp.process.points_per_unit,
+        convnp.process.receptive_field / 2,
         1
     )
-    xz = reshape(disc(fconvnp.x), :, 1, 1)
+    xz = reshape(disc(convnp.x), :, 1, 1)
 
     # Construct CNN with random initialisation.
-    conv = build_conv(
-        fconvnp.convnp.receptive_field,
-        fconvnp.convnp.num_layers,
-        fconvnp.convnp.num_channels;
-        points_per_unit=fconvnp.convnp.points_per_unit,
+    conv = untrack(build_conv(
+        convnp.process.receptive_field,
+        convnp.process.num_layers,
+        convnp.process.num_channels;
+        points_per_unit=convnp.process.points_per_unit,
         num_in_channels=1,
         num_out_channels=1,
         dimensionality=1,
         init_conv=_init_conv_random_bias,
         init_depthwiseconv=_init_depthwiseconv_random_bias
-    ).conv
+    ).conv)
 
     # Construct decoder.
-    scale = 2 / fconvnp.convnp.points_per_unit
+    scale = 2 / convnp.process.points_per_unit
     decoder = SetConv([log(scale)])
 
     # Draw random encoding.
@@ -250,12 +209,31 @@ function Base.rand(fconvnp::FiniteBayesianConvNP)
     latent = conv(encoding)
 
     # Perform decoding.
-    xt = reshape(fconvnp.x, length(fconvnp.x), 1, 1)
+    xt = reshape(convnp.x, length(convnp.x), 1, 1)
     sample = decode(decoder, xz, latent, xt)[:, 1, 1]
 
     # Normalise sample.
     sample = (sample .- mean(sample)) ./ std(sample)
 
     # Return with noise.
-    return sample .+ sqrt(fconvnp.noise) .* randn(Float32, size(sample)...)
+    return sample .+ sqrt(convnp.σ²) .* randn(Float32, size(sample)...)
 end
+
+"""
+    struct Mixture
+
+Mixture of processes.
+
+# Fields
+- `processes`: Processes in the mixture.
+"""
+struct Mixture
+    processes
+end
+
+Mixture(processes...) = Mixture(processes)
+
+(mixture::Mixture)(x, noise) = FDD(x, noise, mixture)
+
+Base.rand(fmixture::FDD{Mixture}) =
+    rand(rand(fmixture.process.processes)(fmixture.x, fmixture.σ²))

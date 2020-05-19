@@ -17,11 +17,11 @@ using Distributions
 parser = ArgParseSettings()
 @add_arg_table! parser begin
     "--data"
-        help = "Data set: eq-small, eq, matern52, noisy-mixture, weakly-periodic, or sawtooth."
+        help = "Data set: eq-small, eq, matern52, noisy-mixture, weakly-periodic, sawtooth, or mixture."
         arg_type = String
         required = true
     "--model"
-        help = "Model: convcnp, convnp, anp, or np."
+        help = "Model: convcnp, convnp, convnp-global, anp, or np."
         arg_type = String
         required = true
     "--loss"
@@ -51,7 +51,7 @@ if args["data"] == "eq-small"
     num_target = DiscreteUniform(50, 50)
     if args["model"] == "convcnp"
         num_channels = 16
-    elseif args["model"] in ["convnp", "anp", "np"]
+    elseif args["model"] in ["convnp", "convnp-global", "anp", "np"]
         num_encoder_channels = 8
         num_decoder_channels = 4
         dim_embedding = 32
@@ -66,7 +66,7 @@ elseif args["data"] == "eq"
     num_target = DiscreteUniform(50, 50)
     if args["model"] == "convcnp"
         num_channels = 64
-    elseif args["model"] in ["convnp", "anp", "np"]
+    elseif args["model"] in ["convnp", "convnp-global", "anp", "np"]
         num_encoder_channels = 32
         num_decoder_channels = 16
         dim_embedding = 128
@@ -81,7 +81,7 @@ elseif args["data"] == "matern52"
     num_target = DiscreteUniform(50, 50)
     if args["model"] == "convcnp"
         num_channels = 64
-    elseif args["model"] in ["convnp", "anp", "np"]
+    elseif args["model"] in ["convnp", "convnp-global", "anp", "np"]
         num_encoder_channels = 32
         num_decoder_channels = 16
         dim_embedding = 128
@@ -99,7 +99,7 @@ elseif args["data"] == "noisy-mixture"
     num_target = DiscreteUniform(50, 50)
     if args["model"] == "convcnp"
         num_channels = 64
-    elseif args["model"] in ["convnp", "anp", "np"]
+    elseif args["model"] in ["convnp", "convnp-global", "anp", "np"]
         num_encoder_channels = 32
         num_decoder_channels = 16
         dim_embedding = 128
@@ -114,7 +114,7 @@ elseif args["data"] == "weakly-periodic"
     num_target = DiscreteUniform(50, 50)
     if args["model"] == "convcnp"
         num_channels = 64
-    elseif args["model"] in ["convnp", "anp", "np"]
+    elseif args["model"] in ["convnp", "convnp-global", "anp", "np"]
         num_encoder_channels = 32
         num_decoder_channels = 16
         dim_embedding = 128
@@ -129,9 +129,27 @@ elseif args["data"] == "sawtooth"
     num_target = DiscreteUniform(100, 100)
     if args["model"] == "convcnp"
         num_channels = 32
-    elseif args["model"] in ["convnp", "anp", "np"]
+    elseif args["model"] in ["convnp", "convnp-global", "anp", "np"]
         num_encoder_channels = 16
         num_decoder_channels = 8
+        dim_embedding = 128
+    else
+        error("Unknown model \"" * args["model"] * "\".")
+    end
+elseif args["data"] == "mixture"
+    process = Mixture(
+        GP(Stheno.ConstKernel(1.0), GPC()),
+        GP(stretch(eq(), 1 / 0.25), GPC())
+    )
+    receptive_field = 2f0
+    points_per_unit = 64f0
+    num_context = DiscreteUniform(0, 50)
+    num_target = DiscreteUniform(50, 50)
+    if args["model"] == "convcnp"
+        num_channels = 32
+    elseif args["model"] in ["convnp", "convnp-global", "anp", "np"]
+        num_encoder_channels = 32
+        num_decoder_channels = 16
         dim_embedding = 128
     else
         error("Unknown model \"" * args["model"] * "\".")
@@ -150,7 +168,7 @@ mkpath("output/" * args["model"] * "/" * args["loss"] * "/" * args["data"])
 
 # Construct data generator.
 data_gen = DataGenerator(
-    process;
+    process,
     batch_size=16,
     x=Uniform(-2, 2),
     num_context=num_context,
@@ -169,7 +187,7 @@ if args["model"] == "convcnp"
     else
         error("Unknown loss \"" * args["loss"] * "\".")
     end
-elseif args["model"] in ["convnp", "anp", "np"]
+elseif args["model"] in ["convnp", "convnp-global", "anp", "np"]
     if args["loss"] == "loglik"
         loss(xs...) = ConvCNPs.loglik(xs..., num_samples=20, importance_weighted=false)
     elseif args["loss"] == "loglik-iw"
@@ -206,7 +224,7 @@ else
                 points_per_unit=points_per_unit,
                 margin=1f0
             ) |> gpu
-        elseif args["model"] == "convnp"
+        elseif args["model"] in ["convnp", "convnp-global"]
             model = convnp_1d(
                 receptive_field=receptive_field,
                 num_encoder_layers=8,
@@ -217,7 +235,8 @@ else
                 points_per_unit=points_per_unit,
                 margin=1f0,
                 σ=5f-2,
-                learn_σ=false
+                learn_σ=false,
+                global_variable=args["model"] == "convnp-global"
             ) |> gpu
         elseif args["model"] == "anp"
             model = anp_1d(

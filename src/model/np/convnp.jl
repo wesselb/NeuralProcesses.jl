@@ -73,7 +73,8 @@ _repeat_samples(x, num_samples) = reshape(
         points_per_unit::Float32,
         margin::Float32=receptive_field,
         σ::Float32=1f-2,
-        learn_σ::Bool=true
+        learn_σ::Bool=true,
+        global_variable::Bool=true
     )
 
 # Keywords
@@ -90,6 +91,7 @@ _repeat_samples(x, num_samples) = reshape(
     `UniformDiscretisation1d`.
 - `σ::Float32=1f-2`: Initialisation of the observation noise.
 - `learn_σ::Bool=true`: Learn the observation noise.
+- `global_variable::Bool=true`: Also use a global latent variable.
 
 # Returns
 - `ConvNP`: Corresponding model.
@@ -104,7 +106,8 @@ function convnp_1d(;
     points_per_unit::Float32,
     margin::Float32=receptive_field,
     σ::Float32=1f-2,
-    learn_σ::Bool=true
+    learn_σ::Bool=true,
+    global_variable::Bool=true
 )
     # Build architecture for the encoder.
     arch_encoder = build_conv(
@@ -139,7 +142,9 @@ function convnp_1d(;
         set_conv(2, scale),  # Account for density channel.
         arch_encoder.conv,
         set_conv(2num_latent_channels, scale),
-        split_μ_σ
+        # Insert the global variable by performing a mean pooling of half the latent
+        # channels here.
+        x -> split_μ_σ(global_variable ? _split_mean_pool(x) : x)
     )
 
     # Put model together.
@@ -155,4 +160,18 @@ function convnp_1d(;
         set_conv(1, scale),
         learn_σ ? param([log(σ)]) : [log(σ)]
     )
+end
+
+function _split_mean_pool(x)
+    # Split tensor in half.
+    i_split = div(size(x, 2), 2)
+    pool = x[:, 1:i_split, :]
+    others = x[:, i_split + 1:end, :]
+
+    # Perform mean pooling.
+    n = size(x, 1)
+    pool = repeat_gpu(mean(pool, dims=1), n, 1, 1)
+
+    # Put back together and return.
+    return cat(pool, others, dims=2)
 end
