@@ -14,26 +14,17 @@ MODEL_LOSSES="
     np,loglik-iw
     np,elbo"
 DATA_SETS="
-   eq
-   matern52
-   noisy-mixture
-   weakly-periodic
-   sawtooth"
-
-EPOCHS_INC=10
-EPOCHS_TOTAL=100
-
-JULIA=${1:-julia}
-
-EPOCHS_INC_PLUS_ONE=$(echo $EPOCHS_INC + 1 | bc)
-BIN="$JULIA train.jl --epochs $EPOCHS_INC"
+    eq
+    matern52
+    noisy-mixture
+    weakly-periodic
+    sawtooth"
 
 line () {
     echo "------------------------------------------------------"
 }
 
 line
-echo "Binary: $BIN"
 echo "Models and losses:"
 for model_loss in $MODEL_LOSSES
 do
@@ -41,6 +32,10 @@ do
     echo "    $model + $loss"
 done
 echo "Data sets: $DATA_SETS"
+for data in $DATA_SETS
+do
+    echo "    $data"
+done
 
 line
 echo TRAINING
@@ -53,12 +48,7 @@ do
     for data in $DATA_SETS
     do
         echo "Data set: $data"
-        $BIN --data $data --model $model --loss $loss --starting-epoch 1
-        for starting_epoch in $(seq $EPOCHS_INC_PLUS_ONE $EPOCHS_INC $EPOCHS_TOTAL)
-        do
-            echo Resuming from epoch $starting_epoch
-            $BIN --data $data --model $model --loss $loss --starting-epoch $starting_epoch
-        done
+        ./train.sh --data $data --model $model --loss $loss
     done
 done
 
@@ -73,6 +63,6 @@ do
     for data in $DATA_SETS
     do
         echo "Data set: $data"
-        $BIN --data $data --model $model --loss $loss --evaluate
+        ./eval.sh --data $data --model $model --loss $loss
     done
 done
