@@ -31,7 +31,7 @@ do
     IFS="," read model loss <<< "$model_loss"
     echo "    $model + $loss"
 done
-echo "Data sets: $DATA_SETS"
+echo "Data sets:"
 for data in $DATA_SETS
 do
     echo "    $data"
