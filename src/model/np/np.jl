@@ -392,7 +392,7 @@ Neural process ELBO-style loss.
 - `Real`: Average negative NP loss.
 """
 function elbo(model::AbstractNP, epoch::Integer, xc, yc, xt, yt; num_samples::Integer)
-    # We subsume the context set into the target set for this ELBO, because everyone
+    # We subsume the context set into the target set for this ELBO.
     x_all = cat(xc, xt, dims=1)
     y_all = cat(yc, yt, dims=1)
 
