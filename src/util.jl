@@ -324,9 +324,11 @@ function kl(μ₁, σ₁, μ₂, σ₂)
     # Loop fusion introduces indexing, which severly bottlenecks GPU computation, so
     # we roll out the computation like this.
     # TODO: What is going on?
-    logdet = 2 .* log.(σ₂ ./ σ₁)
+    logdet = log.(σ₂ ./ σ₁)
+    logdet = 2 .* logdet
     z = μ₁ .- μ₂
-    quad = (σ₁.^2 .+ z .* z) ./ σ₂.^2
+    σ₁², σ₂² = σ₁.^2, σ₂.^2
+    quad = (σ₁² .+ z .* z) ./ σ₂²
     sum = logdet .+ quad .- 1
     return sum ./ 2
 end
