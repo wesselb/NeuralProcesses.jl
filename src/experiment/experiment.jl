@@ -116,45 +116,48 @@ function plot_task(
     data_gen,
     epoch,
     plot_true = (plt, xc, yc, xt) -> nothing;
-    path = "output"
+    path = "output",
+    num_tasks = 5
 )
-    x = collect(range(-3, 3, length=400))
+    for i = 1:num_tasks
+        x = collect(range(-3, 3, length=400))
 
-    # Predict on a task.
-    xc, yc, xt, yt = map(x -> x[:, 1, 1], data_gen(1)[1])
-    μ, lower, upper, samples = predict(model, xc, yc, x)
+        # Predict on a task.
+        xc, yc, xt, yt = map(x -> x[:, 1, 1], data_gen(1)[1])
+        μ, lower, upper, samples = predict(model, xc, yc, x)
 
-    plt = plot()
+        plt = plot()
 
-    # Scatter target and context set.
-    scatter!(plt, xt, yt, c=:red, label="Target set", dpi=200)
-    scatter!(plt, xc, yc, c=:black, label="Context set", dpi=200)
+        # Scatter target and context set.
+        scatter!(plt, xt, yt, c=:red, label="Target set", dpi=200)
+        scatter!(plt, xc, yc, c=:black, label="Context set", dpi=200)
 
-    # Plot prediction of true, underlying model.
-    plot_true(plt, xc, yc, x)
+        # Plot prediction of true, underlying model.
+        plot_true(plt, xc, yc, x)
 
-    # Plot prediction.
-    if !isnothing(μ)
-        plot!(plt, x, μ, c=:green, label="Model output", dpi=200)
-        plot!(
-            plt,
-            x,
-            [μ μ],
-            fillrange=[lower upper],
-            fillalpha=0.2,
-            c=:green,
-            label="",
-            dpi=200
-        )
-    end
+        # Plot prediction.
+        if !isnothing(μ)
+            plot!(plt, x, μ, c=:green, label="Model output", dpi=200)
+            plot!(
+                plt,
+                x,
+                [μ μ],
+                fillrange=[lower upper],
+                fillalpha=0.2,
+                c=:green,
+                label="",
+                dpi=200
+            )
+        end
 
-    # Plot samples.
-    if !isnothing(samples)
-        plot!(plt, x, samples, c=:green, lw=0.5, dpi=200, label="")
-    end
+        # Plot samples.
+        if !isnothing(samples)
+            plot!(plt, x, samples, c=:green, lw=0.5, dpi=200, label="")
+        end
 
-    if !isnothing(path)
-        savefig(plt, "$path/epoch$epoch.png")
+        if !isnothing(path)
+            savefig(plt, "$path/epoch$epoch-$i.png")
+        end
     end
 end
 
