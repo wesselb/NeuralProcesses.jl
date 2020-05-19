@@ -231,7 +231,7 @@ else
                 num_decoder_layers=4,
                 num_encoder_channels=num_encoder_channels,
                 num_decoder_channels=num_decoder_channels,
-                num_latent_channels=8,
+                num_latent_channels=2,
                 points_per_unit=points_per_unit,
                 margin=1f0,
                 σ=2f-2,
