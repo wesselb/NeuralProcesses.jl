@@ -66,9 +66,9 @@
     end
 
     for (model, loss) in model_losses
-        # Test model training for a few epochs.
-        report_num_params(model)
-        train!(
+        # Test model training for a few epochs. The statements just have to not error.
+        @test (report_num_params(model); true)
+        @test (train!(
             model,
             loss,
             data_gen,
@@ -78,6 +78,6 @@
             epochs=2,
             tasks_per_epoch=200,
             path=nothing
-        )
+        ); true)
     end
 end
