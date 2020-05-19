@@ -223,16 +223,16 @@ else
             model = anp_1d(
                 dim_embedding=dim_embedding,
                 num_encoder_heads=8,
-                num_encoder_layers=3,
-                num_decoder_layers=3,
+                num_encoder_layers=6,
+                num_decoder_layers=6,
                 σ=5f-2,
                 learn_σ=false
             ) |> gpu
         elseif args["model"] == "np"
             model = np_1d(
                 dim_embedding=dim_embedding,
-                num_encoder_layers=3,
-                num_decoder_layers=3,
+                num_encoder_layers=6,
+                num_decoder_layers=6,
                 σ=5f-2,
                 learn_σ=false
             ) |> gpu

@@ -392,19 +392,23 @@ Neural process ELBO-style loss.
 - `Real`: Average negative NP loss.
 """
 function elbo(model::AbstractNP, epoch::Integer, xc, yc, xt, yt; num_samples::Integer)
+    # We subsume the context set into the target set for this ELBO, because everyone
+    x_all = cat(xc, xt, dims=1)
+    y_all = cat(yc, yt, dims=1)
+
     # Perform deterministic and latent encoding.
-    xz, pz, r = encode(model, xc, yc, xt)
+    xz, pz, r = encode(model, xc, yc, x_all)
 
     # Construct posterior over latent variable.
-    qz = encode_lat(model, cat(xc, xt, dims=1), cat(yc, yt, dims=1), xz)
+    qz = encode_lat(model, x_all, y_all, xz)
 
     # Sample latent variable and perform decoding.
     z = _sample(qz..., num_samples)
-    μ = decode(model, xz, z, r, xt)
+    μ = decode(model, xz, z, r, x_all)
     σ = exp.(model.log_σ)
 
     # Compute the components of the ELBO.
-    exps = sum(gaussian_logpdf(yt, μ, σ), dims=(1, 2))
+    exps = sum(gaussian_logpdf(y_all, μ, σ), dims=(1, 2))
     kls = sum(kl(qz..., pz...), dims=(1, 2))
 
     # Estimate ELBO from samples.
