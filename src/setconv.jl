@@ -89,7 +89,7 @@ end
 # Returns
 - `AA`: All zeros output of shape `(k, channels + 1, batch)`.
 """
-function empty_encoding(layer::SetConv, xz:AA)
+function empty_encoding(layer::SetConv, xz::AA)
     return zeros_gpu(
         eltype(xz),
         size(xz, 1),              # Size of encoding
@@ -145,7 +145,7 @@ end
 # Returns
 - `AA`: Output of shape `(k, k, channels + 2, batch)`.
 """
-function empty_encoding_pd(layer::SetConv, xz:AA)
+function empty_encoding_pd(layer::SetConv, xz::AA)
     return _prepend_identity_channel(zeros_gpu(  # Also prepend identity channel.
         eltype(xz),
         size(xz, 1),              # Size of encoding
