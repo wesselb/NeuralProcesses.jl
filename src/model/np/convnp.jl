@@ -167,5 +167,5 @@ end
 function _split_mean_pool(x)
     # Perform mean pooling on the first half of the channels.
     x₁, x₂ = split(x, 2)
-    return mean(x₁, dims=1), x₂
+    return sum(x₁, dims=1) ./ (64 * 4), x₂
 end

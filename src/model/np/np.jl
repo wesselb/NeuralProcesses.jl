@@ -176,10 +176,8 @@ function (model::AbstractNP)(xc::AA, yc::AA, xt::AA, num_samples::Integer)
     return channels, exp.(model.log_σ)
 end
 
-function _sample(μ::AA, σ::AA, num_samples::Integer)
-    ε = randn(Float32, size(μ)..., num_samples) |> gpu
-    return μ .+ σ .* ε
-end
+_sample(μ::AA, σ::AA, num_samples::Integer) =
+    μ .+ σ .* randn_gpu(Float32, size(μ)..., num_samples)
 
 _sample(d₁::Tuple, d₂::Tuple, num_samples::Integer) =
     (_sample(d₁..., num_samples), _sample(d₂..., num_samples))
@@ -228,7 +226,7 @@ Construct an encoding for the empty set.
 """
 function empty_encoding(encoder::NPEncoder, xz::AA)
     batch_size = size(xz, 3)
-    r = zeros(Float32, 1, encoder.ff₁.dim_out, batch_size) |> gpu
+    r = zeros_gpu(Float32, 1, encoder.ff₁.dim_out, batch_size)
     return encoder.ff₂(r)
 end
 

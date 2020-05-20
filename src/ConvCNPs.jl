@@ -1,5 +1,6 @@
 module ConvCNPs
 
+using CuArrays
 using Distributions
 using Flux
 using LinearAlgebra
@@ -11,10 +12,18 @@ using StatsBase
 
 if Flux.has_cuarrays()
     include("gpu.jl")
+    
+    randn_gpu = CuArrays.randn
+    zeros_gpu = CuArrays.zeros
+    ones_gpu = CuArrays.ones
 else
     const CuOrVector = Vector
     const CuOrMatrix = Matrix
     const CuOrArray = Array
+
+    randn_gpu = randn
+    zeros_gpu = zeros
+    ones_gpu = ones
 end
 
 const AV = AbstractVector
