@@ -176,7 +176,7 @@ function (model::AbstractNP)(xc, yc, xt, num_samples::Integer)
 end
 
 function _sample(μ::AbstractArray, σ::AbstractArray, num_samples::Integer)
-    ε = randn(Float32, size(μ)..., num_samples) |> gpu
+    ε = randn_gpu(Float32, size(μ)..., num_samples)
     return μ .+ σ .* ε
 end
 
@@ -227,7 +227,7 @@ Construct an encoding for the empty set.
 """
 function empty_encoding(encoder::NPEncoder, xz)
     batch_size = size(xz, 3)
-    r = zeros(Float32, 1, encoder.ff₁.dim_out, batch_size) |> gpu
+    r = zeros_gpu(Float32, 1, encoder.ff₁.dim_out, batch_size)
     return encoder.ff₂(r)
 end
 

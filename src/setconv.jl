@@ -43,7 +43,7 @@ end
 
 function _prepend_density_channel(channels)
     n, _, batch_size = size(channels)
-    density = gpu(ones(eltype(channels), n, 1, batch_size))
+    density = ones_gpu(eltype(channels), n, 1, batch_size)
     return cat(density, channels, dims=2)
 end
 
@@ -90,12 +90,12 @@ end
 - `AbstractArray`: All zeros output of shape `(k, channels + 1, batch)`.
 """
 function empty_encoding(layer::SetConv, xz)
-    return gpu(zeros(
+    return zeros_gpu(
         eltype(xz),
         size(xz, 1),              # Size of encoding
         length(layer.log_scales), # Number of channels, including the density channel
         size(xz, 3)               # Batch size
-    ))
+    )
 end
 
 """
@@ -146,13 +146,13 @@ end
 - `AbstractArray`: Output of shape `(k, k, channels + 2, batch)`.
 """
 function empty_encoding_pd(layer::SetConv, xz)
-    return _prepend_identity_channel(gpu(zeros(  # Also prepend identity channel.
+    return _prepend_identity_channel(zeros_gpu(  # Also prepend identity channel.
         eltype(xz),
         size(xz, 1),              # Size of encoding
         size(xz, 1),              # Again size of encoding: encoding is square
         length(layer.log_scales), # Number of channels, including the density channel
         size(xz, 3)               # Batch size
-    )))
+    ))
 end
 
 """
