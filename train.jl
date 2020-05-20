@@ -5,13 +5,6 @@ Pkg.resolve()
 Pkg.instantiate()
 
 using ArgParse
-using BSON
-using ConvCNPs
-using ConvCNPs.Experiment
-using Distributions
-using Flux
-using Flux.Tracker
-using Stheno
 
 # Parse command line arguments.
 parser = ArgParseSettings()
@@ -32,15 +25,23 @@ parser = ArgParseSettings()
         help = "Set to a number greater than one to continue training."
         arg_type = Int
         default = 1
-    "--evaluate"
-        help = "Evaluate model."
-        action = :store_true
     "--epochs"
         help = "Number of epochs to training for."
         arg_type = Int
         default = 20
+    "--evaluate"
+        help = "Evaluate model."
+        action = :store_true
 end
 args = parse_args(parser)
+
+using BSON
+using ConvCNPs
+using ConvCNPs.Experiment
+using Distributions
+using Flux
+using Flux.Tracker
+using Stheno
 
 # Set up experiment.
 if args["data"] == "eq-small"
