@@ -1,9 +1,3 @@
-using Pkg
-
-Pkg.activate(".")
-Pkg.resolve()
-Pkg.instantiate()
-
 using ArgParse
 
 # Parse command line arguments.
