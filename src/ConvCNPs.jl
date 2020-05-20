@@ -1,6 +1,5 @@
 module ConvCNPs
 
-using CuArrays
 using Distributions
 using Flux
 using LinearAlgebra
@@ -12,7 +11,8 @@ using StatsBase
 
 if Flux.has_cuarrays()
     include("gpu.jl")
-    
+
+    using CuArrays
     randn_gpu = CuArrays.randn
     zeros_gpu = CuArrays.zeros
     ones_gpu = CuArrays.ones
