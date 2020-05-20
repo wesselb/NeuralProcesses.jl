@@ -8,10 +8,10 @@ using ArgParse
 using BSON
 using ConvCNPs
 using ConvCNPs.Experiment
+using Distributions
 using Flux
 using Flux.Tracker
 using Stheno
-using Distributions
 
 # Parse command line arguments.
 parser = ArgParseSettings()
