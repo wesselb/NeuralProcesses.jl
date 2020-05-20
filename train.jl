@@ -187,7 +187,7 @@ else
                 num_decoder_layers=8,
                 num_encoder_channels=div(num_channels, 2),
                 num_decoder_channels=div(num_channels, 2),
-                num_latent_channels=8,
+                num_latent_channels=2,  # Also one for a possible global variable.
                 points_per_unit=points_per_unit,
                 margin=1f0,
                 σ=2f-2,
