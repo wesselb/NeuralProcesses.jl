@@ -49,45 +49,24 @@ if args["data"] == "eq-small"
     points_per_unit = 32f0
     num_context = DiscreteUniform(0, 50)
     num_target = DiscreteUniform(50, 50)
-    if args["model"] == "convcnp"
-        num_channels = 16
-    elseif args["model"] in ["convnp", "convnp-global", "anp", "np"]
-        num_encoder_channels = 8
-        num_decoder_channels = 4
-        dim_embedding = 32
-    else
-        error("Unknown model \"" * args["model"] * "\".")
-    end
+    num_channels = 16
+    dim_embedding = 32
 elseif args["data"] == "eq"
     process = GP(stretch(eq(), 1 / 0.25), GPC())
     receptive_field = 2f0
     points_per_unit = 64f0
     num_context = DiscreteUniform(0, 50)
     num_target = DiscreteUniform(50, 50)
-    if args["model"] == "convcnp"
-        num_channels = 64
-    elseif args["model"] in ["convnp", "convnp-global", "anp", "np"]
-        num_encoder_channels = 32
-        num_decoder_channels = 16
-        dim_embedding = 128
-    else
-        error("Unknown model \"" * args["model"] * "\".")
-    end
+    num_channels = 64
+    dim_embedding = 128
 elseif args["data"] == "matern52"
     process = GP(stretch(matern52(), 1 / 0.25), GPC())
     receptive_field = 2f0
     points_per_unit = 64f0
     num_context = DiscreteUniform(0, 50)
     num_target = DiscreteUniform(50, 50)
-    if args["model"] == "convcnp"
-        num_channels = 64
-    elseif args["model"] in ["convnp", "convnp-global", "anp", "np"]
-        num_encoder_channels = 32
-        num_decoder_channels = 16
-        dim_embedding = 128
-    else
-        error("Unknown model \"" * args["model"] * "\".")
-    end
+    num_channels = 64
+    dim_embedding = 128
 elseif args["data"] == "noisy-mixture"
     process = GP(
         stretch(eq(), 1 / 0.25) + eq() + 1e-3 * Stheno.Noise(),
@@ -97,45 +76,24 @@ elseif args["data"] == "noisy-mixture"
     points_per_unit = 64f0
     num_context = DiscreteUniform(0, 50)
     num_target = DiscreteUniform(50, 50)
-    if args["model"] == "convcnp"
-        num_channels = 64
-    elseif args["model"] in ["convnp", "convnp-global", "anp", "np"]
-        num_encoder_channels = 32
-        num_decoder_channels = 16
-        dim_embedding = 128
-    else
-        error("Unknown model \"" * args["model"] * "\".")
-    end
+    num_channels = 64
+    dim_embedding = 128
 elseif args["data"] == "weakly-periodic"
     process = GP(stretch(eq(), 1 / 0.5) * stretch(Stheno.PerEQ(), 1 / 0.25), GPC())
     receptive_field = 4f0
     points_per_unit = 64f0
     num_context = DiscreteUniform(0, 50)
     num_target = DiscreteUniform(50, 50)
-    if args["model"] == "convcnp"
-        num_channels = 64
-    elseif args["model"] in ["convnp", "convnp-global", "anp", "np"]
-        num_encoder_channels = 32
-        num_decoder_channels = 16
-        dim_embedding = 128
-    else
-        error("Unknown model \"" * args["model"] * "\".")
-    end
+    num_channels = 64
+    dim_embedding = 128
 elseif args["data"] == "sawtooth"
     process = Sawtooth()
     receptive_field = 16f0
     points_per_unit = 64f0
     num_context = DiscreteUniform(0, 100)
     num_target = DiscreteUniform(100, 100)
-    if args["model"] == "convcnp"
-        num_channels = 32
-    elseif args["model"] in ["convnp", "convnp-global", "anp", "np"]
-        num_encoder_channels = 16
-        num_decoder_channels = 8
-        dim_embedding = 128
-    else
-        error("Unknown model \"" * args["model"] * "\".")
-    end
+    num_channels = 32
+    dim_embedding = 128
 elseif args["data"] == "mixture"
     process = Mixture(
         GP(Stheno.ConstKernel(1.0), GPC()),
@@ -145,15 +103,8 @@ elseif args["data"] == "mixture"
     points_per_unit = 64f0
     num_context = DiscreteUniform(0, 50)
     num_target = DiscreteUniform(50, 50)
-    if args["model"] == "convcnp"
-        num_channels = 32
-    elseif args["model"] in ["convnp", "convnp-global", "anp", "np"]
-        num_encoder_channels = 32
-        num_decoder_channels = 16
-        dim_embedding = 128
-    else
-        error("Unknown model \"" * args["model"] * "\".")
-    end
+    num_channels = 64
+    dim_embedding = 128
 else
     error("Unknown data \"" * args["data"] * "\".")
 end
@@ -247,10 +198,10 @@ else
             model = convnp_1d(
                 receptive_field=receptive_field,
                 num_encoder_layers=8,
-                num_decoder_layers=4,
-                num_encoder_channels=num_encoder_channels,
-                num_decoder_channels=num_decoder_channels,
-                num_latent_channels=2,
+                num_decoder_layers=8,
+                num_encoder_channels=div(num_channels, 2),
+                num_decoder_channels=div(num_channels, 2),
+                num_latent_channels=8,
                 points_per_unit=points_per_unit,
                 margin=1f0,
                 σ=2f-2,
