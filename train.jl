@@ -68,10 +68,7 @@ elseif args["data"] == "matern52"
     num_channels = 64
     dim_embedding = 128
 elseif args["data"] == "noisy-mixture"
-    process = GP(
-        stretch(eq(), 1 / 0.25) + eq() + 1e-3 * Stheno.Noise(),
-        GPC()
-    )
+    process = GP(stretch(eq(), 1 / 0.25) + eq() + 1e-3 * Stheno.Noise(), GPC())
     receptive_field = 4f0
     points_per_unit = 64f0
     num_context = DiscreteUniform(0, 50)
@@ -95,10 +92,7 @@ elseif args["data"] == "sawtooth"
     num_channels = 32
     dim_embedding = 128
 elseif args["data"] == "mixture"
-    process = Mixture(
-        GP(Stheno.ConstKernel(1.0), GPC()),
-        GP(stretch(eq(), 1 / 0.25), GPC())
-    )
+    process = Mixture(GP(Stheno.ConstKernel(1.0), GPC()), GP(stretch(eq(), 1 / 0.25), GPC()))
     receptive_field = 2f0
     points_per_unit = 64f0
     num_context = DiscreteUniform(0, 50)
@@ -122,10 +116,7 @@ if args["model"] == "convcnp"
     if args["loss"] == "loglik"
         loss = ConvCNPs.loglik
     elseif args["loss"] in ["elbo", "loglik-iw"]
-        error(
-            "ELBO and importance-weighted log-likelihood are not applicable to the " *
-            "ConvCNP."
-        )
+        error("Losses \"elbo\" and \"loglik-iw\" not applicable to the ConvCNP.")
     else
         error("Unknown loss \"" * args["loss"] * "\".")
     end
