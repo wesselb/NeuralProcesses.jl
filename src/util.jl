@@ -332,20 +332,20 @@ Expand a vector to a three-tensor and move it to the GPU.
 expand_gpu(x::AV) = reshape(x, :, 1, 1) |> gpu
 
 """
-    kl(μ₁, σ₁, μ₂, σ₂)
+    kl(μ₁::AA, σ₁::AA, μ₂::AA, σ₂::AA)
 
 Kullback--Leibler divergence between one-dimensional Gaussian distributions.
 
 # Arguments
-- `μ₁`: Mean of `p`.
-- `σ₁`: Standard deviation of `p`.
-- `μ₂`: Mean of `q`.
-- `σ₂`: Standard deviation of `q`.
+- `μ₁::AA`: Mean of `p`.
+- `σ₁::AA`: Standard deviation of `p`.
+- `μ₂::AA`: Mean of `q`.
+- `σ₂::AA`: Standard deviation of `q`.
 
 # Returns
 - `AA`: `KL(p, q)`.
 """
-function kl(μ₁, σ₁, μ₂, σ₂)
+function kl(μ₁::AA, σ₁::AA, μ₂::AA, σ₂::AA)
     # Loop fusion introduces indexing, which severly bottlenecks GPU computation, so
     # we roll out the computation like this.
     # TODO: What is going on?
