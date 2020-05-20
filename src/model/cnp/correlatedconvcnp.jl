@@ -31,17 +31,17 @@ end
 @Flux.treelike CorrelatedConvCNP
 
 """
-    (model::CorrelatedConvCNP)(model::CorrelatedConvCNP)(xc, yc, xt)
+    (model::CorrelatedConvCNP)(model::CorrelatedConvCNP)(xc::AA, yc::AA, xt::AA)
 
 # Arguments
-- `xc`: Locations of observed values of shape `(n, d, batch)`.
-- `yc`: Observed values of shape `(n, channels, batch)`.
-- `xt`: Locations of target set of shape `(m, d, batch)`.
+- `xc::AA`: Locations of observed values of shape `(n, d, batch)`.
+- `yc::AA`: Observed values of shape `(n, channels, batch)`.
+- `xt::AA`: Locations of target set of shape `(m, d, batch)`.
 
 # Returns
-- `Tuple{AbstractArray, AbstractArray}`: Tuple containing means and covariances.
+- `Tuple{AA, AA}`: Tuple containing means and covariances.
 """
-function (model::CorrelatedConvCNP)(xc, yc, xt)
+function (model::CorrelatedConvCNP)(xc::AA, yc::AA, xt::AA)
     if !isnothing(xc) && size(xc, 1) > 0
         # The context set is non-empty.
         μ_xz = model.μ_disc(xc, xt) |> gpu
@@ -112,20 +112,20 @@ function _predict_gaussian_correlated(μ_channels, Σ_channels)
 end
 
 """
-    loglik(model::CorrelatedConvCNP, epoch::Integer, xc, yc, xt, yt)
+    loglik(model::CorrelatedConvCNP, epoch::Integer, xc::AA, yc::AA, xt::AA, yt::AA)
 
 # Arguments
 - `model::CorrelatedConvCNP`: Model.
 - `epoch::Integer`: Current epoch.
-- `xc`: Locations of observed values of shape `(n, d, batch)`.
-- `yc`: Observed values of shape `(n, channels, batch)`.
-- `xt`: Locations of target values of shape `(m, d, batch)`.
-- `yt`: Target values of shape `(m, channels, batch)`.
+- `xc::AA`: Locations of observed values of shape `(n, d, batch)`.
+- `yc::AA`: Observed values of shape `(n, channels, batch)`.
+- `xt::AA`: Locations of target values of shape `(m, d, batch)`.
+- `yt::AA`: Target values of shape `(m, channels, batch)`.
 
 # Returns
 - `Real`: Average negative log-likelihood.
 """
-function loglik(model::CorrelatedConvCNP, epoch::Integer, xc, yc, xt, yt)
+function loglik(model::CorrelatedConvCNP, epoch::Integer, xc::AA, yc::AA, xt::AA, yt::AA)
     size(yt, 2) == 1 || error("Target outputs have more than one channel.")
 
     n_target, _, batch_size = size(xt)
@@ -144,12 +144,7 @@ end
 _epoch_to_reg(epoch) = 10^(-min(1 + Float32(epoch), 5))
 
 """
-    predict(
-        model::CorrelatedConvCNP,
-        xc::AbstractVector,
-        yc::AbstractVector,
-        xt::AbstractVector
-    )
+    predict(model::CorrelatedConvCNP, xc::AV, yc::AV, xt::AV)
 
 # Arguments
 - `model::CorrelatedConvCNP`: Model.
@@ -158,15 +153,10 @@ _epoch_to_reg(epoch) = 10^(-min(1 + Float32(epoch), 5))
 - `xt`: Locations of target values of shape `(m, d, batch)`.
 
 # Returns
-- `Tuple{AbstractArray, AbstractArray, AbstractArray, AbstractArray}`: Tuple containing
-    means, lower and upper 95% central credible bounds, and three posterior samples.
+- `Tuple{AA, AA, AA, AA}`: Tuple containing means, lower and upper 95% central credible
+    bounds, and three posterior samples.
 """
-function predict(
-    model::CorrelatedConvCNP,
-    xc::AbstractVector,
-    yc::AbstractVector,
-    xt::AbstractVector
-)
+function predict(model::CorrelatedConvCNP, xc::AV, yc::AV, xt::AV)
     μ, Σ = untrack(model)(expand_gpu.((xc, yc, xt)))
     μ = μ[:, 1, 1] |> cpu
     Σ = Σ[:, :, 1] |> cpu

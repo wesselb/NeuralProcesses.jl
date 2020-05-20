@@ -23,17 +23,17 @@ end
 @Flux.treelike ConvCNP
 
 """
-    (model::ConvCNP)(xc, yc, xt)
+    (model::ConvCNP)(xc::MaybeAA, yc::MaybeAA, xt::AA)
 
 # Arguments
-- `xc`: Locations of observed values of shape `(n, d, batch)`.
-- `yc`: Observed values of shape `(n, channels, batch)`.
-- `xt`: Locations of target set of shape `(m, d, batch)`.
+- `xc::MaybeAA`: Locations of observed values of shape `(n, d, batch)`.
+- `yc::MaybeAA`: Observed values of shape `(n, channels, batch)`.
+- `xt::AA`: Locations of target set of shape `(m, d, batch)`.
 
 # Returns
-- `Tuple{AbstractArray, AbstractArray}`: Tuple containing means and standard deviations.
+- `Tuple{AA, AA}`: Tuple containing means and standard deviations.
 """
-function (model::ConvCNP)(xc, yc, xt)
+function (model::ConvCNP)(xc::MaybeAA, yc::MaybeAA, xt::AA)
     if !isnothing(xc) && size(xc, 1) > 0
         # The context set is non-empty.
         xz = model.disc(xc, xt) |> gpu
@@ -103,49 +103,39 @@ function convcnp_1d(;
 end
 
 """
-    loglik(model::ConvCNP, epoch::Integer, xc, yc, xt, yt)
+    loglik(model::ConvCNP, epoch::Integer, xc::AA, yc::AA, xt::AA, yt::AA)
 
 # Arguments
 - `model::ConvCNP`: Model.
 - `epoch::Integer`: Current epoch.
-- `xc`: Locations of observed values of shape `(n, d, batch)`.
-- `yc`: Observed values of shape `(n, channels, batch)`.
-- `xt`: Locations of target values of shape `(m, d, batch)`.
-- `yt`: Target values of shape `(m, channels, batch)`.
+- `xc::AA`: Locations of observed values of shape `(n, d, batch)`.
+- `yc::AA`: Observed values of shape `(n, channels, batch)`.
+- `xt::AA`: Locations of target values of shape `(m, d, batch)`.
+- `yt::AA`: Target values of shape `(m, channels, batch)`.
 
 # Returns
 - `Real`: Average negative log-likelihood.
 """
-function loglik(model::ConvCNP, epoch::Integer, xc, yc, xt, yt)
+function loglik(model::ConvCNP, epoch::Integer, xc::AA, yc::AA, xt::AA, yt::AA)
     logpdfs = gaussian_logpdf(yt, model(xc, yc, xt)...)
     # Sum over data points before averaging over tasks.
     return -mean(sum(logpdfs, dims=1))
 end
 
 """
-    predict(
-        model::ConvCNP,
-        xc::AbstractVector,
-        yc::AbstractVector,
-        xt::AbstractVector
-    )
+    predict(model::ConvCNP, xc::AV, yc::AV, xt::AV)
 
 # Arguments
 - `model::ConvCNP`: Model.
-- `xc`: Locations of observed values of shape `(n, d, batch)`.
-- `yc`: Observed values of shape `(n, channels, batch)`.
-- `xt`: Locations of target values of shape `(m, d, batch)`.
+- `xc::AV`: Locations of observed values of shape `(n, d, batch)`.
+- `yc::AV`: Observed values of shape `(n, channels, batch)`.
+- `xt::AV`: Locations of target values of shape `(m, d, batch)`.
 
 # Returns
-- `Tuple{AbstractArray, AbstractArray, AbstractArray, Nothing}`: Tuple containing means,
-    lower and upper 95% central credible bounds, and `nothing`.
+- `Tuple{AA, AA, AA, Nothing}`: Tuple containing means, lower and upper 95% central
+    credible bounds, and `nothing`.
 """
-function predict(
-    model::ConvCNP,
-    xc::AbstractVector,
-    yc::AbstractVector,
-    xt::AbstractVector
-)
+function predict(model::ConvCNP, xc::AV, yc::AV, xt::AV)
     μ, σ = untrack(model)(expand_gpu.((xc, yc, xt))...)
     μ = μ[:, 1, 1] |> cpu
     σ = σ[:, 1, 1] |> cpu

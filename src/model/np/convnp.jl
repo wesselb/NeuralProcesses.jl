@@ -22,17 +22,17 @@ end
 
 @Flux.treelike ConvNP
 
-encoding_locations(model::ConvNP, xc, xt) = model.disc(xc, xt) |> gpu
+encoding_locations(model::ConvNP, xc::AA, xt::AA) = model.disc(xc, xt) |> gpu
 
-encode_lat(model::ConvNP, xc, yc, xz) = model.encoder(xc, yc, xz)
+encode_lat(model::ConvNP, xc::AA, yc::AA, xz::AA) = model.encoder(xc, yc, xz)
 
-empty_lat_encoding(model::ConvNP, xz) = model.encoder(nothing, nothing, xz)
+empty_lat_encoding(model::ConvNP, xz::AA) = model.encoder(nothing, nothing, xz)
 
-encode_det(model::ConvNP, xc, yc, xz) = nothing
+encode_det(model::ConvNP, xc::AA, yc::AA, xz::AA) = nothing
 
-empty_det_encoding(model::ConvNP, xz) = nothing
+empty_det_encoding(model::ConvNP, xz::AA) = nothing
 
-function decode(model::ConvNP, xz, z, r::Nothing, xt)
+function decode(model::ConvNP, xz::AA, z::AA, r::Nothing, xt::AA)
     _, _, num_batches, num_samples = size(z)
 
     # Merge samples into batches.
@@ -55,7 +55,7 @@ function decode(model::ConvNP, xz, z, r::Nothing, xt)
     return channels
 end
 
-decode(model::ConvNP, xz, z::Tuple, r::Nothing, xt) =
+decode(model::ConvNP, xz::AA, z::Tuple, r::Nothing, xt::AA) =
     decode(model, xz, repeat_cat(z..., dims=2), r, xt)
 
 _repeat_samples(x, num_samples) = reshape(

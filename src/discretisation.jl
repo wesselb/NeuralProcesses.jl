@@ -29,15 +29,15 @@ struct UniformDiscretisation1d <: Discretisation
 end
 
 """
-    (d::UniformDiscretisation1d)(xs::AbstractArray...)
+    (d::UniformDiscretisation1d)(xs::AA...)
 
 # Arguments
-- `xs::AbstractArray...`: Inputs to compute the discretisation for.
+- `xs::AA...`: Inputs to compute the discretisation for.
 
 # Returns
 - `T`: Discretisation.
 """
-function (d::UniformDiscretisation1d)(xs::AbstractArray...)
+function (d::UniformDiscretisation1d)(xs::AA...)
     x = cat(xs...; dims=1)
     range_lower = minimum(x) - d.margin
     range_upper = maximum(x) + d.margin

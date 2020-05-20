@@ -28,38 +28,38 @@ end
 @Flux.treelike NP
 
 """
-    encoding_locations(model::NP, xc, xt)
+    encoding_locations(model::NP, xc::AA, xt::AA)
 
 Compute the locations for the latent encoding.
 
 # Arguments
 - `model::NP` Model.
-- `xc`: Locations of context set of shape `(n, dims, batch)`.
-- `xt`: Locations of target set of shape `(m, dims, batch)`.
+- `xc::AA`: Locations of context set of shape `(n, dims, batch)`.
+- `xt::AA`: Locations of target set of shape `(m, dims, batch)`.
 
 # Returns
-- `AbstractArray`: Locations of the encoding of shape `(k, dims, batch)`.
+- `AA`: Locations of the encoding of shape `(k, dims, batch)`.
 """
-encoding_locations(model::NP, xc, xt) = xt
+encoding_locations(model::NP, xc::AA, xt::AA) = xt
 
 """
-    encode_det(model::NP, xc, yc, xz)
+    encode_det(model::NP, xc::AA, yc::AA, xz::AA)
 
 Perform determistic encoding.
 
 # Arguments
 - `model::NP` Model.
-- `xc`: Locations of context set of shape `(n, dims, batch)`.
-- `yc`: Observed values of context set of shape `(n, channels, batch)`.
-- `xz`: Locations of latent encoding of shape `(k, dims, batch)`.
+- `xc::AA`: Locations of context set of shape `(n, dims, batch)`.
+- `yc::AA`: Observed values of context set of shape `(n, channels, batch)`.
+- `xz::AA`: Locations of latent encoding of shape `(k, dims, batch)`.
 
 # Returns
-- `AbstractArray`: Deterministic encoding.
+- `AA`: Deterministic encoding.
 """
-encode_det(model::NP, xc, yc, xz) = model.encoder_det(xc, yc, xz)
+encode_det(model::NP, xc::AA, yc::AA, xz::AA) = model.encoder_det(xc, yc, xz)
 
 """
-    empty_det_encoding(model::NP, xz)
+    empty_det_encoding(model::NP, xz::AA)
 
 Construct a deterministic encoding for the empty set.
 
@@ -68,26 +68,26 @@ Construct a deterministic encoding for the empty set.
 - `xz`: Locations of latent encoding of shape `(k, dims, batch)`.
 
 # Returns
-- `AbstractArray`: Empty deterministic encoding.
+- `AA`: Empty deterministic encoding.
 """
-empty_det_encoding(model::NP, xz) = empty_encoding(model.encoder_det, xz)
+empty_det_encoding(model::NP, xz::AA) = empty_encoding(model.encoder_det, xz)
 
 """
-    encode_lat(model::NP, xc, yc, xz)
+    encode_lat(model::NP, xc::AA, yc::AA, xz::AA)
 
 Perform latent encoding.
 
 # Arguments
 - `model::NP` Model.
-- `xc`: Locations of context set of shape `(n, dims, batch)`.
-- `yc`: Observed values of context set of shape `(n, channels, batch)`.
-- `xz`: Locations of latent encoding of shape `(k, dims, batch)`.
+- `xc::AA`: Locations of context set of shape `(n, dims, batch)`.
+- `yc::AA`: Observed values of context set of shape `(n, channels, batch)`.
+- `xz::AA`: Locations of latent encoding of shape `(k, dims, batch)`.
 
 # Returns
-- `Tuple{AbstractArray, AbstractArray}`: Tuple containing means and standard deviations of
+- `Tuple{AA, AA}`: Tuple containing means and standard deviations of
     shapes `(k, latent_channels, batch)`
 """
-encode_lat(model::NP, xc, yc, xz) = split_μ_σ(model.encoder_lat(xc, yc, xz))
+encode_lat(model::NP, xc::AA, yc::AA, xz::AA) = split_μ_σ(model.encoder_lat(xc, yc, xz))
 
 """
     empty_lat_encoding(model::NP, xz)
@@ -96,29 +96,29 @@ Construct a latent encoding for the empty set.
 
 # Arguments
 - `model::NP` Model.
-- `xz`: Locations of latent encoding of shape `(k, dims, batch)`.
+- `xz::AA`: Locations of latent encoding of shape `(k, dims, batch)`.
 
 # Returns
-- `AbstractArray`: Empty latent encoding.
+- `AA`: Empty latent encoding.
 """
-empty_lat_encoding(model::NP, xz) = split_μ_σ(empty_encoding(model.encoder_lat, xz))
+empty_lat_encoding(model::NP, xz::AA) = split_μ_σ(empty_encoding(model.encoder_lat, xz))
 
 """
-    encode(model::AbstractNP, xc, yc, xz)
+    encode(model::AbstractNP, xc::AA, yc::AA, xz::AA)
 
 Perform determistic and latent encoding.
 
 # Arguments
 - `model::AbstractNP` Model.
-- `xc`: Locations of context set of shape `(n, dims, batch)`.
-- `yc`: Observed values of context set of shape `(n, channels, batch)`.
-- `xz`: Locations of latent encoding of shape `(k, dims, batch)`.
+- `xc::AA`: Locations of context set of shape `(n, dims, batch)`.
+- `yc::AA`: Observed values of context set of shape `(n, channels, batch)`.
+- `xz::AA`: Locations of latent encoding of shape `(k, dims, batch)`.
 
 # Returns
 - `Tuple`: Tuple containing locations of encodings, the deterministic encoding,
     and the latent encoding.
 """
-function encode(model::AbstractNP, xc, yc, xt)
+function encode(model::AbstractNP, xc::AA, yc::AA, xt::AA)
     # Compute locations of the encodings.
     xz = encoding_locations(model, xc, xt)
 
@@ -138,30 +138,31 @@ end
 Perform decoding.
 
 # Arguments
-- `xz`: Locations of latent encoding of shape `(k, dims, batch)`.
-- `z`: Samples of shape `(k, latent_channels, batch, num_samples)`.
-- `r`: Deterministic encoding of shape `(k, dim_embedding, batch)`
-- `xt`: Locations of target set of shape `(m, dims, batch)`.
+- `xz::AA`: Locations of latent encoding of shape `(k, dims, batch)`.
+- `z::AA`: Samples of shape `(k, latent_channels, batch, num_samples)`.
+- `r::AA`: Deterministic encoding of shape `(k, dim_embedding, batch)`
+- `xt::AA`: Locations of target set of shape `(m, dims, batch)`.
 
 # Returns
-- `Tuple{AbstractArray, AbstractArray}`: Tuple containing means and standard deviations.
+- `Tuple{AA, AA}`: Tuple containing means and standard deviations.
 """
-decode(model::NP, xz, z, r, xt) = model.decoder(repeat_cat(z, r, xt, dims=2))
+decode(model::NP, xz::AA, z::AA, r::AA, xt::AA) =
+    model.decoder(repeat_cat(z, r, xt, dims=2))
 
 """
-    (model::AbstractNP)(xc, yc, xt, num_samples::Integer)
+    (model::AbstractNP)(xc::AA, yc::AA, xt::AA, num_samples::Integer)
 
 # Arguments
-- `xc`: Locations of context set of shape `(n, dims, batch)`.
-- `yc`: Observed values of context set of shape `(n, channels, batch)`.
-- `xt`: Locations of target set of shape `(m, dims, batch)`.
+- `xc::AA`: Locations of context set of shape `(n, dims, batch)`.
+- `yc::AA`: Observed values of context set of shape `(n, channels, batch)`.
+- `xt::AA`: Locations of target set of shape `(m, dims, batch)`.
 - `num_samples::Integer`: Number of samples.
 
 # Returns
-- `Tuple{AbstractArray, AbstractArray}`: Tuple containing means and standard deviations.
+- `Tuple{AA, AA}`: Tuple containing means and standard deviations.
 """
 
-function (model::AbstractNP)(xc, yc, xt, num_samples::Integer)
+function (model::AbstractNP)(xc::AA, yc::AA, xt::AA, num_samples::Integer)
     # Perform deterministic and latent encoding.
     xz, pz, r = encode(model, xc, yc, xt)
 
@@ -175,7 +176,7 @@ function (model::AbstractNP)(xc, yc, xt, num_samples::Integer)
     return channels, exp.(model.log_σ)
 end
 
-function _sample(μ::AbstractArray, σ::AbstractArray, num_samples::Integer)
+function _sample(μ::AA, σ::AA, num_samples::Integer)
     ε = randn(Float32, size(μ)..., num_samples) |> gpu
     return μ .+ σ .* ε
 end
@@ -200,17 +201,17 @@ end
 @Flux.treelike NPEncoder
 
 """
-    (model::NPEncoder)(xc, yc, xz)
+    (model::NPEncoder)(xc::AA, yc::AA, xz::AA)
 
 # Arguments
-- `xc`: Locations of context set of shape `(n, dims, batch)`.
-- `yc`: Observed values of context set of shape `(n, channels, batch)`.
-- `xz`: Locations of latent encoding of shape `(k, dims, batch)`.
+- `xc::AA`: Locations of context set of shape `(n, dims, batch)`.
+- `yc::AA`: Observed values of context set of shape `(n, channels, batch)`.
+- `xz::AA`: Locations of latent encoding of shape `(k, dims, batch)`.
 
 # Returns
-- `AbstractArray`: Encoding.
+- `AA`: Encoding.
 """
-(encoder::NPEncoder)(xc, yc, xz) =
+(encoder::NPEncoder)(xc::AA, yc::AA, xz::AA) =
     encoder.ff₂(mean(encoder.ff₁(cat(xc, yc, dims=2)), dims=1))
 
 """
@@ -220,12 +221,12 @@ Construct an encoding for the empty set.
 
 # Arguments
 - `encoder::NPEncoder` Model.
-- `xz`: Locations of encoding of shape `(k, dims, batch)`.
+- `xz::AA`: Locations of encoding of shape `(k, dims, batch)`.
 
 # Returns
-- `AbstractArray`: Empty encoding.
+- `AA`: Empty encoding.
 """
-function empty_encoding(encoder::NPEncoder, xz)
+function empty_encoding(encoder::NPEncoder, xz::AA)
     batch_size = size(xz, 3)
     r = zeros(Float32, 1, encoder.ff₁.dim_out, batch_size) |> gpu
     return encoder.ff₂(r)
@@ -302,10 +303,10 @@ end
     loglik(
         model::AbstractNP,
         epoch::Integer,
-        xc,
-        yc,
-        xt,
-        yt;
+        xc::AA,
+        yc::AA,
+        xt::AA,
+        yt::AA;
         num_samples::Integer,
         importance_weighted::Bool=true
     )
@@ -315,10 +316,10 @@ Log-expected-likelihood loss. This is a biased estimate of the log-likelihood.
 # Arguments
 - `model::AbstractNP`: Model.
 - `epoch::Integer`: Current epoch.
-- `xc`: Locations of context set of shape `(n, dims, batch)`.
-- `yc`: Observed values of context set of shape `(n, channels, batch)`.
-- `xt`: Locations of target set of shape `(m, dims, batch)`.
-- `yt`: Observed values of target set of shape `(m, channels, batch)`.
+- `xc::AA`: Locations of context set of shape `(n, dims, batch)`.
+- `yc::AA`: Observed values of context set of shape `(n, channels, batch)`.
+- `xt::AA`: Locations of target set of shape `(m, dims, batch)`.
+- `yt::AA`: Observed values of target set of shape `(m, channels, batch)`.
 
 # Keywords
 - `num_samples::Integer`: Number of samples.
@@ -330,10 +331,10 @@ Log-expected-likelihood loss. This is a biased estimate of the log-likelihood.
 function loglik(
     model::AbstractNP,
     epoch::Integer,
-    xc,
-    yc,
-    xt,
-    yt;
+    xc::AA,
+    yc::AA,
+    xt::AA,
+    yt::AA;
     num_samples::Integer,
     importance_weighted::Bool=true
 )
@@ -368,22 +369,30 @@ function loglik(
     return -mean(logpdfs)
 end
 
-_logpdf(xs::AbstractArray...) = sum(gaussian_logpdf(xs...), dims=(1, 2))
+_logpdf(xs::AA...) = sum(gaussian_logpdf(xs...), dims=(1, 2))
 _logpdf(ys::Tuple, ds::Tuple...) =
     reduce((x, y) -> x .+ y, [_logpdf(y, d...) for (y, d) in zip(ys, ds)])
 
 """
-    elbo(model::AbstractNP, epoch::Integer, xc, yc, xt, yt, num_samples::Integer)
+    elbo(
+        model::AbstractNP,
+        epoch::Integer,
+        xc::AA,
+        yc::AA,
+        xt::AA,
+        yt::AA;
+        num_samples::Integer
+    )
 
 Neural process ELBO-style loss. Subsumes the context set into the target set.
 
 # Arguments
 - `model::AbstractNP`: Model.
 - `epoch::Integer`: Current epoch.
-- `xc`: Locations of context set of shape `(n, dims, batch)`.
-- `yc`: Observed values of context set of shape `(n, channels, batch)`.
-- `xt`: Locations of target set of shape `(m, dims, batch)`.
-- `yt`: Observed values of target set of shape `(m, channels, batch)`.
+- `xc::AA`: Locations of context set of shape `(n, dims, batch)`.
+- `yc::AA`: Observed values of context set of shape `(n, channels, batch)`.
+- `xt::AA`: Locations of target set of shape `(m, dims, batch)`.
+- `yt::AA`: Observed values of target set of shape `(m, channels, batch)`.
 
 # Keywords
 - `num_samples::Integer`: Number of samples.
@@ -391,7 +400,15 @@ Neural process ELBO-style loss. Subsumes the context set into the target set.
 # Returns
 - `Real`: Average negative NP loss.
 """
-function elbo(model::AbstractNP, epoch::Integer, xc, yc, xt, yt; num_samples::Integer)
+function elbo(
+    model::AbstractNP,
+    epoch::Integer,
+    xc::AA,
+    yc::AA,
+    xt::AA,
+    yt::AA;
+    num_samples::Integer
+)
     # We subsume the context set into the target set for this ELBO.
     x_all = cat(xc, xt, dims=1)
     y_all = cat(yc, yt, dims=1)
@@ -417,38 +434,26 @@ function elbo(model::AbstractNP, epoch::Integer, xc, yc, xt, yt; num_samples::In
     return -mean(elbos)
 end
 
-_sum(x::AbstractArray) = sum(x, dims=(1, 2))  # Sum over data points and channels.
+_sum(x::AA) = sum(x, dims=(1, 2))  # Sum over data points and channels.
 _sum(xs::Tuple) = reduce((x, y) -> x .+ y, _sum.(xs))
 
 """
-    predict(
-        model::AbstractNP,
-        xc::AbstractVector,
-        yc::AbstractVector,
-        xt::AbstractVector;
-        num_samples::Integer=10
-    )
+    predict(model::AbstractNP, xc::AV, yc::AV, xt::AV; num_samples::Integer=10)
 
 # Arguments
 - `model::AbstractNP`: Model.
-- `xc::AbstractVector`: Locations of observed values of shape `(n)`.
-- `yc::AbstractVector`: Observed values of shape `(n)`.
-- `xt::AbstractVector`: Locations of target values of shape `(m)`.
+- `xc::AV`: Locations of observed values of shape `(n)`.
+- `yc::AV`: Observed values of shape `(n)`.
+- `xt::AV`: Locations of target values of shape `(m)`.
 
 # Keywords
 - `num_samples::Integer=10`: Number of posterior samples.
 
 # Returns
-- `Tuple{Nothing, Nothing, Nothing, AbstractArray}`: Tuple containing `nothing`, `nothing`,
+- `Tuple{Nothing, Nothing, Nothing, AA}`: Tuple containing `nothing`, `nothing`,
     `nothing`, and `num_samples` posterior samples.
 """
-function predict(
-    model::AbstractNP,
-    xc::AbstractVector,
-    yc::AbstractVector,
-    xt::AbstractVector;
-    num_samples::Integer=10
-)
+function predict(model::AbstractNP, xc::AV, yc::AV, xt::AV; num_samples::Integer=10)
     μ, σ = untrack(model)(expand_gpu.((xc, yc, xt))..., num_samples)
     samples = μ[:, 1, 1, :] |> cpu
     return nothing, nothing, nothing, samples

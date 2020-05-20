@@ -19,17 +19,17 @@ end
 @Flux.treelike Attention
 
 """
-    (layer::Attention)(xc, yc, xt)
+    (layer::Attention)(xc::AA, yc::AA, xt::AA)
 
 # Arguments
-- `xc`: Locations of context set of shape `(n, dims, batch)`.
-- `yc`: Observed values of context set of shape `(n, channels, batch)`.
-- `xz`: Locations of latent encoding of shape `(k, dims, batch)`.
+- `xc::AA`: Locations of context set of shape `(n, dims, batch)`.
+- `yc::AA`: Observed values of context set of shape `(n, channels, batch)`.
+- `xz::AA`: Locations of latent encoding of shape `(k, dims, batch)`.
 
 # Returns
-- `AbstractArray`: Encodings of shape `(k, dim_embedding, batch)`.
+- `AA`: Encodings of shape `(k, dim_embedding, batch)`.
 """
-function (layer::Attention)(xc, yc, xz)
+function (layer::Attention)(xc::AA, yc::AA, xz::AA)
     # Perform encodings.
     keys = layer.encoder_x(xc)
     queries = layer.encoder_x(xz)
@@ -39,7 +39,7 @@ function (layer::Attention)(xc, yc, xz)
     products = batched_mul(queries, batched_transpose(keys))
     products = products ./ Float32(sqrt(size(queries, 2)))  # Keep variance constant.
     channels = batched_mul(softmax(products, dims=2), values)
-    
+
     # Mix heads.
     channels = layer.mixer(channels)
 
@@ -48,7 +48,7 @@ function (layer::Attention)(xc, yc, xz)
 end
 
 """
-    empty_encoding(layer::Attention, xz)
+    empty_encoding(layer::Attention, xz::AA)
 
 Construct an encoding for the empty set.
 
@@ -57,9 +57,9 @@ Construct an encoding for the empty set.
 - `xz`: Locations of encoding of shape `(k, dims, batch)`.
 
 # Returns
-- `AbstractArray`: Empty encoding.
+- `AA`: Empty encoding.
 """
-function empty_encoding(layer::Attention, xz)
+function empty_encoding(layer::Attention, xz::AA)
     batch_size = size(xz, 3)
     return zeros(Float32, 1, layer.transformer.ff₂.dim_out, batch_size) |> gpu
 end
@@ -128,16 +128,16 @@ function transformer(dim_embedding::Integer, dim_head::Integer, num_heads::Integ
 end
 
 """
-    (layer::Transformer)(channels, queries)
+    (layer::Transformer)(channels::AA, queries::AA)
 
 # Arguments
-- `channels`: Mixed heads.
-- `queries`: Queries. One per head.
+- `channels::AA`: Mixed heads.
+- `queries::AA`: Queries. One per head.
 
 # Returns
-- `AbstractArray`: Output of transformer architecture.
+- `AA`: Output of transformer architecture.
 """
-function (layer::Transformer)(channels, queries)
+function (layer::Transformer)(channels::AA, queries::AA)
     channels = layer.ln₁(channels .+ layer.ff₁(queries))
     channels = layer.ln₂(channels .+ layer.ff₂(channels))
     return channels
@@ -182,15 +182,15 @@ function layer_norm(shape::Integer...)
 end
 
 """
-    (layer::LayerNorm)(x)
+    (layer::LayerNorm)(x::AA)
 
 # Arguments
-- `x`: Unnormalised input.
+- `x::AA`: Unnormalised input.
 
 # Returns
-- `AbstractArray`: `x` normalised.
+- `AA`: `x` normalised.
 """
-function (layer::LayerNorm)(x)
+function (layer::LayerNorm)(x::AA)
     x = x .- mean(x, dims=layer.dims)
     x = x ./ sqrt.(mean(x .* x, dims=layer.dims) .+ 1f-8)
     return x .* layer.w .+ layer.b
@@ -211,15 +211,15 @@ end
 @Flux.treelike BatchedMLP
 
 """
-    (layer::BatchedMLP)(x)
+    (layer::BatchedMLP)(x::AA)
 
 # Arguments
-- `x`: Batched input.
+- `x::AA`: Batched input.
 
 # Returns
-- `AbstractArray`: Result of applying `layer.mlp` to every batch in `x`.
+- `AA`: Result of applying `layer.mlp` to every batch in `x`.
 """
-function (layer::BatchedMLP)(x)
+function (layer::BatchedMLP)(x::AA)
     x, back = to_rank_3(x)  # Compress all batch dimensions.
 
     n, _, batch_size = size(x)

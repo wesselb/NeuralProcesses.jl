@@ -27,7 +27,7 @@ Ceil a number to the nearest odd integer.
 ceil_odd(x::T) where T<:Real = Integer(ceil((x - 1) / 2) * 2 + 1)
 
 """
-    insert_dim(x::T; pos::Integer) where T<:AbstractArray
+    insert_dim(x::T; pos::Integer) where T<:AA
 
 # Arguments
 - `x::T`: Array to insert dimension into.
@@ -38,23 +38,23 @@ ceil_odd(x::T) where T<:Real = Integer(ceil((x - 1) / 2) * 2 + 1)
 # Returns
 - `T`: `x` with an extra dimension at position `pos`.
 """
-function insert_dim(x::T; pos::Integer) where T<: AbstractArray
+function insert_dim(x::T; pos::Integer) where T<: AA
     return reshape(x, size(x)[1:pos - 1]..., 1, size(x)[pos:end]...)
 end
 
 """
-    rbf(dist²::AbstractArray)
+    rbf(dist²::AA)
 
 # Arguments
-- `dist²::AbstractArray`: Squared distances.
+- `dist²::AA`: Squared distances.
 
 # Returns
-- `AbstractArray`: RBF kernel evaluated at squared distances `dist²`.
+- `AA`: RBF kernel evaluated at squared distances `dist²`.
 """
-rbf(dist²::AbstractArray) = exp.(-0.5f0 .* dist²)
+rbf(dist²::AA) = exp.(-0.5f0 .* dist²)
 
 """
-    compute_dists²(x::AbstractArray, y::AbstractArray)
+    compute_dists²(x::AA, y::AA)
 
 Compute batched pairwise squared distances between 3-tensors `x` and `y`. The batch
 dimension is the last dimension.
@@ -66,30 +66,30 @@ dimension is the last dimension.
 # Returns:
 - `T`: Pairwise distances between and `x` and `y`.
 """
-compute_dists²(x::AbstractArray, y::AbstractArray) = compute_dists²(x, y, Val(size(x, 2)))
+compute_dists²(x::AA, y::AA) = compute_dists²(x, y, Val(size(x, 2)))
 
-compute_dists²(x::AbstractArray, y::AbstractArray, ::Val{1}) =
+compute_dists²(x::AA, y::AA, ::Val{1}) =
     (x .- permutedims(y, (2, 1, 3))).^2
 
-function compute_dists²(x::AbstractArray, y::AbstractArray, d::Val)
+function compute_dists²(x::AA, y::AA, d::Val)
     y = permutedims(y, (2, 1, 3))
     return sum(x.^2; dims=2) .+ sum(y.^2; dims=1) .- 2 .* batched_mul(x, y)
 end
 
 """
-    gaussian_logpdf(x::AbstractArray, μ::AbstractArray, σ::AbstractArray)
+    gaussian_logpdf(x::AA, μ::AA, σ::AA)
 
 One-dimensional Gaussian log-pdf.
 
 # Arguments
-- `x::AbstractArray`: Values to evaluate log-pdf at.
-- `μ::AbstractArray`: Means.
-- `σ::AbstractArray`: Standard deviations.
+- `x::AA`: Values to evaluate log-pdf at.
+- `μ::AA`: Means.
+- `σ::AA`: Standard deviations.
 
 # Returns
-- `AbstractArray`: Log-pdfs at `x`.
+- `AA`: Log-pdfs at `x`.
 """
-function gaussian_logpdf(x::AbstractArray, μ::AbstractArray, σ::AbstractArray)
+function gaussian_logpdf(x::AA, μ::AA, σ::AA)
     # Loop fusion introduces indexing, which severly bottlenecks GPU computation, so
     # we roll out the computation like this.
     # TODO: What is going on?
@@ -102,19 +102,19 @@ function gaussian_logpdf(x::AbstractArray, μ::AbstractArray, σ::AbstractArray)
 end
 
 """
-    gaussian_logpdf(x::AbstractVector, μ::AbstractVector, σ::AbstractArray)
+    gaussian_logpdf(x::AV, μ::AV, σ::AA)
 
 Multi-dimensional Gaussian log-pdf.
 
 # Arguments
-- `x::AbstractVector`: Value to evaluate log-pdf at.
-- `μ::AbstractVector`: Mean.
-- `Σ::AbstractMatrix`: Covariance matrix.
+- `x::AV`: Value to evaluate log-pdf at.
+- `μ::AV`: Mean.
+- `Σ::AM`: Covariance matrix.
 
 # Returns
 - `Real`: Log-pdf at `x`.
 """
-gaussian_logpdf(x::AbstractVector, μ::AbstractVector, Σ::AbstractMatrix) =
+gaussian_logpdf(x::AV, μ::AV, Σ::AM) =
     Tracker.track(gaussian_logpdf, x, μ, Σ)
 
 function _gaussian_logpdf(x, μ, Σ)
@@ -144,17 +144,17 @@ gaussian_logpdf(x::CuOrVector, μ::CuOrVector, Σ::CuOrMatrix) =
 end
 
 """
-    diagonal(x::AbstractVector)
+    diagonal(x::AV)
 
 Turn a vector `x` into a diagonal matrix.
 
 # Arguments
-- `x::AbstractVector`: Vector.
+- `x::AV`: Vector.
 
 # Returns
-- `AbstractMatrix`: Matrix with `x` on the diagonal.
+- `AM`: Matrix with `x` on the diagonal.
 """
-diagonal(x::AbstractVector) = Tracker.track(diagonal, x)
+diagonal(x::AV) = Tracker.track(diagonal, x)
 
 diagonal(x::Array{T, 1}) where T<:Real = convert(Array, Diagonal(x))
 
@@ -174,7 +174,7 @@ Batch transpose tensor `x` where dimensions `1:2` are the matrix dimensions and 
 # Returns
 - Transpose of `x`.
 """
-batched_transpose(x::AbstractArray) = Tracker.track(batched_transpose, x)
+batched_transpose(x::AA) = Tracker.track(batched_transpose, x)
 
 batched_transpose(x::CuOrArray) =
     permutedims(x, (2, 1, range(3, length(size(x)), step=1)...))
@@ -196,7 +196,7 @@ dimensions and dimension `3:end` are the batch dimensions.
 # Returns
 - Matrix product of `x` and `y`.
 """
-batched_mul(x::AbstractArray, y::AbstractArray) = Tracker.track(batched_mul, x, y)
+batched_mul(x::AA, y::AA) = Tracker.track(batched_mul, x, y)
 
 function _batched_mul(x, y)
     x, back = to_rank_3(x)
@@ -218,53 +218,53 @@ batched_mul(x::CuOrArray, y::CuOrArray) = first(_batched_mul(x, y))
 end
 
 """
-    logsumexp(x::AbstractArray; dims)
+    logsumexp(x::AA; dims)
 
 Safe log-sum-exp reduction of array `x` along dimensions `dims`.
 
 # Arguments
-- `x::AbstractArray`: Array to apply reductions to.
+- `x::AA`: Array to apply reductions to.
 - `dims`: Dimensions along which reduction is applied.
 
 # Returns
 - `Real`: Log-sum-exp reduction of `x` along dimensions `dims`.
 """
-function logsumexp(x::AbstractArray; dims=:)
+function logsumexp(x::AA; dims=:)
     u = maximum(Tracker.data(x), dims=dims)  # Do not track the maximum!
     return u .+ log.(sum(exp.(x .- u), dims=dims))
 end
 
 """
-    softmax(x::AbstractArray; dims)
+    softmax(x::AA; dims)
 
 Safe softmax array `x` along dimensions `dims`.
 
 # Arguments
-- `x::AbstractArray`: Array to apply softmax to.
+- `x::AA`: Array to apply softmax to.
 - `dims`: Dimensions along which the softmax is applied.
 
 # Returns
 - `Real`: Softmax of `x` along dimensions `dims`.
 """
-function softmax(x::AbstractArray; dims=:)
+function softmax(x::AA; dims=:)
     u = maximum(Tracker.data(x), dims=dims)  # Do not track the maximum!
     x = exp.(x .- u)
     return x ./ sum(x, dims=dims)
 end
 
 """
-    repeat_gpu(x::AbstractArray, reps...)
+    repeat_gpu(x::AA, reps...)
 
 Version of `repeat` that has GPU-compatible gradients.
 
 # Arguments
-- `x::AbstractArray`: Array to repeat.
+- `x::AA`: Array to repeat.
 - `reps...`: Repetitions.
 
 # Returns
-- `AbstractArray`: Repetition of `x`.
+- `AA`: Repetition of `x`.
 """
-repeat_gpu(x::AbstractArray, reps...) = Tracker.track(repeat_gpu, x, reps...)
+repeat_gpu(x::AA, reps...) = Tracker.track(repeat_gpu, x, reps...)
 
 repeat_gpu(x::CuOrArray, reps...) = repeat(x, reps...)
 
@@ -319,17 +319,17 @@ function repeat_cat(xs...; dims)
 end
 
 """
-    expand_gpu(x::AbstractVector)
+    expand_gpu(x::AV)
 
 Expand a vector to a three-tensor and move it to the GPU.
 
 # Arguments
-- `x::AbstractVector`: Vector to expand.
+- `x::AV`: Vector to expand.
 
 # Returns
-- `AbstractArray`: `x` as three-tensor and on the GPU.
+- `AA`: `x` as three-tensor and on the GPU.
 """
-expand_gpu(x::AbstractVector) = reshape(x, :, 1, 1) |> gpu
+expand_gpu(x::AV) = reshape(x, :, 1, 1) |> gpu
 
 """
     kl(μ₁, σ₁, μ₂, σ₂)
@@ -343,7 +343,7 @@ Kullback--Leibler divergence between one-dimensional Gaussian distributions.
 - `σ₂`: Standard deviation of `q`.
 
 # Returns
-- `AbstractArray`: `KL(p, q)`.
+- `AA`: `KL(p, q)`.
 """
 function kl(μ₁, σ₁, μ₂, σ₂)
     # Loop fusion introduces indexing, which severly bottlenecks GPU computation, so
@@ -370,7 +370,7 @@ Kullback--Leibler divergences between multiple one-dimensional Gaussian distribu
 - `q₂::Tuple`: Means and standard deviations corresponding to `q₂`.
 
 # Returns
-- `Tuple{AbstractArray, AbstractArray}`: `KL(p₁, q₁)` and `KL(p₂, q₂)`.
+- `Tuple{AA, AA}`: `KL(p₁, q₁)` and `KL(p₂, q₂)`.
 """
 kl(p₁::Tuple, p₂::Tuple, q₁::Tuple, q₂::Tuple) = kl(p₁..., q₁...), kl(p₂..., q₂...)
 
@@ -397,7 +397,7 @@ Split a three-tensor into means and standard deviations on dimension two.
 - `channels`: Three-tensor to split into means and standard deviations on dimension two.
 
 # Returns
-- `Tuple{AbstractArray, AbstractArray}`: Tuple containing means and standard deviations.
+- `Tuple{AA, AA}`: Tuple containing means and standard deviations.
 """
 function split_μ_σ(channels)
     μ, transformed_σ = split(channels, 2)
@@ -419,18 +419,18 @@ Insert dimension two to `x` before applying `f` and remove dimension two afterwa
 with_dummy(f, x) = dropdims(f(insert_dim(x, pos=2)), dims=2)
 
 """
-    to_rank_3(x::AbstractArray)
+    to_rank_3(x::AA)
 
 Transform `x` into a three-tensor by compression the dimensions `3:end`.
 
 # Arguments
-- `x::AbstractArray`: Tensor to compress.
+- `x::AA`: Tensor to compress.
 
 # Returns
 - `Tuple`: Tuple containing `x` as a three-tensor and a function to transform back to
     the original dimensions.
 """
-function to_rank_3(x::AbstractArray)
+function to_rank_3(x::AA)
     # If `x` is already rank three, there is nothing to be done.
     if ndims(x) == 3
         return x, identity

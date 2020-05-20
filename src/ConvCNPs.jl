@@ -17,6 +17,14 @@ else
     const CuOrArray = Array
 end
 
+const AV = AbstractVector
+const AM = AbstractMatrix
+const AA = AbstractArray
+
+const MaybeAV = Union{Nothing, AbstractVector}
+const MaybeAM = Union{Nothing, AbstractMatrix}
+const MaybeAA = Union{Nothing, AbstractArray}
+
 include("util.jl")
 include("data.jl")
 include("conv.jl")
