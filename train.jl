@@ -84,11 +84,11 @@ elseif args["data"] == "sawtooth"
     points_per_unit = 64f0
     num_context = DiscreteUniform(0, 100)
     num_target = DiscreteUniform(100, 100)
-    num_channels = 32
+    num_channels = 64
     dim_embedding = 128
 elseif args["data"] == "mixture"
     process = Mixture(GP(Stheno.ConstKernel(1.0), GPC()), GP(stretch(eq(), 1 / 0.25), GPC()))
-    receptive_field = 2f0
+    receptive_field = 10f0
     points_per_unit = 64f0
     num_context = DiscreteUniform(0, 50)
     num_target = DiscreteUniform(50, 50)
@@ -187,12 +187,12 @@ else
                 num_decoder_layers=8,
                 num_encoder_channels=div(num_channels, 2),
                 num_decoder_channels=div(num_channels, 2),
-                num_latent_channels=2,  # Also one for a possible global variable.
+                num_latent_channels=16,
+                num_global_channels=args["model"] == "convnp-global" ? 16 : 0,
                 points_per_unit=points_per_unit,
                 margin=1f0,
                 σ=2f-2,
-                learn_σ=false,
-                global_variable=args["model"] == "convnp-global"
+                learn_σ=false
             ) |> gpu
         elseif args["model"] == "anp"
             model = anp_1d(
@@ -222,7 +222,7 @@ else
         model,
         loss,
         data_gen,
-        ADAM(5e-4),
+        ADAM(2e-4),
         bson=bson,
         starting_epoch=args["starting-epoch"],
         tasks_per_epoch=2^14,
