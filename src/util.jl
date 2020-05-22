@@ -227,7 +227,7 @@ Safe log-sum-exp reduction of array `x` along dimensions `dims`.
 - `dims`: Dimensions along which reduction is applied.
 
 # Returns
-- `Real`: Log-sum-exp reduction of `x` along dimensions `dims`.
+- `AA`: Log-sum-exp reduction of `x` along dimensions `dims`.
 """
 function logsumexp(x::AA; dims=:)
     u = maximum(Tracker.data(x), dims=dims)  # Do not track the maximum!
@@ -244,7 +244,7 @@ Safe softmax array `x` along dimensions `dims`.
 - `dims`: Dimensions along which the softmax is applied.
 
 # Returns
-- `Real`: Softmax of `x` along dimensions `dims`.
+- `AA`: Softmax of `x` along dimensions `dims`.
 """
 function softmax(x::AA; dims=:)
     u = maximum(Tracker.data(x), dims=dims)  # Do not track the maximum!
@@ -252,11 +252,34 @@ function softmax(x::AA; dims=:)
     return x ./ sum(x, dims=dims)
 end
 
+"""
+    softplus(x::AA)
+
+Safe softplus.
+
+# Arguments
+- `x::AA`: Array to apply softplus to.
+
+# Returns
+- `AA`: Softplus applied to every element in `x`.
+"""
 function softplus(x::AA)
     return log.(1 .+ exp.(-abs.(x))) .+ max.(x, 0)
 end
 
-function repeat_cat(xs...; dims)
+"""
+    repeat_cat(xs::AA...; dims::Integer)
+
+Repeat the tensors `xs` appropriately many times to concatenate them along dimension `dims`.
+
+# Arguments
+- `xs::AA...`: Tensors to concatenate.
+- `dims::Integer`: Dimensions to concatenate along.
+
+# Returns
+- `AA`: Concatenation of `xs`.
+"""
+function repeat_cat(xs::AA...; dims::Integer)
     # Determine the maximum rank.
     max_rank = maximum(ndims.(xs))
 
@@ -281,7 +304,20 @@ function repeat_cat(xs...; dims)
     return cat(xs..., dims=dims)
 end
 
-repeat_gpu(x, reps...) = x .* ones_gpu(Float32, reps...)
+"""
+    repeat_gpu(x::AA, reps::Integer...)
+
+Repeat that is compatible with the GPU. This is not a full substitute of `repeat`: it can
+only repeat along dimensions of size one.
+
+# Arguments
+- `x::AA`: Tensor to repeat.
+- `reps::Integer...`: Repetitions.
+
+# Returns
+- `AA`: `x` repeated `reps` times along every dimension.
+"""
+repeat_gpu(x::AA, reps::Integer...) = x .* ones_gpu(Float32, reps...)
 
 """
     expand_gpu(x::AV)
@@ -339,9 +375,36 @@ Kullback--Leibler divergences between multiple one-dimensional Gaussian distribu
 """
 kl(p₁::Tuple, p₂::Tuple, q₁::Tuple, q₂::Tuple) = kl(p₁..., q₁...), kl(p₂..., q₂...)
 
-slice_at(x, i, slice) = getindex(x, ntuple(j -> i == j ? slice : Colon(), ndims(x))...)
+"""
+    slice_at(x::AA, dim::Integer, slice)
 
-function split(x, dim)
+Slice `x` at dimension `dim` with slice `slice`.
+
+# Arguments
+- `x::AA`: Tensor to slice.
+- `dim::Integer`: Dimension to slice.
+- `slice`: Slice to get.
+
+# Returns
+- `AA`: `x[..., slice, ...]` with `slice` at position `dim`.
+"""
+slice_at(x::AA, dim::Integer, slice) =
+    getindex(x, ntuple(i -> i == dim ? slice : Colon(), ndims(x))...)
+
+"""
+    split(x, dim::Integer)
+    split(x)
+
+Split `x` into two.
+
+# Arguments
+- `x`: Thing to split into two.
+- `dim::Integer`: Dimension to split along.
+
+# Returns
+- `Tuple`: Two halves of `x`.
+"""
+function split(x, dim::Integer)
     mod(size(x, dim), 2) == 0 || error("Size of dimension $dim must be even.")
     i = div(size(x, dim), 2)  # Determine index at which to split.
     return slice_at(x, dim, 1:i), slice_at(x, dim, i + 1:size(x, dim))

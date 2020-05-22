@@ -120,14 +120,22 @@ end
         test_gradient((y) -> ConvCNPs.softmax(y, dims=1), x)
     end
 
-    @testset "repeat_gpu" begin
-        # TODO: fix this
-        θ = randn(3, 2, 5, 3)
-        f(x) = sum(θ .* ConvCNPs.repeat_gpu(x, 1, 2, 1, 3))
+    @testset "softplus" begin
+        x = randn(3, 4, 5)
+        @test NNlib.softplus.(x) ≈ ConvCNPs.softplus(x)
+    end
 
+    @testset "repeat_cat" begin
+        x = randn(3, 1, 2)
+        y = randn(1, 5, 2, 4)
+        @test ConvCNPs.repeat_cat(x, y, dims=1) ==
+            cat(repeat(x, 1, 1, 1, 4), repeat(y, 3, 1, 1, 1), 2)
+    end
+
+    @testset "repeat_gpu" begin
+        θ = randn(3, 2, 5, 3)
         x = randn(3, 1, 5)
-        @test f(x) ≈ sum(θ .* repeat(x, 1, 2, 1, 3))
-        test_gradient(f, x)
+        @test θ .* ConvCNPs.repeat_gpu(x, 1, 2, 1, 3) ≈ θ .* repeat(x, 1, 2, 1, 3)
     end
 
     @testset "expand_gpu" begin
@@ -142,6 +150,23 @@ end
         x = μ₁ .+ σ₁ .* randn(1000000)
         estimate = mean(gaussian_logpdf(x, μ₁, σ₁) .- gaussian_logpdf(x, μ₂, σ₂))
         @test ConvCNPs.kl(μ₁, σ₁,  μ₂, σ₂)[1] ≈ estimate atol=5e-2
+
+        # Test multi-argument usage.
+        p₁, q₁ = (rand(), rand()), (rand(), rand())
+        p₂, q₂ = (rand(), rand()), (rand(), rand())
+        @test kl(p₁, p₂, q₁, q₂) == (kl(p₁..., q₁...), kl(p₂..., q₂...))
+    end
+
+    @testset "slice_at" begin
+        x = randn(3, 4, 5)
+        @test ConvCNPs.slice_at(x, 2, 2:3) == x[:, 2:3, :]
+    end
+
+    @testset "split" begin
+        x = randn(3, 4, 5)
+        @test ConvCNPs.split(x, 2) == (x[:, 1:2, :], x[:, 3:4, :])
+        x = randn(10)
+        @test ConvCNPs.split(x) == (x[1:5], x[6:10])
     end
 
     @testset "split_μ_σ" begin
