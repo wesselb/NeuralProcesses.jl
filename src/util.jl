@@ -38,7 +38,7 @@ ceil_odd(x::T) where T<:Real = Integer(ceil((x - 1) / 2) * 2 + 1)
 # Returns
 - `T`: `x` with an extra dimension at position `pos`.
 """
-function insert_dim(x::T; pos::Integer) where T<: AA
+function insert_dim(x::T; pos::Integer) where T<:AA
     return reshape(x, size(x)[1:pos - 1]..., 1, size(x)[pos:end]...)
 end
 
@@ -317,7 +317,11 @@ only repeat along dimensions of size one.
 # Returns
 - `AA`: `x` repeated `reps` times along every dimension.
 """
-repeat_gpu(x::AA, reps::Integer...) = x .* ones_gpu(Float32, reps...)
+function repeat_gpu(x::AA, reps::Integer...)
+    # Only do work if there is work to be done.
+    all(reps .== 1) && ndims(x) >= length(reps) && return x
+    return x .* repeat_ones(Float32, reps...)
+end
 
 """
     expand_gpu(x::AV)
