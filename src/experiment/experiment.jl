@@ -90,9 +90,6 @@ function train!(
     @printf("Batch size:           %-6d\n", data_gen.batch_size)
     @printf("Batches per epoch:    %-6d\n", batches_per_epoch)
 
-    # Evaluate once before training.
-    eval_model(model, loss, data_gen, 1)
-
     for epoch in starting_epoch:(starting_epoch + epochs - 1)
         # Perform epoch.
         println("Epoch: $epoch")
