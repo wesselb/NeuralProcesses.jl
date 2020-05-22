@@ -7,16 +7,16 @@ Convolutional CNP model with a factorised Gaussian predictive distribution.
 
 # Fields
 - `disc::Discretisation`: Discretisation for the encoding.
-- `encoder::SetConv`: Encoder.
+- `encoder`: Encoder.
 - `conv::Chain`: CNN that approximates ρ.
-- `decoder::SetConv`: Decoder.
+- `decoder`: Decoder.
 - `predict`: Function that transforms the decoding into a predictive distribution.
 """
 struct ConvCNP
     disc::Discretisation
-    encoder::SetConv
+    encoder
     conv::Chain
-    decoder::SetConv
+    decoder
     predict
 end
 

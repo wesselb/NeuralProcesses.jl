@@ -59,7 +59,7 @@ decode(model::ConvNP, xz::AA, z::Tuple, r::Nothing, xt::AA) =
     decode(model, xz, repeat_cat(z..., dims=2), r, xt)
 
 _repeat_samples(x, num_samples) = reshape(
-    repeat(x, ntuple(_ -> 1, ndims(x))..., num_samples),
+    repeat_gpu(x, ntuple(_ -> 1, ndims(x))..., num_samples),
     size(x)[1:end - 1]...,
     size(x)[end] * num_samples
 )
@@ -133,7 +133,27 @@ function convnp_1d(;
         num_out_channels=1
     )
 
+    # If we are using a global variable, split it off of the end of the encoder.
+    if global_variable
+        # TODO: specify number of global latent channels
+        num_latent_global_channels = div(2num_latent_channels, 2)
+        encoder_predict = SplitGlobalVariable(
+            num_latent_global_channels,
+            layer_norm(1, num_latent_global_channels, 1),
+            batched_mlp(
+                dim_in    =num_latent_global_channels,
+                dim_hidden=num_latent_global_channels,
+                dim_out   =num_latent_global_channels,
+                num_layers=3
+            )
+        )
+    else
+        encoder_predict = split_μ_σ
+    end
+
     # Build encoder.
+    # TODO: allow to specify the discretisation in the convcnp, so remove the
+    # discretisation below
     scale = 2 / arch_encoder.points_per_unit
     encoder = ConvCNP(
         UniformDiscretisation1d(
@@ -143,10 +163,8 @@ function convnp_1d(;
         ),
         set_conv(2, scale),  # Account for density channel.
         arch_encoder.conv,
-        set_conv(2num_latent_channels, scale),
-        # Insert the global variable by performing a mean pooling of half the latent
-        # channels here.
-        global_variable ? x -> split_μ_σ.(_split_mean_pool(x)) : split_μ_σ
+        identity,
+        encoder_predict
     )
 
     # Put model together.
@@ -164,8 +182,28 @@ function convnp_1d(;
     )
 end
 
-function _split_mean_pool(x)
-    # Perform mean pooling on the first half of the channels.
-    x₁, x₂ = split(x, 2)
-    return sum(x₁, dims=1) ./ (64 * 4), x₂
+decode(::typeof(identity), xz, channels, xt) = channels
+
+struct SplitGlobalVariable
+    num_global_channels::Integer
+    ln::LayerNorm
+    ff::BatchedMLP
+end
+
+@Flux.treelike SplitGlobalVariable
+
+function (layer::SplitGlobalVariable)(x::AA)
+    # Split channels.
+    x₁ = x[:, 1:layer.num_global_channels, :]
+    x₂ = x[:, layer.num_global_channels + 1:end, :]
+    
+    # Mean-pool over data points to make global channels. Also normalise to not depend
+    # on the size of the discretisation.
+    x₁ = mean(x₁, dims=1) 
+    x₁ = layer.ln(x₁)
+
+    # Apply a FF network to allow the magnitude to change. 
+    x₁ = layer.ff(x₁)
+
+    return split_μ_σ(x₁), split_μ_σ(x₂)
 end

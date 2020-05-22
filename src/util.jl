@@ -252,45 +252,8 @@ function softmax(x::AA; dims=:)
     return x ./ sum(x, dims=dims)
 end
 
-"""
-    repeat_gpu(x::AA, reps...)
-
-Version of `repeat` that has GPU-compatible gradients.
-
-# Arguments
-- `x::AA`: Array to repeat.
-- `reps...`: Repetitions.
-
-# Returns
-- `AA`: Repetition of `x`.
-"""
-repeat_gpu(x::AA, reps...) = Tracker.track(repeat_gpu, x, reps...)
-
-repeat_gpu(x::CuOrArray, reps...) = repeat(x, reps...)
-
-@Tracker.grad function repeat_gpu(x, reps...)
-    # Split into inner and outer repetitions.
-    inner = reps[1:min(ndims(x), length(reps))]
-    outer = reps[ndims(x) + 1:length(reps)]
-
-    # Check that no complicated repetitions happened.
-    for (i, r) in enumerate(inner)
-        if r > 1 && size(x, i) != 1
-            error("Gradient cannot deal with repetitions of dimensions of size not one.")
-        end
-    end
-
-    repeat(Tracker.data(x), reps...), function (ȳ)
-        # Determine which dimensions to sum and to drop.
-        drop_dims = Tuple(ndims(x) + 1:length(reps))
-        sum_dims = (findall(r -> r > 1, inner)..., drop_dims...)
-
-        x̄ = ȳ
-        length(sum_dims) > 0 && (x̄ = sum(x̄, dims=sum_dims))
-        length(drop_dims) > 0 && (x̄ = dropdims(x̄, dims=drop_dims))
-
-        return (x̄, ntuple(_ -> nothing, length(reps))...)
-    end
+function softplus(x::AA)
+    return log.(1 .+ exp.(-abs.(x))) .+ max.(x, 0)
 end
 
 function repeat_cat(xs...; dims)
@@ -317,6 +280,8 @@ function repeat_cat(xs...; dims)
     # Return concatenation.
     return cat(xs..., dims=dims)
 end
+
+repeat_gpu(x, reps...) = x .* ones_gpu(Float32, reps...)
 
 """
     expand_gpu(x::AV)
@@ -401,7 +366,7 @@ Split a three-tensor into means and standard deviations on dimension two.
 """
 function split_μ_σ(channels)
     μ, transformed_σ = split(channels, 2)
-    return μ, NNlib.softplus.(transformed_σ)
+    return μ, softplus(transformed_σ)
 end
 
 """

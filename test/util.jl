@@ -121,6 +121,7 @@ end
     end
 
     @testset "repeat_gpu" begin
+        # TODO: fix this
         θ = randn(3, 2, 5, 3)
         f(x) = sum(θ .* ConvCNPs.repeat_gpu(x, 1, 2, 1, 3))
 
