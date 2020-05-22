@@ -212,9 +212,10 @@ end
 """
     (layer::SplitGlobalVariable)(x::AA)
 
+Split `layer.num_global_channels` off of `x` to construct the global variable.
+
 # Arguments
-- `x::AA`: Output of the encoder. Half of the channels will be used to construct the global
-    variable.
+- `x::AA`: Tensor to split global variable off of.
 
 # Returns
 - `Tuple`: Two-tuple containing the distributions for the global and equivariant variable.
