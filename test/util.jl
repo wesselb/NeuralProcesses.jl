@@ -129,7 +129,7 @@ end
         x = randn(3, 1, 2)
         y = randn(1, 5, 2, 4)
         @test ConvCNPs.repeat_cat(x, y, dims=1) ==
-            cat(repeat(x, 1, 1, 1, 4), repeat(y, 3, 1, 1, 1), 2)
+            cat(repeat(x, 1, 1, 1, 4), repeat(y, 3, 1, 1, 1), dims=2)
     end
 
     @testset "repeat_gpu" begin
@@ -154,7 +154,8 @@ end
         # Test multi-argument usage.
         p₁, q₁ = (rand(), rand()), (rand(), rand())
         p₂, q₂ = (rand(), rand()), (rand(), rand())
-        @test kl(p₁, p₂, q₁, q₂) == (kl(p₁..., q₁...), kl(p₂..., q₂...))
+        @test ConvCNPs.kl(p₁, p₂, q₁, q₂) ==
+            (ConvCNPs.kl(p₁..., q₁...), ConvCNPs.kl(p₂..., q₂...))
     end
 
     @testset "slice_at" begin
