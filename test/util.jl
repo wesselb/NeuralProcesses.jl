@@ -128,7 +128,7 @@ end
     @testset "repeat_cat" begin
         x = randn(3, 1, 2)
         y = randn(1, 5, 2, 4)
-        @test ConvCNPs.repeat_cat(x, y, dims=1) ==
+        @test ConvCNPs.repeat_cat(x, y, dims=2) ==
             cat(repeat(x, 1, 1, 1, 4), repeat(y, 3, 1, 1, 1), dims=2)
     end
 
@@ -152,8 +152,8 @@ end
         @test ConvCNPs.kl(μ₁, σ₁,  μ₂, σ₂)[1] ≈ estimate atol=5e-2
 
         # Test multi-argument usage.
-        p₁, q₁ = (rand(), rand()), (rand(), rand())
-        p₂, q₂ = (rand(), rand()), (rand(), rand())
+        p₁, q₁ = (rand(1), rand(1)), (rand(1), rand(1))
+        p₂, q₂ = (rand(1), rand(1)), (rand(1), rand(1))
         @test ConvCNPs.kl(p₁, p₂, q₁, q₂) ==
             (ConvCNPs.kl(p₁..., q₁...), ConvCNPs.kl(p₂..., q₂...))
     end
