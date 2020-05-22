@@ -320,7 +320,7 @@ only repeat along dimensions of size one.
 function repeat_gpu(x::AA, reps::Integer...)
     # Only do work if there is work to be done.
     all(reps .== 1) && ndims(x) >= length(reps) && return x
-    return x .* repeat_ones(Float32, reps...)
+    return x .* ones_gpu(Float32, reps...)
 end
 
 """
