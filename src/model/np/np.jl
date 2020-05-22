@@ -178,7 +178,6 @@ end
 
 _sample(μ::AA, σ::AA, num_samples::Integer) =
     μ .+ σ .* randn_gpu(Float32, size(μ)..., num_samples)
-
 _sample(d₁::Tuple, d₂::Tuple, num_samples::Integer) =
     (_sample(d₁..., num_samples), _sample(d₂..., num_samples))
 
@@ -432,7 +431,7 @@ function elbo(
     return -mean(elbos)
 end
 
-_sum(x::AA) = sum(x, dims=(1, 2))  # Sum over data points and channels.
+_sum(x::AA) = sum(x, dims=(1, 2))
 _sum(xs::Tuple) = reduce((x, y) -> x .+ y, _sum.(xs))
 
 """

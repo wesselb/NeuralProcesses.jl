@@ -39,6 +39,7 @@ include("data.jl")
 include("conv.jl")
 
 include("discretisation.jl")
+include("nn.jl")
 include("setconv.jl")
 include("attention.jl")
 include("model/cnp/convcnp.jl")

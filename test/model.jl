@@ -22,8 +22,8 @@
         num_encoder_channels=2,
         num_decoder_channels=1,
         num_latent_channels=2,
-        points_per_unit=5f0,
-        global_variable=false
+        num_global_channels=0,
+        points_per_unit=5f0
     )
     convnp_global = convnp_1d(
         receptive_field=1f0,
@@ -32,8 +32,8 @@
         num_encoder_channels=2,
         num_decoder_channels=1,
         num_latent_channels=2,
-        points_per_unit=5f0,
-        global_variable=true
+        num_global_channels=2,
+        points_per_unit=5f0
     )
     anp = anp_1d(
         dim_embedding=10,
