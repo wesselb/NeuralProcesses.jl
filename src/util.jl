@@ -43,15 +43,15 @@ function insert_dim(x::T; pos::Integer) where T<: AA
 end
 
 """
-    rbf(dist²::AA)
+    rbf(dists²::AA)
 
 # Arguments
-- `dist²::AA`: Squared distances.
+- `dists²::AA`: Squared distances.
 
 # Returns
-- `AA`: RBF kernel evaluated at squared distances `dist²`.
+- `AA`: RBF kernel evaluated at squared distances `dists²`.
 """
-rbf(dist²::AA) = exp.(-0.5f0 .* dist²)
+rbf(dists²::AA) = exp.(-0.5f0 .* dists²)
 
 """
     compute_dists²(x::AA, y::AA)
@@ -73,7 +73,7 @@ compute_dists²(x::AA, y::AA, ::Val{1}) =
 
 function compute_dists²(x::AA, y::AA, d::Val)
     y = permutedims(y, (2, 1, 3))
-    return sum(x.^2; dims=2) .+ sum(y.^2; dims=1) .- 2 .* batched_mul(x, y)
+    return sum(x.^2, dims=2) .+ sum(y.^2, dims=1) .- 2 .* batched_mul(x, y)
 end
 
 """

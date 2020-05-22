@@ -72,7 +72,7 @@ end
 # Returns
 - `AA`: Output of layer of shape `(k, channels + 1, batch)`.
 """
-function encode(layer::SetConv, xc, yc, xz)
+function encode(layer::SetConv, xc::AA, yc::AA, xz::AA)
     weights = _compute_weights(xz, xc, _get_scales(layer))
     channels = _prepend_density_channel(yc)
     channels = with_dummy(c -> batched_mul(weights, c), channels)
