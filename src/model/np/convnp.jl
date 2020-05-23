@@ -221,7 +221,6 @@ Split `layer.num_global_channels` off of `x` to construct the global variable.
 - `Tuple`: Two-tuple containing the distributions for the global and equivariant variable.
 """
 function (layer::SplitGlobalVariable)(x::AA)
-
     # Split channels.
     x₁ = x[:, 1:layer.num_global_channels, :]
     x₂ = x[:, layer.num_global_channels + 1:end, :]
