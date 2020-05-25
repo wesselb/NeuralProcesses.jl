@@ -91,11 +91,11 @@ elseif args["data"] == "sawtooth"
     dim_embedding = 128
 elseif args["data"] == "mixture"
     process = Mixture(GP(Stheno.ConstKernel(1.0), GPC()), GP(stretch(eq(), 1 / 0.25), GPC()))
-    receptive_field = 10f0
+    receptive_field = 2f0
     points_per_unit = 64f0
     num_context = DiscreteUniform(0, 50)
     num_target = DiscreteUniform(50, 50)
-    num_channels = 64
+    num_channels = 128
     dim_embedding = 128
 else
     error("Unknown data \"" * args["data"] * "\".")
@@ -225,7 +225,7 @@ else
         model,
         loss,
         data_gen,
-        ADAM(2e-4),
+        ADAM(5e-4),
         bson=bson,
         starting_epoch=args["starting-epoch"],
         tasks_per_epoch=2^14,
