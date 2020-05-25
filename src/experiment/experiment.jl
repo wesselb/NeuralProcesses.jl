@@ -129,7 +129,7 @@ function plot_task(
         xc, yc, xt, yt = map(x -> x[:, 1, 1], data_gen(1)[1])
         μ, lower, upper, samples = predict(model, xc, yc, x)
 
-        plt = plot()
+        plt = plot(show=false)
 
         # Scatter target and context set.
         scatter!(plt, xt, yt, c=:red, label="Target set", dpi=200)
