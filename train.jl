@@ -1,4 +1,7 @@
 using ArgParse
+using Pkg
+
+Pkg.instantiate()
 
 # Parse command line arguments.
 parser = ArgParseSettings()
