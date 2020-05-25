@@ -87,12 +87,12 @@ elseif args["data"] == "sawtooth"
     num_channels = 64
     dim_embedding = 128
 elseif args["data"] == "mixture"
-    process = Mixture(GP(Stheno.ConstKernel(1.0), GPC()), GP(stretch(eq(), 1 / 0.25), GPC()))
-    receptive_field = 2f0
+    process = Mixture(GP(Stheno.ConstKernel(1.0), GPC()), GP(stretch(eq(), 1 / 0.125), GPC()))
+    receptive_field = 0.5f0
     points_per_unit = 64f0
-    num_context = DiscreteUniform(0, 50)
-    num_target = DiscreteUniform(50, 50)
-    num_channels = 128
+    num_context = DiscreteUniform(0, 30)
+    num_target = DiscreteUniform(100, 100)
+    num_channels = 64
     dim_embedding = 128
 else
     error("Unknown data \"" * args["data"] * "\".")
@@ -185,8 +185,8 @@ else
                 receptive_field=receptive_field,
                 num_encoder_layers=8,
                 num_decoder_layers=8,
-                num_encoder_channels=div(num_channels, 2),
-                num_decoder_channels=div(num_channels, 2),
+                num_encoder_channels=num_channels,
+                num_decoder_channels=num_channels,
                 num_latent_channels=16,
                 num_global_channels=args["model"] == "convnp-global" ? 16 : 0,
                 points_per_unit=points_per_unit,
