@@ -247,8 +247,8 @@ function (layer::SplitGlobalVariable)(x::AA)
     x₂ = x[:, layer.num_global_channels + 1:end, :]
 
     # Pool over data points to make global channels.
-    x₁ = layer.ff₁(x₁) 
-    x₁ = layer.pooling(x₁)    
+    x₁ = layer.ff₁(x₁)
+    x₁ = layer.pooling(x₁)
     x₁ = layer.ff₂(x₁)
 
     return layer.predict(x₁), layer.predict(x₂)
@@ -265,6 +265,8 @@ Mean pooling.
 struct MeanPooling
     ln
 end
+
+@Flux.treelike MeanPooling
 
 """
     (layer::MeanPooling)(x::AA)
@@ -289,6 +291,8 @@ struct SumPooling
     factor::Integer
 end
 
+@Flux.treelike SumPooling
+
 """
     (layer::SumPooling)(x::AA)
 
@@ -298,4 +302,4 @@ end
 # Returns
 - `AA`: `x` pooled.
 """
-(layer::SumPooling)(x::AA) = sum(x, dims=1) ./ factor
+(layer::SumPooling)(x::AA) = sum(x, dims=1) ./ layer.factor
