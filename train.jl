@@ -124,7 +124,7 @@ if args["model"] == "convcnp"
     else
         error("Unknown loss \"" * args["loss"] * "\".")
     end
-elseif args["model"] in ["convnp", "convnp-global", "anp", "np"]
+elseif args["model"] in ["convnp", "convnp-global-sum", "convnp-global-mean", "anp", "np"]
     if args["loss"] == "loglik"
         loss(xs...) = ConvCNPs.loglik(xs..., num_samples=20, importance_weighted=false)
     elseif args["loss"] == "loglik-iw"
