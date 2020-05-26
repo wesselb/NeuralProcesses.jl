@@ -138,7 +138,7 @@ else
     error("Unknown model \"" * args["model"] * "\".")
 end
 
-function build_data_gen(x_context, x_target)
+function build_data_gen(; x_context, x_target, num_context, num_target)
     return DataGenerator(
         process,
         batch_size=16,
@@ -149,20 +149,37 @@ function build_data_gen(x_context, x_target)
     )
 end
 
+half(d::DiscreteUniform) = DiscreteUniform(div(d.a, 2), div(d.b, 2))
+
 if args["evaluate"]
     # Loop over various data generators for various tasks.
     for (name, data_gen) in [
         (
             "interpolation on training range",
-            build_data_gen(Uniform(-2, 2), Uniform(-2, 2))
+            build_data_gen(
+                x_context=Uniform(-2, 2),
+                x_target=Uniform(-2, 2),
+                num_context=num_context,
+                num_target=num_target
+            )
         ),
         (
             "interpolation beyond training range",
-            build_data_gen(Uniform(-4, 4), UniformUnion(Uniform(-4, -2), Uniform(2, 4)))
+            build_data_gen(
+                x_context=Uniform(2, 6),
+                x_target=Uniform(2, 6),
+                num_context=num_context,
+                num_target=num_target
+            )
         ),
         (
             "extrapolation beyond training range",
-            build_data_gen(Uniform(-2, 2), UniformUnion(Uniform(-4, -2), Uniform(2, 4)))
+            build_data_gen(
+                x_context=Uniform(0, 2),
+                x_target=Uniform(2, 4),
+                num_context=half(num_context),
+                num_target=half(num_target)
+            )
         )
     ]
         println("Evaluation task: $name")
