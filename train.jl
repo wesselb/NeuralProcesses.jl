@@ -29,6 +29,10 @@ parser = ArgParseSettings()
     "--evaluate"
         help = "Evaluate model."
         action = :store_true
+    "--models-dir"
+        help = "Directory to store models in."
+        arg_type = String
+        default = "models"
 end
 args = parse_args(parser)
 
@@ -108,11 +112,15 @@ else
 end
 
 # Determine name of file to write model to and folder to output images.
-bson = "models/" * args["model"] * "/" * args["loss"] * "/" * args["data"] * ".bson"
+bson = 
+    args["models-dir"] * "/" * 
+    args["model"] * "/" * 
+    args["loss"] * "/" * 
+    args["data"] * ".bson"
 path = "output/" * args["model"] * "/" * args["loss"] * "/" * args["data"]
 
 # Ensure that the appropriate directories exist.
-mkpath("models/" * args["model"] * "/" * args["loss"])
+mkpath(args["models-dir"] * "/" * args["model"] * "/" * args["loss"])
 mkpath("output/" * args["model"] * "/" * args["loss"] * "/" * args["data"])
 
 # Set the loss.
@@ -166,10 +174,15 @@ if args["evaluate"]
         (
             "interpolation beyond training range",
             build_data_gen(
+<<<<<<< HEAD
                 x_context=Uniform(2, 6),
                 x_target=Uniform(2, 6),
                 num_context=num_context,
                 num_target=num_target
+=======
+                UniformUnion(Uniform(-4, -2), Uniform(2, 4)),
+                UniformUnion(Uniform(-4, -2), Uniform(2, 4))
+>>>>>>> 72c11f6d87c3b6396f231671645a5f61e5711ec8
             )
         ),
         (
