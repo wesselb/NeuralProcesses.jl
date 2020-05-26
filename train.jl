@@ -112,7 +112,7 @@ bson = "models/" * args["model"] * "/" * args["loss"] * "/" * args["data"] * ".b
 path = "output/" * args["model"] * "/" * args["loss"] * "/" * args["data"]
 
 # Ensure that the appropriate directories exist.
-mkpath("models/" * args["model"] * "/" * args["loss"] * "/" * args["data"])
+mkpath("models/" * args["model"] * "/" * args["loss"])
 mkpath("output/" * args["model"] * "/" * args["loss"] * "/" * args["data"])
 
 # Set the loss.
