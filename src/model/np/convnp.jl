@@ -98,7 +98,8 @@ _repeat_samples(x, num_samples) = reshape(
         points_per_unit::Float32,
         margin::Float32=receptive_field,
         σ::Float32=1f-2,
-        learn_σ::Bool=true
+        learn_σ::Bool=true,
+        pooling_type::String="sum"
     )
 
 # Keywords
@@ -117,6 +118,7 @@ _repeat_samples(x, num_samples) = reshape(
     `UniformDiscretisation1d`.
 - `σ::Float32=1f-2`: Initialisation of the observation noise.
 - `learn_σ::Bool=true`: Learn the observation noise.
+- `pooling_type::String="sum"`: Type of pooling. Must be "sum" or "mean".
 
 # Returns
 - `ConvNP`: Corresponding model.
@@ -132,7 +134,8 @@ function convnp_1d(;
     points_per_unit::Float32,
     margin::Float32=receptive_field,
     σ::Float32=1f-2,
-    learn_σ::Bool=true
+    learn_σ::Bool=true,
+    pooling_type::String="sum"
 )
     # Build architecture for the encoder.
     arch_encoder = build_conv(
@@ -159,9 +162,25 @@ function convnp_1d(;
 
     # If we are using a global variable, split it off of the end of the encoder.
     if num_global_channels > 0
+        # Construct pooling.
+        if pooling_type == "sum"
+            pooling = SumPooling(1000)
+        elseif pooling_type == "mean"
+            pooling = MeanPooling(layer_norm(1, 2num_global_channels, 1))
+        else
+            error("Unknown pooling type \"" * pooling_type * "\".")
+        end
+
+        # Construct global variable.
         encoder_predict = SplitGlobalVariable(
             2num_global_channels,
-            layer_norm(1, 2num_global_channels, 1),
+            batched_mlp(
+                dim_in    =2num_global_channels,
+                dim_hidden=2num_global_channels,
+                dim_out   =2num_global_channels,
+                num_layers=3
+            ),
+            pooling,
             batched_mlp(
                 dim_in    =2num_global_channels,
                 dim_hidden=2num_global_channels,
@@ -196,14 +215,16 @@ end
 
 # Fields
 - `num_global_channels::Integer`: Number of channels to use for the global variable.
-- `ln`: Layer normalisation to correct the pooling.
-- `ff`: Feed-forward net to allow the magnitude to change after the layer norm.
+- `ff₁`: Feed-forward net before pooling.
+- `pooling`: Pooling.
+- `ff₂`: Feed-forward net after pooling.
 - `predict`: Function that transforms the output into a distribution.
 """
 struct SplitGlobalVariable
     num_global_channels::Integer
-    ln
-    ff
+    ff₁
+    pooling
+    ff₂
     predict
 end
 
@@ -225,13 +246,56 @@ function (layer::SplitGlobalVariable)(x::AA)
     x₁ = x[:, 1:layer.num_global_channels, :]
     x₂ = x[:, layer.num_global_channels + 1:end, :]
 
-    # Mean-pool over data points to make global channels. Also normalise to not depend
-    # on the size of the discretisation.
-    x₁ = mean(x₁, dims=1)
-    x₁ = layer.ln(x₁)
-
-    # Apply a FF network to allow the magnitude to change.
-    x₁ = layer.ff(x₁)
+    # Pool over data points to make global channels.
+    x₁ = layer.ff₁(x₁) 
+    x₁ = layer.pooling(x₁)    
+    x₁ = layer.ff₂(x₁)
 
     return layer.predict(x₁), layer.predict(x₂)
 end
+
+"""
+    struct MeanPooling
+
+Mean pooling.
+
+# Fields
+- `ln`: Layer normalisation to depend not on the size of the discretisation.
+"""
+struct MeanPooling
+    ln
+end
+
+"""
+    (layer::MeanPooling)(x::AA)
+
+# Arguments
+- `x::AA`: Input to pool.
+
+# Returns
+- `AA`: `x` pooled.
+"""
+(layer::MeanPooling)(x::AA) = layer.ln(mean(x, dims=1))
+
+"""
+    struct SumPooling
+
+Sum pooling.
+
+# Fields
+- `factor::Integer`: Factor to divide by after pooling to help initialisation.
+"""
+struct SumPooling
+    factor::Integer
+end
+
+"""
+    (layer::SumPooling)(x::AA)
+
+# Arguments
+- `x::AA`: Input to pool.
+
+# Returns
+- `AA`: `x` pooled.
+"""
+(layer::SumPooling)(x::AA) = sum(x, dims=1) ./ factor

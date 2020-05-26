@@ -11,7 +11,7 @@ parser = ArgParseSettings()
         arg_type = String
         required = true
     "--model"
-        help = "Model: convcnp, convnp, convnp-global, anp, or np."
+        help = "Model: convcnp, convnp, convnp-global-sum, convnp-global-mean, anp, or np."
         arg_type = String
         required = true
     "--loss"
@@ -90,10 +90,16 @@ elseif args["data"] == "sawtooth"
     num_channels = 64
     dim_embedding = 128
 elseif args["data"] == "mixture"
-    process = Mixture(GP(Stheno.ConstKernel(1.0), GPC()), GP(stretch(eq(), 1 / 0.125), GPC()))
-    receptive_field = 0.5f0
+    process = Mixture(
+        GP(stretch(eq(), 1 / 0.25), GPC()),
+        GP(stretch(matern52(), 1 / 0.25), GPC()),
+        GP(stretch(eq(), 1 / 0.25) + eq() + 1e-3 * Stheno.Noise(), GPC()),
+        GP(stretch(eq(), 1 / 0.5) * stretch(Stheno.PerEQ(), 1 / 0.25), GPC()),
+        Sawtooth()
+    )
+    receptive_field = 16f0
     points_per_unit = 64f0
-    num_context = DiscreteUniform(0, 30)
+    num_context = DiscreteUniform(0, 100)
     num_target = DiscreteUniform(100, 100)
     num_channels = 64
     dim_embedding = 128
@@ -183,7 +189,20 @@ else
                 points_per_unit=points_per_unit,
                 margin=1f0
             ) |> gpu
-        elseif args["model"] in ["convnp", "convnp-global"]
+        elseif args["model"] in ["convnp", "convnp-global-sum", "convnp-global-mean"]
+            if args["model"] == "convnp"
+                num_global_channels = 0
+                pooling_type = "sum"  # This doesn't matter, but must be set to something.
+            elseif args["model"] == "convnp-global-sum"
+                num_global_channels = 16
+                pooling_type = "sum"
+            elseif args["model"] == "convnp-global-mean"
+                num_global_channels = 16
+                pooling_type = "mean"
+            else
+                error("Unknown model \"" * args["model"] * "\".")
+            end
+
             model = convnp_1d(
                 receptive_field=receptive_field,
                 num_encoder_layers=8,
@@ -191,11 +210,12 @@ else
                 num_encoder_channels=num_channels,
                 num_decoder_channels=num_channels,
                 num_latent_channels=16,
-                num_global_channels=args["model"] == "convnp-global" ? 16 : 0,
+                num_global_channels=num_global_channels,
                 points_per_unit=points_per_unit,
                 margin=1f0,
                 σ=2f-2,
-                learn_σ=false
+                learn_σ=false,
+                pooling_type=pooling_type
             ) |> gpu
         elseif args["model"] == "anp"
             model = anp_1d(
