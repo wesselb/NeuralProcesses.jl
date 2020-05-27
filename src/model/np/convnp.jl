@@ -11,8 +11,8 @@ Convolutional NP model.
 - `encoder_conv::Chain`: Encoder CNN.
 - `encoder_predict`: Function that transforms the output of the encoder into a distribution.
 - `decoder_conv::Chain`: Decoder CNN.
-- `decoder_setconv::SetConv`: Set convolution for the decoder.
-- `log_σ`: Natural logarithm of observation noise.
+- `decoder_predict`: Function that transforms the output of the decoder into a distribution.
+- `decoder_setconv::SetConv`: Set convolution for the decoder mean.
 """
 struct ConvNP <: AbstractNP
     disc::Discretisation
@@ -20,8 +20,8 @@ struct ConvNP <: AbstractNP
     encoder_conv::Chain
     encoder_predict
     decoder_conv::Chain
+    decoder_predict
     decoder_setconv::SetConv
-    log_σ
 end
 
 @Flux.treelike ConvNP
@@ -63,18 +63,23 @@ function decode(model::ConvNP, xz::AA, z::AA, r::Nothing, xt::AA)
     # Apply CNN.
     channels = with_dummy(model.decoder_conv, z)
 
-    # Perform decoding.
-    channels = decode(
+    # Compute predictive distribution at encoding locations.
+    μ, σ = model.decoder_predict(channels)
+
+    # Perform smoothing for the mean.
+    μ = decode(
         model.decoder_setconv,
         _repeat_samples(xz, num_samples),
-        channels,
+        μ,
         _repeat_samples(xt, num_samples)
     )
 
     # Separate samples from batches.
-    channels = reshape(channels, size(channels)[1:2]..., num_batches, num_samples)
+    μ = reshape(μ, size(μ)[1:2]..., num_batches, num_samples)
+    # The noise can be constant, in which case we do nothing.
+    length(σ) > 1 && σ = reshape(σ, size(σ)[1:2]..., num_batches, num_samples)
 
-    return channels
+    return μ, σ
 end
 
 decode(model::ConvNP, xz::AA, z::Tuple, r::Nothing, xt::AA) =
@@ -95,6 +100,7 @@ _repeat_samples(x, num_samples) = reshape(
         num_decoder_channels::Integer,
         num_latent_channels::Integer,
         num_global_channels::Integer,
+        num_σ_channels::Integer,
         points_per_unit::Float32,
         margin::Float32=receptive_field,
         σ::Float32=1f-2,
@@ -114,6 +120,9 @@ _repeat_samples(x, num_samples) = reshape(
 - `num_latent_channels::Integer`: Number of channels of the latent variable.
 - `num_global_channels::Integer`: Number of channels of the global latent variable. Set
     to `0` to not use a global latent variable.
+- `num_σ_channels::Integer`: Learn the observation noise through amortisation. Set to
+    `0` to use a constant noise. If set to a value bigger than `0`, the values for `σ` and
+    `learn_σ` are ignored.
 - `margin::Float32=receptive_field`: Margin for the discretisation. See
     `UniformDiscretisation1d`.
 - `σ::Float32=1f-2`: Initialisation of the observation noise.
@@ -131,6 +140,7 @@ function convnp_1d(;
     num_decoder_channels::Integer,
     num_latent_channels::Integer,
     num_global_channels::Integer,
+    num_σ_channels::Integer,
     points_per_unit::Float32,
     margin::Float32=receptive_field,
     σ::Float32=1f-2,
@@ -157,7 +167,7 @@ function convnp_1d(;
         points_per_unit=points_per_unit,
         dimensionality=1,
         num_in_channels=num_latent_channels + num_global_channels,
-        num_out_channels=1
+        num_out_channels=num_σ_channels + 1
     )
 
     # If we are using a global variable, split it off of the end of the encoder.
@@ -172,7 +182,7 @@ function convnp_1d(;
         end
 
         # Construct global variable.
-        encoder_predict = SplitGlobalVariable(
+        encoder_predict = SplitGlobal(
             2num_global_channels,
             batched_mlp(
                 dim_in    =2num_global_channels,
@@ -193,6 +203,43 @@ function convnp_1d(;
         encoder_predict = split_μ_σ
     end
 
+    # Construct the prediction for the observation noise.
+    if num_σ_channels > 0
+        # Construct pooling.
+        if pooling_type == "sum"
+            pooling = SumPooling(1000)
+        elseif pooling_type == "mean"
+            pooling = MeanPooling(layer_norm(1, num_σ_channels, 1))
+        else
+            error("Unknown pooling type \"" * pooling_type * "\".")
+        end
+
+        # Construct prediction with amortised noise.
+        decoder_predict = AmortisedNoise(
+            SplitGlobal(
+                num_σ_channels,
+                batched_mlp(
+                    dim_in    =num_σ_channels,
+                    dim_hidden=num_σ_channels,
+                    dim_out   =num_σ_channels,
+                    num_layers=3
+                ),
+                pooling,
+                batched_mlp(
+                    dim_in    =num_σ_channels,
+                    dim_hidden=num_σ_channels,
+                    dim_out   =1,
+                    num_layers=3
+                ),
+                identity
+            )
+        )
+    else
+        decoder_predict = ConstantNoise(
+            learn_σ ? param([log(σ)]) : [log(σ)]
+        )
+    end
+
     # Put model together.
     scale = 2 / arch_decoder.points_per_unit
     return ConvNP(
@@ -205,33 +252,33 @@ function convnp_1d(;
         arch_encoder.conv,
         encoder_predict,
         arch_decoder.conv,
-        set_conv(1, scale),
-        learn_σ ? param([log(σ)]) : [log(σ)]
+        decoder_predict,
+        set_conv(1, scale)
     )
 end
 
 """
-    struct SplitGlobalVariable
+    struct SplitGlobal
 
 # Fields
 - `num_global_channels::Integer`: Number of channels to use for the global variable.
 - `ff₁`: Feed-forward net before pooling.
 - `pooling`: Pooling.
 - `ff₂`: Feed-forward net after pooling.
-- `predict`: Function that transforms the output into a distribution.
+- `transform`: Function that transforms the output.
 """
-struct SplitGlobalVariable
+struct SplitGlobal
     num_global_channels::Integer
     ff₁
     pooling
     ff₂
-    predict
+    transform
 end
 
-@Flux.treelike SplitGlobalVariable
+@Flux.treelike SplitGlobal
 
 """
-    (layer::SplitGlobalVariable)(x::AA)
+    (layer::SplitGlobal)(x::AA)
 
 Split `layer.num_global_channels` off of `x` to construct the global variable.
 
@@ -241,17 +288,17 @@ Split `layer.num_global_channels` off of `x` to construct the global variable.
 # Returns
 - `Tuple`: Two-tuple containing the distributions for the global and equivariant variable.
 """
-function (layer::SplitGlobalVariable)(x::AA)
+function (layer::SplitGlobal)(x::AA)
     # Split channels.
-    x₁ = x[:, 1:layer.num_global_channels, :]
-    x₂ = x[:, layer.num_global_channels + 1:end, :]
+    x_global = x[:, 1:layer.num_global_channels, :]
+    x_local = x[:, layer.num_global_channels + 1:end, :]
 
     # Pool over data points to make global channels.
-    x₁ = layer.ff₁(x₁)
-    x₁ = layer.pooling(x₁)
-    x₁ = layer.ff₂(x₁)
+    x_global = layer.ff₁(x_global)
+    x_global = layer.pooling(x_global)
+    x_global = layer.ff₂(x_global)
 
-    return layer.predict(x₁), layer.predict(x₂)
+    return layer.transform(x_global), layer.transform(x_local)
 end
 
 """
@@ -303,3 +350,22 @@ end
 - `AA`: `x` pooled.
 """
 (layer::SumPooling)(x::AA) = sum(x, dims=1) ./ layer.factor
+
+struct ConstantNoise
+    log_σ
+end
+
+@Flux.treelike ConstantNoise
+
+(layer::ConstantNoise)(x::AA) = x, exp.(layer.log_σ)
+
+struct AmortisedNoise
+    split_global
+end
+
+@Flux.treelike AmortisedNoise
+
+function (layer::AmortisedNoise)(x::AA)
+    transformed_σ, μ = layer.split_global(x)
+    return μ, softplus(transformed_σ)
+end

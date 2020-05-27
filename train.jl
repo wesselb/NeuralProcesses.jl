@@ -11,7 +11,7 @@ parser = ArgParseSettings()
         arg_type = String
         required = true
     "--model"
-        help = "Model: convcnp, convnp, convnp-global-sum, convnp-global-mean, anp, or np."
+        help = "Model: convcnp, convnp, convnp-global-sum, convnp-global-mean, convnp-amortised-sum, convnp-amortised-mean, anp, or np."
         arg_type = String
         required = true
     "--loss"
@@ -136,7 +136,15 @@ if args["model"] == "convcnp"
 
     # Use the train loss for evaluation.
     eval_loss = ConvCNPs.loglik
-elseif args["model"] in ["convnp", "convnp-global-sum", "convnp-global-mean", "anp", "np"]
+elseif args["model"] in [
+    "convnp",
+    "convnp-global-sum",
+    "convnp-global-mean",
+    "convnp-amortised-sum",
+    "convnp-amortised-mean",
+    "anp",
+    "np"
+]
     # Determine training loss.
     if args["loss"] == "loglik"
         loss(xs...) = ConvCNPs.loglik(xs..., num_samples=20, importance_weighted=false)
@@ -148,7 +156,7 @@ elseif args["model"] in ["convnp", "convnp-global-sum", "convnp-global-mean", "a
         error("Unknown loss \"" * args["loss"] * "\".")
     end
 
-    # Use a high-sample loglik for the eval loss.
+    # Use a high-sample log-EL for the eval loss.
     eval_loss(xs...) = ConvCNPs.loglik(xs..., num_samples=100, importance_weighted=false)
 else
     error("Unknown model \"" * args["model"] * "\".")
@@ -167,7 +175,7 @@ end
 
 if args["evaluate"]
     # Use the best model for evaluation.
-    model = best_model(bson) |> gpu  
+    model = best_model(bson) |> gpu
     report_num_params(model)
 
     # Loop over various data generators for various tasks.
@@ -222,15 +230,32 @@ else
                 points_per_unit=points_per_unit,
                 margin=1f0
             ) |> gpu
-        elseif args["model"] in ["convnp", "convnp-global-sum", "convnp-global-mean"]
+        elseif args["model"] in [
+            "convnp",
+            "convnp-global-sum",
+            "convnp-global-mean",
+            "convnp-amortised-sum",
+            "convnp-amortised-mean"
+        ]
             if args["model"] == "convnp"
                 num_global_channels = 0
+                num_σ_channels = 0
                 pooling_type = "sum"  # This doesn't matter, but must be set to something.
             elseif args["model"] == "convnp-global-sum"
                 num_global_channels = 16
+                num_σ_channels = 0
                 pooling_type = "sum"
             elseif args["model"] == "convnp-global-mean"
                 num_global_channels = 16
+                num_σ_channels = 0
+                pooling_type = "mean"
+            elseif args["model"] == "convnp-amortised-sum"
+                num_global_channels = 0
+                num_σ_channels = 8
+                pooling_type = "sum"
+            elseif args["model"] == "convnp-amortised-mean"
+                num_global_channels = 0
+                num_σ_channels = 8
                 pooling_type = "mean"
             else
                 error("Unknown model \"" * args["model"] * "\".")
@@ -244,6 +269,7 @@ else
                 num_decoder_channels=num_channels,
                 num_latent_channels=16,
                 num_global_channels=num_global_channels,
+                num_σ_channels=num_σ_channels,
                 points_per_unit=points_per_unit,
                 margin=1f0,
                 σ=2f-2,

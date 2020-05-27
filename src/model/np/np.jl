@@ -147,7 +147,7 @@ Perform decoding.
 - `Tuple{AA, AA}`: Tuple containing means and standard deviations.
 """
 decode(model::NP, xz::AA, z::AA, r::AA, xt::AA) =
-    model.decoder(repeat_cat(z, r, xt, dims=2))
+    (model.decoder(repeat_cat(z, r, xt, dims=2)), exp.(model.log_σ))
 
 """
     (model::AbstractNP)(xc::AA, yc::AA, xt::AA, num_samples::Integer)
@@ -170,10 +170,7 @@ function (model::AbstractNP)(xc::AA, yc::AA, xt::AA, num_samples::Integer)
     z = _sample(pz..., num_samples)
 
     # Perform decoding.
-    channels = decode(model, xz, z, r, xt)
-
-    # Return the predictions with noise.
-    return channels, exp.(model.log_σ)
+    return decode(model, xz, z, r, xt)
 end
 
 _sample(μ::AA, σ::AA, num_samples::Integer) =
@@ -344,7 +341,7 @@ function loglik(
 
         # Sample latent variable and perform decoding.
         z = _sample(qz..., num_samples)
-        μ, σ = decode(model, xz, z, r, xt), exp.(model.log_σ)
+        μ, σ = decode(model, xz, z, r, xt)
 
         # Do an importance weighted estimate.
         weights = _logpdf(z, pz...) .- _logpdf(z, qz...)
@@ -418,7 +415,7 @@ function elbo(
 
     # Sample latent variable and perform decoding.
     z = _sample(qz..., num_samples)
-    μ, σ = decode(model, xz, z, r, x_all), exp.(model.log_σ)
+    μ, σ = decode(model, xz, z, r, x_all)
 
     # Compute the components of the ELBO.
     exps = _sum(gaussian_logpdf(y_all, μ, σ))

@@ -23,6 +23,7 @@
         num_decoder_channels=1,
         num_latent_channels=2,
         num_global_channels=0,
+        num_σ_channels=0,
         points_per_unit=5f0
     )
     convnp_global_sum = convnp_1d(
@@ -33,6 +34,7 @@
         num_decoder_channels=1,
         num_latent_channels=2,
         num_global_channels=2,
+        num_σ_channels=0,
         points_per_unit=5f0,
         pooling_type="sum"
     )
@@ -44,9 +46,35 @@
         num_decoder_channels=1,
         num_latent_channels=2,
         num_global_channels=2,
+        num_σ_channels=0,
         points_per_unit=5f0,
         pooling_type="mean"
     )
+    convnp_amortised_sum = convnp_1d(
+        receptive_field=1f0,
+        num_encoder_layers=2,
+        num_decoder_layers=3,
+        num_encoder_channels=2,
+        num_decoder_channels=1,
+        num_latent_channels=2,
+        num_global_channels=0,
+        num_σ_channels=8,
+        points_per_unit=5f0,
+        pooling_type="sum"
+    )
+    convnp_amortised_mean = convnp_1d(
+        receptive_field=1f0,
+        num_encoder_layers=2,
+        num_decoder_layers=3,
+        num_encoder_channels=2,
+        num_decoder_channels=1,
+        num_latent_channels=2,
+        num_global_channels=0,
+        num_σ_channels=8,
+        points_per_unit=5f0,
+        pooling_type="mean"
+    )
+
     anp = anp_1d(
         dim_embedding=10,
         num_encoder_layers=2,
@@ -63,7 +91,15 @@
     model_losses = Any[(convcnp, ConvCNPs.loglik)]
 
     # NPs:
-    for model in [convnp, convnp_global_sum, convnp_global_mean, anp, np]
+    for model in [
+        convnp,
+        convnp_global_sum,
+        convnp_global_mean,
+        convnp_amortised_sum,
+        convnp_amortised_mean,
+        anp,
+        np
+    ]
         push!(model_losses, (
             model,
             (xs...) -> ConvCNPs.loglik(xs..., num_samples=2, importance_weighted=false)
