@@ -125,6 +125,7 @@ mkpath("output/" * args["model"] * "/" * args["loss"] * "/" * args["data"])
 
 # Set the loss.
 if args["model"] == "convcnp"
+    # Determine training loss.
     if args["loss"] == "loglik"
         loss = ConvCNPs.loglik
     elseif args["loss"] in ["elbo", "loglik-iw"]
@@ -132,7 +133,11 @@ if args["model"] == "convcnp"
     else
         error("Unknown loss \"" * args["loss"] * "\".")
     end
+
+    # Use the train loss for evaluation.
+    eval_loss = ConvCNPs.loglik
 elseif args["model"] in ["convnp", "convnp-global-sum", "convnp-global-mean", "anp", "np"]
+    # Determine training loss.
     if args["loss"] == "loglik"
         loss(xs...) = ConvCNPs.loglik(xs..., num_samples=20, importance_weighted=false)
     elseif args["loss"] == "loglik-iw"
@@ -142,6 +147,9 @@ elseif args["model"] in ["convnp", "convnp-global-sum", "convnp-global-mean", "a
     else
         error("Unknown loss \"" * args["loss"] * "\".")
     end
+
+    # Use a high-sample loglik for the eval loss.
+    eval_loss(xs...) = ConvCNPs.loglik(xs..., num_samples=100, importance_weighted=false)
 else
     error("Unknown model \"" * args["model"] * "\".")
 end
@@ -157,9 +165,11 @@ function build_data_gen(; x_context, x_target, num_context, num_target)
     )
 end
 
-half(d::DiscreteUniform) = DiscreteUniform(div(d.a, 2), div(d.b, 2))
-
 if args["evaluate"]
+    # Use the best model for evaluation.
+    model = best_model(bson) |> gpu  
+    report_num_params(model)
+
     # Loop over various data generators for various tasks.
     for (name, data_gen) in [
         (
@@ -183,17 +193,15 @@ if args["evaluate"]
         (
             "extrapolation beyond training range",
             build_data_gen(
-                x_context=Uniform(0, 2),
-                x_target=Uniform(2, 4),
-                num_context=half(num_context),
-                num_target=half(num_target)
+                x_context=Uniform(-2, 2),
+                x_target=UniformUnion(Uniform(-4, -2), Uniform(2, 4)),
+                num_context=num_context,
+                num_target=num_target
             )
         )
     ]
         println("Evaluation task: $name")
-        model = best_model(bson) |> gpu  # Use the best model for evaluation.
-        report_num_params(model)
-        eval_model(model, loss, data_gen, 100, num_batches=10000)
+        eval_model(model, eval_loss, data_gen, 100, num_batches=5000)
     end
 else
     # Construct data generator for training.

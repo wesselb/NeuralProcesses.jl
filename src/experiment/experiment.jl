@@ -19,7 +19,7 @@ pyplot()
 
 function eval_model(model, loss, data_gen, epoch; num_batches=256)
     model = ConvCNPs.untrack(model)
-    tuples = map(
+    @time tuples = map(
         x -> (loss(model, epoch, gpu.(x)...), size(x[3], 1)),
         data_gen(num_batches)
     )
