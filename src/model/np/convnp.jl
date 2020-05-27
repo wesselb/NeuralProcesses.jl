@@ -77,7 +77,7 @@ function decode(model::ConvNP, xz::AA, z::AA, r::Nothing, xt::AA)
     # Separate samples from batches.
     μ = reshape(μ, size(μ)[1:2]..., num_batches, num_samples)
     # The noise can be constant, in which case we do nothing.
-    length(σ) > 1 && σ = reshape(σ, size(σ)[1:2]..., num_batches, num_samples)
+    length(σ) > 1 && (σ = reshape(σ, size(σ)[1:2]..., num_batches, num_samples))
 
     return μ, σ
 end
