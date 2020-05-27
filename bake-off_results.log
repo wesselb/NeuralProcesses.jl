@@ -1,0 +1,1120 @@
+------------------------------------------------------
+Models and losses:
+    convcnp + loglik
+    convnp + loglik
+    convnp + loglik-iw
+    convnp + elbo
+    anp + loglik
+    anp + loglik-iw
+    anp + elbo
+    np + loglik
+    np + loglik-iw
+    np + elbo
+Data sets:
+    eq
+    matern52
+    noisy-mixture
+    weakly-periodic
+    sawtooth
+------------------------------------------------------
+EVALUATING
+------------------------------------------------------
+Model:    convcnp
+Loss:     loglik
+Data set: eq
+Evaluation task: interpolation on training range
+Number of parameters: 42822 
+Losses:
+     -71.056 +-   1.324 (10000 batches)
+      -1.421 +-   0.026 (10000 batches; normalised)
+      -1.421 +-   0.026 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 42822 
+Losses:
+     -70.220 +-   1.326 (10000 batches)
+      -1.404 +-   0.027 (10000 batches; normalised)
+      -1.404 +-   0.027 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 42822 
+Losses:
+      33.489 +-   0.045 (10000 batches)
+       1.340 +-   0.002 (10000 batches; normalised)
+       1.340 +-   0.002 (10000 batches; global mean)
+------------------------------------------------------
+Model:    convcnp
+Loss:     loglik
+Data set: matern52
+Evaluation task: interpolation on training range
+Number of parameters: 42822 
+Losses:
+     -25.480 +-   0.882 (10000 batches)
+      -0.510 +-   0.018 (10000 batches; normalised)
+      -0.510 +-   0.018 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 42822 
+Losses:
+     -24.808 +-   0.881 (10000 batches)
+      -0.496 +-   0.018 (10000 batches; normalised)
+      -0.496 +-   0.018 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 42822 
+Losses:
+      34.298 +-   0.044 (10000 batches)
+       1.372 +-   0.002 (10000 batches; normalised)
+       1.372 +-   0.002 (10000 batches; global mean)
+------------------------------------------------------
+Model:    convcnp
+Loss:     loglik
+Data set: noisy-mixture
+Evaluation task: interpolation on training range
+Number of parameters: 51014 
+Losses:
+     -31.148 +-   0.964 (10000 batches)
+      -0.623 +-   0.019 (10000 batches; normalised)
+      -0.623 +-   0.019 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 51014 
+Losses:
+     -31.634 +-   0.970 (10000 batches)
+      -0.633 +-   0.019 (10000 batches; normalised)
+      -0.633 +-   0.019 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 51014 
+Losses:
+      40.860 +-   0.059 (10000 batches)
+       1.634 +-   0.002 (10000 batches; normalised)
+       1.634 +-   0.002 (10000 batches; global mean)
+------------------------------------------------------
+Model:    convcnp
+Loss:     loglik
+Data set: weakly-periodic
+Evaluation task: interpolation on training range
+Number of parameters: 51014 
+Losses:
+      25.240 +-   0.460 (10000 batches)
+       0.505 +-   0.009 (10000 batches; normalised)
+       0.505 +-   0.009 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 51014 
+Losses:
+      25.145 +-   0.460 (10000 batches)
+       0.503 +-   0.009 (10000 batches; normalised)
+       0.503 +-   0.009 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 51014 
+Losses:
+      34.042 +-   0.039 (10000 batches)
+       1.362 +-   0.002 (10000 batches; normalised)
+       1.362 +-   0.002 (10000 batches; global mean)
+------------------------------------------------------
+Model:    convcnp
+Loss:     loglik
+Data set: sawtooth
+Evaluation task: interpolation on training range
+Number of parameters: 100166
+Losses:
+    -246.415 +-   1.127 (10000 batches)
+      -2.464 +-   0.011 (10000 batches; normalised)
+      -2.464 +-   0.011 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 100166
+Losses:
+    -246.473 +-   1.121 (10000 batches)
+      -2.465 +-   0.011 (10000 batches; normalised)
+      -2.465 +-   0.011 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 100166
+Losses:
+     -70.035 +-   0.509 (10000 batches)
+      -1.401 +-   0.010 (10000 batches; normalised)
+      -1.401 +-   0.010 (10000 batches; global mean)
+------------------------------------------------------
+Model:    convnp
+Loss:     loglik
+Data set: eq
+Evaluation task: interpolation on training range
+Number of parameters: 88420 
+Losses:
+    5033.851 +- 185.987 (10000 batches)
+     100.677 +-   3.720 (10000 batches; normalised)
+     100.677 +-   3.720 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 88420 
+Losses:
+    5387.325 +- 196.100 (10000 batches)
+     107.746 +-   3.922 (10000 batches; normalised)
+     107.746 +-   3.922 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 88420 
+Losses:
+    12892.648 +-  54.906 (10000 batches)
+     515.706 +-   2.196 (10000 batches; normalised)
+     515.706 +-   2.196 (10000 batches; global mean)
+------------------------------------------------------
+Model:    convnp
+Loss:     loglik
+Data set: matern52
+Evaluation task: interpolation on training range
+Number of parameters: 88420 
+Losses:
+    7686.466 +- 206.527 (10000 batches)
+     153.729 +-   4.131 (10000 batches; normalised)
+     153.729 +-   4.131 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 88420 
+Losses:
+    7576.609 +- 203.170 (10000 batches)
+     151.532 +-   4.063 (10000 batches; normalised)
+     151.532 +-   4.063 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 88420 
+Losses:
+    14262.253 +-  51.912 (10000 batches)
+     570.490 +-   2.076 (10000 batches; normalised)
+     570.490 +-   2.076 (10000 batches; global mean)
+------------------------------------------------------
+Model:    convnp
+Loss:     loglik
+Data set: noisy-mixture
+Evaluation task: interpolation on training range
+Number of parameters: 104804
+Losses:
+    7478.373 +- 277.645 (10000 batches)
+     149.567 +-   5.553 (10000 batches; normalised)
+     149.567 +-   5.553 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 104804
+Losses:
+    7461.211 +- 278.277 (10000 batches)
+     149.224 +-   5.566 (10000 batches; normalised)
+     149.224 +-   5.566 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 104804
+Losses:
+    17790.797 +-  77.809 (10000 batches)
+     711.632 +-   3.112 (10000 batches; normalised)
+     711.632 +-   3.112 (10000 batches; global mean)
+------------------------------------------------------
+Model:    convnp
+Loss:     loglik
+Data set: weakly-periodic
+Evaluation task: interpolation on training range
+Number of parameters: 104804
+Losses:
+    15215.507 +- 218.969 (10000 batches)
+     304.310 +-   4.379 (10000 batches; normalised)
+     304.310 +-   4.379 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 104804
+Losses:
+    15431.814 +- 223.894 (10000 batches)
+     308.636 +-   4.478 (10000 batches; normalised)
+     308.636 +-   4.478 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 104804
+Losses:
+    16760.146 +-  49.031 (10000 batches)
+     670.406 +-   1.961 (10000 batches; normalised)
+     670.406 +-   1.961 (10000 batches; global mean)
+------------------------------------------------------
+Model:    convnp
+Loss:     loglik
+Data set: sawtooth
+Evaluation task: interpolation on training range
+Number of parameters: 203108
+Losses:
+     299.583 +-  19.498 (10000 batches)
+       2.996 +-   0.195 (10000 batches; normalised)
+       2.996 +-   0.195 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 203108
+Losses:
+     314.713 +-  20.383 (10000 batches)
+       3.147 +-   0.204 (10000 batches; normalised)
+       3.147 +-   0.204 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 203108
+Losses:
+     426.069 +-  12.894 (10000 batches)
+       8.521 +-   0.258 (10000 batches; normalised)
+       8.521 +-   0.258 (10000 batches; global mean)
+------------------------------------------------------
+Model:    convnp
+Loss:     loglik-iw
+Data set: eq
+Evaluation task: interpolation on training range
+Number of parameters: 88420 
+Losses:
+     -18.539 +-   1.473 (10000 batches)
+      -0.371 +-   0.029 (10000 batches; normalised)
+      -0.371 +-   0.029 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 88420 
+Losses:
+     -18.513 +-   1.474 (10000 batches)
+      -0.370 +-   0.029 (10000 batches; normalised)
+      -0.370 +-   0.029 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 88420 
+Losses:
+      67.926 +-   0.201 (10000 batches)
+       2.717 +-   0.008 (10000 batches; normalised)
+       2.717 +-   0.008 (10000 batches; global mean)
+------------------------------------------------------
+Model:    convnp
+Loss:     loglik-iw
+Data set: matern52
+Evaluation task: interpolation on training range
+Number of parameters: 88420 
+Losses:
+     103.361 +-   2.153 (10000 batches)
+       2.067 +-   0.043 (10000 batches; normalised)
+       2.067 +-   0.043 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 88420 
+Losses:
+     105.002 +-   2.167 (10000 batches)
+       2.100 +-   0.043 (10000 batches; normalised)
+       2.100 +-   0.043 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 88420 
+Losses:
+     174.107 +-   0.202 (10000 batches)
+       6.964 +-   0.008 (10000 batches; normalised)
+       6.964 +-   0.008 (10000 batches; global mean)
+------------------------------------------------------
+Model:    convnp
+Loss:     loglik-iw
+Data set: noisy-mixture
+Evaluation task: interpolation on training range
+Number of parameters: 104804
+Losses:
+      68.828 +-   2.190 (10000 batches)
+       1.377 +-   0.044 (10000 batches; normalised)
+       1.377 +-   0.044 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 104804
+Losses:
+      68.880 +-   2.200 (10000 batches)
+       1.378 +-   0.044 (10000 batches; normalised)
+       1.378 +-   0.044 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 104804
+Losses:
+     168.004 +-   0.328 (10000 batches)
+       6.720 +-   0.013 (10000 batches; normalised)
+       6.720 +-   0.013 (10000 batches; global mean)
+------------------------------------------------------
+Model:    convnp
+Loss:     loglik-iw
+Data set: weakly-periodic
+Evaluation task: interpolation on training range
+Number of parameters: 104804
+Losses:
+     149.214 +-   0.571 (10000 batches)
+       2.984 +-   0.011 (10000 batches; normalised)
+       2.984 +-   0.011 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 104804
+Losses:
+     149.149 +-   0.568 (10000 batches)
+       2.983 +-   0.011 (10000 batches; normalised)
+       2.983 +-   0.011 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 104804
+Losses:
+     101.865 +-   0.145 (10000 batches)
+       4.075 +-   0.006 (10000 batches; normalised)
+       4.075 +-   0.006 (10000 batches; global mean)
+------------------------------------------------------
+Model:    convnp
+Loss:     loglik-iw
+Data set: sawtooth
+Evaluation task: interpolation on training range
+Number of parameters: 203108
+Losses:
+     -98.331 +-   0.599 (10000 batches)
+      -0.983 +-   0.006 (10000 batches; normalised)
+      -0.983 +-   0.006 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 203108
+Losses:
+     -97.855 +-   0.597 (10000 batches)
+      -0.979 +-   0.006 (10000 batches; normalised)
+      -0.979 +-   0.006 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 203108
+Losses:
+     -42.124 +-   0.335 (10000 batches)
+      -0.842 +-   0.007 (10000 batches; normalised)
+      -0.842 +-   0.007 (10000 batches; global mean)
+------------------------------------------------------
+Model:    convnp
+Loss:     elbo
+Data set: eq
+Evaluation task: interpolation on training range
+Number of parameters: 88420 
+Losses:
+     -36.123 +-   2.992 (10000 batches)
+      -0.722 +-   0.060 (10000 batches; normalised)
+      -0.722 +-   0.060 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 88420 
+Losses:
+     -33.692 +-   2.994 (10000 batches)
+      -0.674 +-   0.060 (10000 batches; normalised)
+      -0.674 +-   0.060 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 88420 
+Losses:
+     138.923 +-   0.724 (10000 batches)
+       5.557 +-   0.029 (10000 batches; normalised)
+       5.557 +-   0.029 (10000 batches; global mean)
+------------------------------------------------------
+Model:    convnp
+Loss:     elbo
+Data set: matern52
+Evaluation task: interpolation on training range
+Number of parameters: 88420 
+Losses:
+      73.141 +-   2.910 (10000 batches)
+       1.463 +-   0.058 (10000 batches; normalised)
+       1.463 +-   0.058 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 88420 
+Losses:
+      70.650 +-   2.857 (10000 batches)
+       1.413 +-   0.057 (10000 batches; normalised)
+       1.413 +-   0.057 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 88420 
+Losses:
+     180.320 +-   0.436 (10000 batches)
+       7.213 +-   0.017 (10000 batches; normalised)
+       7.213 +-   0.017 (10000 batches; global mean)
+------------------------------------------------------
+Model:    convnp
+Loss:     elbo
+Data set: noisy-mixture
+Evaluation task: interpolation on training range
+Number of parameters: 104804
+Losses:
+      84.310 +-   3.553 (10000 batches)
+       1.686 +-   0.071 (10000 batches; normalised)
+       1.686 +-   0.071 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 104804
+Losses:
+      84.621 +-   3.594 (10000 batches)
+       1.692 +-   0.072 (10000 batches; normalised)
+       1.692 +-   0.072 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 104804
+Losses:
+     261.442 +-   0.586 (10000 batches)
+      10.458 +-   0.023 (10000 batches; normalised)
+      10.458 +-   0.023 (10000 batches; global mean)
+------------------------------------------------------
+Model:    convnp
+Loss:     elbo
+Data set: weakly-periodic
+Evaluation task: interpolation on training range
+Number of parameters: 104804
+Losses:
+     128.558 +-   0.819 (10000 batches)
+       2.571 +-   0.016 (10000 batches; normalised)
+       2.571 +-   0.016 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 104804
+Losses:
+     128.185 +-   0.819 (10000 batches)
+       2.564 +-   0.016 (10000 batches; normalised)
+       2.564 +-   0.016 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 104804
+Losses:
+     102.123 +-   0.337 (10000 batches)
+       4.085 +-   0.013 (10000 batches; normalised)
+       4.085 +-   0.013 (10000 batches; global mean)
+------------------------------------------------------
+Model:    convnp
+Loss:     elbo
+Data set: sawtooth
+Evaluation task: interpolation on training range
+Number of parameters: 203108
+Losses:
+    -151.157 +-   0.817 (10000 batches)
+      -1.512 +-   0.008 (10000 batches; normalised)
+      -1.512 +-   0.008 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 203108
+Losses:
+    -150.650 +-   0.821 (10000 batches)
+      -1.507 +-   0.008 (10000 batches; normalised)
+      -1.507 +-   0.008 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 203108
+Losses:
+     -12.917 +-   0.911 (10000 batches)
+      -0.258 +-   0.018 (10000 batches; normalised)
+      -0.258 +-   0.018 (10000 batches; global mean)
+------------------------------------------------------
+Model:    anp
+Loss:     loglik
+Data set: eq
+Evaluation task: interpolation on training range
+Number of parameters: 265857
+Losses:
+    6660.301 +- 195.343 (10000 batches)
+     133.206 +-   3.907 (10000 batches; normalised)
+     133.206 +-   3.907 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 265857
+Losses:
+    51366.168 +- 133.493 (10000 batches)
+    1027.323 +-   2.670 (10000 batches; normalised)
+    1027.324 +-   2.670 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 265857
+Losses:
+    19299.520 +-  76.448 (10000 batches)
+     771.981 +-   3.058 (10000 batches; normalised)
+     771.981 +-   3.058 (10000 batches; global mean)
+------------------------------------------------------
+Model:    anp
+Loss:     loglik
+Data set: matern52
+Evaluation task: interpolation on training range
+Number of parameters: 265857
+Losses:
+    8365.557 +- 203.109 (10000 batches)
+     167.311 +-   4.062 (10000 batches; normalised)
+     167.311 +-   4.062 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 265857
+Losses:
+    46730.133 +- 115.981 (10000 batches)
+     934.603 +-   2.320 (10000 batches; normalised)
+     934.603 +-   2.320 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 265857
+Losses:
+    18546.676 +-  66.183 (10000 batches)
+     741.867 +-   2.647 (10000 batches; normalised)
+     741.867 +-   2.647 (10000 batches; global mean)
+------------------------------------------------------
+Model:    anp
+Loss:     loglik
+Data set: noisy-mixture
+Evaluation task: interpolation on training range
+Number of parameters: 265857
+Losses:
+    8693.368 +- 271.598 (10000 batches)
+     173.867 +-   5.432 (10000 batches; normalised)
+     173.867 +-   5.432 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 265857
+Losses:
+    68356.922 +- 208.584 (10000 batches)
+    1367.138 +-   4.172 (10000 batches; normalised)
+    1367.138 +-   4.172 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 265857
+Losses:
+    26062.330 +- 114.432 (10000 batches)
+    1042.493 +-   4.577 (10000 batches; normalised)
+    1042.493 +-   4.577 (10000 batches; global mean)
+------------------------------------------------------
+Model:    anp
+Loss:     loglik
+Data set: weakly-periodic
+Evaluation task: interpolation on training range
+Number of parameters: 265857
+Losses:
+    33933.938 +- 122.290 (10000 batches)
+     678.679 +-   2.446 (10000 batches; normalised)
+     678.679 +-   2.446 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 265857
+Losses:
+    56319.922 +- 113.099 (10000 batches)
+    1126.398 +-   2.262 (10000 batches; normalised)
+    1126.398 +-   2.262 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 265857
+Losses:
+    21577.027 +-  56.832 (10000 batches)
+     863.081 +-   2.273 (10000 batches; normalised)
+     863.081 +-   2.273 (10000 batches; global mean)
+------------------------------------------------------
+Model:    anp
+Loss:     loglik
+Data set: sawtooth
+Evaluation task: interpolation on training range
+Number of parameters: 265857
+Losses:
+    7864.091 +-   8.910 (10000 batches)
+      78.641 +-   0.089 (10000 batches; normalised)
+      78.641 +-   0.089 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 265857
+Losses:
+    9580.816 +-   4.816 (10000 batches)
+      95.808 +-   0.048 (10000 batches; normalised)
+      95.808 +-   0.048 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 265857
+Losses:
+    4756.070 +-   3.481 (10000 batches)
+      95.121 +-   0.070 (10000 batches; normalised)
+      95.121 +-   0.070 (10000 batches; global mean)
+------------------------------------------------------
+Model:    anp
+Loss:     loglik-iw
+Data set: eq
+Evaluation task: interpolation on training range
+Number of parameters: 265857
+Losses:
+    2216.533 +-  63.124 (10000 batches)
+      44.331 +-   1.262 (10000 batches; normalised)
+      44.331 +-   1.262 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 265857
+Losses:
+         NaN +-     NaN (10000 batches)
+         NaN +-     NaN (10000 batches; normalised)
+         NaN +-     NaN (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 265857
+Losses:
+    269650.281 +- 3711.126 (10000 batches)
+    10786.010 +- 148.445 (10000 batches; normalised)
+    10786.010 +- 148.445 (10000 batches; global mean)
+------------------------------------------------------
+Model:    anp
+Loss:     loglik-iw
+Data set: matern52
+Evaluation task: interpolation on training range
+Number of parameters: 265857
+Losses:
+    3500.816 +-  66.651 (10000 batches)
+      70.016 +-   1.333 (10000 batches; normalised)
+      70.016 +-   1.333 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 265857
+Losses:
+    521707680.000 +- 261671137.280 (10000 batches)
+    10434153.094 +- 5233420.986 (10000 batches; normalised)
+    10434154.000 +- 5233419.840 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 265857
+Losses:
+    118471.578 +- 1315.013 (10000 batches)
+    4738.863 +-  52.601 (10000 batches; normalised)
+    4738.863 +-  52.601 (10000 batches; global mean)
+------------------------------------------------------
+Model:    anp
+Loss:     loglik-iw
+Data set: noisy-mixture
+Evaluation task: interpolation on training range
+Number of parameters: 265857
+Losses:
+    3325.647 +-  82.147 (10000 batches)
+      66.513 +-   1.643 (10000 batches; normalised)
+      66.513 +-   1.643 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 265857
+Losses:
+    27949432.000 +- 4784415.360 (10000 batches)
+    558988.658 +- 95688.302 (10000 batches; normalised)
+    558988.625 +- 95688.300 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 265857
+Losses:
+    68172.633 +- 588.437 (10000 batches)
+    2726.906 +-  23.537 (10000 batches; normalised)
+    2726.906 +-  23.537 (10000 batches; global mean)
+------------------------------------------------------
+Model:    anp
+Loss:     loglik-iw
+Data set: weakly-periodic
+Evaluation task: interpolation on training range
+Number of parameters: 265857
+Losses:
+    20844.420 +-  51.027 (10000 batches)
+     416.888 +-   1.021 (10000 batches; normalised)
+     416.888 +-   1.021 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 265857
+Losses:
+    1457100.625 +- 19995.014 (10000 batches)
+    29142.013 +- 399.900 (10000 batches; normalised)
+    29142.010 +- 399.900 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 265857
+Losses:
+    199595.547 +- 6309.336 (10000 batches)
+    7983.822 +- 252.373 (10000 batches; normalised)
+    7983.822 +- 252.373 (10000 batches; global mean)
+------------------------------------------------------
+Model:    anp
+Loss:     loglik-iw
+Data set: sawtooth
+Evaluation task: interpolation on training range
+Number of parameters: 265857
+Losses:
+    6424.439 +-  11.173 (10000 batches)
+      64.244 +-   0.112 (10000 batches; normalised)
+      64.244 +-   0.112 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 265857
+Losses:
+         NaN +-     NaN (10000 batches)
+         NaN +-     NaN (10000 batches; normalised)
+         NaN +-     NaN (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 265857
+Losses:
+    3574849.500 +- 41472.215 (10000 batches)
+    71496.986 +- 829.444 (10000 batches; normalised)
+    71496.984 +- 829.444 (10000 batches; global mean)
+------------------------------------------------------
+Model:    anp
+Loss:     elbo
+Data set: eq
+Evaluation task: interpolation on training range
+Number of parameters: 265857
+Losses:
+    3141.917 +-  61.185 (10000 batches)
+      62.838 +-   1.224 (10000 batches; normalised)
+      62.838 +-   1.224 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 265857
+Losses:
+    34591768.000 +- 203590.220 (10000 batches)
+    691835.358 +- 4071.805 (10000 batches; normalised)
+    691835.375 +- 4071.805 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 265857
+Losses:
+    1696034.500 +- 19033.961 (10000 batches)
+    67841.379 +- 761.358 (10000 batches; normalised)
+    67841.383 +- 761.358 (10000 batches; global mean)
+------------------------------------------------------
+Model:    anp
+Loss:     elbo
+Data set: matern52
+Evaluation task: interpolation on training range
+Number of parameters: 265857
+Losses:
+    5401.558 +-  69.372 (10000 batches)
+     108.031 +-   1.387 (10000 batches; normalised)
+     108.031 +-   1.387 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 265857
+Losses:
+    507055296.000 +- 3205841.280 (10000 batches)
+    10141106.473 +- 64116.829 (10000 batches; normalised)
+    10141107.000 +- 64116.835 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 265857
+Losses:
+    27816172.000 +- 223518.900 (10000 batches)
+    1112646.990 +- 8940.756 (10000 batches; normalised)
+    1112647.000 +- 8940.756 (10000 batches; global mean)
+------------------------------------------------------
+Model:    anp
+Loss:     elbo
+Data set: noisy-mixture
+Evaluation task: interpolation on training range
+Number of parameters: 265857
+Losses:
+    4291.716 +-  83.688 (10000 batches)
+      85.834 +-   1.674 (10000 batches; normalised)
+      85.834 +-   1.674 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 265857
+Losses:
+    780843072.000 +- 4827092.160 (10000 batches)
+    15616861.145 +- 96541.842 (10000 batches; normalised)
+    15616859.000 +- 96541.850 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 265857
+Losses:
+    47322880.000 +- 384638.800 (10000 batches)
+    1892915.319 +- 15385.553 (10000 batches; normalised)
+    1892915.250 +- 15385.554 (10000 batches; global mean)
+------------------------------------------------------
+Model:    anp
+Loss:     elbo
+Data set: weakly-periodic
+Evaluation task: interpolation on training range
+Number of parameters: 265857
+Losses:
+    29297.510 +-  62.290 (10000 batches)
+     585.950 +-   1.246 (10000 batches; normalised)
+     585.950 +-   1.246 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 265857
+Losses:
+    427364608.000 +- 2419792.960 (10000 batches)
+    8547292.389 +- 48395.859 (10000 batches; normalised)
+    8547292.000 +- 48395.860 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 265857
+Losses:
+    24127970.000 +- 185648.880 (10000 batches)
+    965118.754 +- 7425.955 (10000 batches; normalised)
+    965118.750 +- 7425.955 (10000 batches; global mean)
+------------------------------------------------------
+Model:    anp
+Loss:     elbo
+Data set: sawtooth
+Evaluation task: interpolation on training range
+Number of parameters: 265857
+Losses:
+    2157.665 +-  39.228 (10000 batches)
+      21.577 +-   0.392 (10000 batches; normalised)
+      21.577 +-   0.392 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 265857
+Losses:
+    21897580.000 +- 114356.680 (10000 batches)
+    218975.797 +- 1143.567 (10000 batches; normalised)
+    218975.797 +- 1143.567 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 265857
+Losses:
+    1130891.000 +- 8905.037 (10000 batches)
+    22617.823 +- 178.101 (10000 batches; normalised)
+    22617.824 +- 178.101 (10000 batches; global mean)
+------------------------------------------------------
+Model:    np
+Loss:     loglik
+Data set: eq
+Evaluation task: interpolation on training range
+Number of parameters: 199041
+Losses:
+    13662.790 +- 164.118 (10000 batches)
+     273.256 +-   3.282 (10000 batches; normalised)
+     273.256 +-   3.282 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 199041
+Losses:
+    124772.695 +- 566.342 (10000 batches)
+    2495.454 +-  11.327 (10000 batches; normalised)
+    2495.454 +-  11.327 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 199041
+Losses:
+    47295.086 +- 312.164 (10000 batches)
+    1891.803 +-  12.487 (10000 batches; normalised)
+    1891.804 +-  12.487 (10000 batches; global mean)
+------------------------------------------------------
+Model:    np
+Loss:     loglik
+Data set: matern52
+Evaluation task: interpolation on training range
+Number of parameters: 199041
+Losses:
+    17275.766 +- 164.421 (10000 batches)
+     345.515 +-   3.288 (10000 batches; normalised)
+     345.515 +-   3.288 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 199041
+Losses:
+    57981.516 +- 162.319 (10000 batches)
+    1159.630 +-   3.246 (10000 batches; normalised)
+    1159.630 +-   3.246 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 199041
+Losses:
+    32291.809 +- 177.551 (10000 batches)
+    1291.672 +-   7.102 (10000 batches; normalised)
+    1291.672 +-   7.102 (10000 batches; global mean)
+------------------------------------------------------
+Model:    np
+Loss:     loglik
+Data set: noisy-mixture
+Evaluation task: interpolation on training range
+Number of parameters: 199041
+Losses:
+    16797.645 +- 238.876 (10000 batches)
+     335.953 +-   4.778 (10000 batches; normalised)
+     335.953 +-   4.778 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 199041
+Losses:
+    128530.242 +- 530.332 (10000 batches)
+    2570.605 +-  10.607 (10000 batches; normalised)
+    2570.604 +-  10.607 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 199041
+Losses:
+    65131.020 +- 446.633 (10000 batches)
+    2605.241 +-  17.865 (10000 batches; normalised)
+    2605.241 +-  17.865 (10000 batches; global mean)
+------------------------------------------------------
+Model:    np
+Loss:     loglik
+Data set: weakly-periodic
+Evaluation task: interpolation on training range
+Number of parameters: 199041
+Losses:
+    37621.320 +-  92.672 (10000 batches)
+     752.426 +-   1.853 (10000 batches; normalised)
+     752.426 +-   1.853 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 199041
+Losses:
+    53837.977 +- 101.981 (10000 batches)
+    1076.760 +-   2.040 (10000 batches; normalised)
+    1076.760 +-   2.040 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 199041
+Losses:
+    24263.443 +-  72.132 (10000 batches)
+     970.538 +-   2.885 (10000 batches; normalised)
+     970.538 +-   2.885 (10000 batches; global mean)
+------------------------------------------------------
+Model:    np
+Loss:     loglik
+Data set: sawtooth
+Evaluation task: interpolation on training range
+Number of parameters: 199041
+Losses:
+    8280.782 +-   6.007 (10000 batches)
+      82.808 +-   0.060 (10000 batches; normalised)
+      82.808 +-   0.060 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 199041
+Losses:
+    9681.238 +-   4.892 (10000 batches)
+      96.812 +-   0.049 (10000 batches; normalised)
+      96.812 +-   0.049 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 199041
+Losses:
+    4827.442 +-   3.441 (10000 batches)
+      96.549 +-   0.069 (10000 batches; normalised)
+      96.549 +-   0.069 (10000 batches; global mean)
+------------------------------------------------------
+Model:    np
+Loss:     loglik-iw
+Data set: eq
+Evaluation task: interpolation on training range
+Number of parameters: 199041
+Losses:
+    3139.749 +-   9.584 (10000 batches)
+      62.795 +-   0.192 (10000 batches; normalised)
+      62.795 +-   0.192 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 199041
+Losses:
+         NaN +-     NaN (10000 batches)
+         NaN +-     NaN (10000 batches; normalised)
+         NaN +-     NaN (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 199041
+Losses:
+    1041376.438 +- 22407.257 (10000 batches)
+    41655.062 +- 896.290 (10000 batches; normalised)
+    41655.066 +- 896.290 (10000 batches; global mean)
+------------------------------------------------------
+Model:    np
+Loss:     loglik-iw
+Data set: matern52
+Evaluation task: interpolation on training range
+Number of parameters: 199041
+Losses:
+    4964.681 +-  10.867 (10000 batches)
+      99.294 +-   0.217 (10000 batches; normalised)
+      99.294 +-   0.217 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 199041
+Losses:
+    15047963.000 +- 210787.120 (10000 batches)
+    300959.270 +- 4215.742 (10000 batches; normalised)
+    300959.250 +- 4215.742 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 199041
+Losses:
+    2129584.250 +- 60291.825 (10000 batches)
+    85183.365 +- 2411.673 (10000 batches; normalised)
+    85183.359 +- 2411.673 (10000 batches; global mean)
+------------------------------------------------------
+Model:    np
+Loss:     loglik-iw
+Data set: noisy-mixture
+Evaluation task: interpolation on training range
+Number of parameters: 199041
+Losses:
+    3877.144 +-  12.114 (10000 batches)
+      77.543 +-   0.242 (10000 batches; normalised)
+      77.543 +-   0.242 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 199041
+Losses:
+    26109628.000 +- 454555.000 (10000 batches)
+    522192.572 +- 9091.100 (10000 batches; normalised)
+    522192.594 +- 9091.099 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 199041
+Losses:
+    2299699.250 +- 41497.550 (10000 batches)
+    91987.957 +- 1659.902 (10000 batches; normalised)
+    91987.953 +- 1659.902 (10000 batches; global mean)
+------------------------------------------------------
+Model:    np
+Loss:     loglik-iw
+Data set: weakly-periodic
+Evaluation task: interpolation on training range
+Number of parameters: 199041
+Losses:
+    27311.750 +-  56.825 (10000 batches)
+     546.235 +-   1.136 (10000 batches; normalised)
+     546.235 +-   1.136 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 199041
+Losses:
+    11118210.000 +- 189942.860 (10000 batches)
+    222364.201 +- 3798.857 (10000 batches; normalised)
+    222364.188 +- 3798.857 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 199041
+Losses:
+    1718657.375 +- 61443.050 (10000 batches)
+    68746.305 +- 2457.722 (10000 batches; normalised)
+    68746.305 +- 2457.722 (10000 batches; global mean)
+------------------------------------------------------
+Model:    np
+Loss:     loglik-iw
+Data set: sawtooth
+Evaluation task: interpolation on training range
+Number of parameters: 199041
+Losses:
+    7951.424 +-   6.147 (10000 batches)
+      79.514 +-   0.061 (10000 batches; normalised)
+      79.514 +-   0.061 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 199041
+Losses:
+         NaN +-     NaN (10000 batches)
+         NaN +-     NaN (10000 batches; normalised)
+         NaN +-     NaN (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 199041
+Losses:
+    68845.859 +- 1208.285 (10000 batches)
+    1376.917 +-  24.166 (10000 batches; normalised)
+    1376.917 +-  24.166 (10000 batches; global mean)
+------------------------------------------------------
+Model:    np
+Loss:     elbo
+Data set: eq
+Evaluation task: interpolation on training range
+Number of parameters: 199041
+Losses:
+    4158.011 +-  11.849 (10000 batches)
+      83.160 +-   0.237 (10000 batches; normalised)
+      83.160 +-   0.237 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 199041
+Losses:
+    4815839232.000 +- 29496215.040 (10000 batches)
+    96316796.575 +- 589924.308 (10000 batches; normalised)
+    96316792.000 +- 589924.280 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 199041
+Losses:
+    207371136.000 +- 1900008.640 (10000 batches)
+    8294845.829 +- 76000.346 (10000 batches; normalised)
+    8294845.500 +- 76000.345 (10000 batches; global mean)
+------------------------------------------------------
+Model:    np
+Loss:     elbo
+Data set: matern52
+Evaluation task: interpolation on training range
+Number of parameters: 199041
+Losses:
+    6883.382 +-  19.167 (10000 batches)
+     137.668 +-   0.383 (10000 batches; normalised)
+     137.668 +-   0.383 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 199041
+Losses:
+    1480119296.000 +- 8213897.600 (10000 batches)
+    29602387.875 +- 164277.955 (10000 batches; normalised)
+    29602388.000 +- 164277.960 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 199041
+Losses:
+    82137008.000 +- 684505.360 (10000 batches)
+    3285480.129 +- 27380.217 (10000 batches; normalised)
+    3285480.250 +- 27380.217 (10000 batches; global mean)
+------------------------------------------------------
+Model:    np
+Loss:     elbo
+Data set: noisy-mixture
+Evaluation task: interpolation on training range
+Number of parameters: 199041
+Losses:
+    6274.162 +-  18.074 (10000 batches)
+     125.483 +-   0.361 (10000 batches; normalised)
+     125.483 +-   0.361 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 199041
+Losses:
+    1527969280.000 +- 8725093.120 (10000 batches)
+    30559383.464 +- 174501.865 (10000 batches; normalised)
+    30559378.000 +- 174501.860 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 199041
+Losses:
+    82913472.000 +- 806395.040 (10000 batches)
+    3316538.762 +- 32255.800 (10000 batches; normalised)
+    3316538.500 +- 32255.800 (10000 batches; global mean)
+------------------------------------------------------
+Model:    np
+Loss:     elbo
+Data set: weakly-periodic
+Evaluation task: interpolation on training range
+Number of parameters: 199041
+Losses:
+    44169.973 +- 212.044 (10000 batches)
+     883.399 +-   4.241 (10000 batches; normalised)
+     883.399 +-   4.241 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 199041
+Losses:
+    5957330432.000 +- 33311992.320 (10000 batches)
+    119146599.465 +- 666239.838 (10000 batches; normalised)
+    119146600.000 +- 666239.840 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 199041
+Losses:
+    300141472.000 +- 2369965.120 (10000 batches)
+    12005660.110 +- 94798.605 (10000 batches; normalised)
+    12005661.000 +- 94798.600 (10000 batches; global mean)
+------------------------------------------------------
+Model:    np
+Loss:     elbo
+Data set: sawtooth
+Evaluation task: interpolation on training range
+Number of parameters: 199041
+Losses:
+    11049.514 +-  35.703 (10000 batches)
+     110.495 +-   0.357 (10000 batches; normalised)
+     110.495 +-   0.357 (10000 batches; global mean)
+Evaluation task: interpolation beyond training range
+Number of parameters: 199041
+Losses:
+    26779080704.000 +- 142940364.800 (10000 batches)
+    267790814.094 +- 1429403.655 (10000 batches; normalised)
+    267790784.000 +- 1429403.680 (10000 batches; global mean)
+Evaluation task: extrapolation beyond training range
+Number of parameters: 199041
+Losses:
+    1283589376.000 +- 9818935.040 (10000 batches)
+    25671786.482 +- 196378.705 (10000 batches; normalised)
+    25671786.000 +- 196378.700 (10000 batches; global mean)
