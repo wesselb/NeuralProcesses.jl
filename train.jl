@@ -221,7 +221,12 @@ if args["evaluate"]
     end
 else
     # Construct data generator for training.
-    data_gen = build_data_gen(Uniform(-2, 2), Uniform(-2, 2))
+    data_gen = build_data_gen(
+        x_context=Uniform(-2, 2),
+        x_target=Uniform(-2, 2),
+        num_context=num_context,
+        num_target=num_target
+    )
 
     if args["starting-epoch"] > 1
         # Continue training from most recent model.
