@@ -16,13 +16,13 @@ Neural Process.
 - `encoder_lat`: Latent encoder.
 - `encoder_det`: Deterministic encoder.
 - `decoder`: Decoder.
-- `log_σ`: Natural logarithm of observation noise.
+- `decoder_predict`: Function that transforms the output of the decoder into a distribution.
 """
 struct NP <: AbstractNP
     encoder_lat
     encoder_det
     decoder
-    log_σ
+    decoder_predict
 end
 
 @Flux.treelike NP
@@ -146,8 +146,10 @@ Perform decoding.
 # Returns
 - `Tuple{AA, AA}`: Tuple containing means and standard deviations.
 """
-decode(model::NP, xz::AA, z::AA, r::AA, xt::AA) =
-    (model.decoder(repeat_cat(z, r, xt, dims=2)), exp.(model.log_σ))
+function decode(model::NP, xz::AA, z::AA, r::AA, xt::AA)
+    channels = model.decoder(repeat_cat(z, r, xt, dims=2))
+    return model.decoder_predict(channels)
+end
 
 """
     (model::AbstractNP)(xc::AA, yc::AA, xt::AA, num_samples::Integer)
@@ -231,16 +233,22 @@ end
         dim_embedding::Integer,
         num_encoder_layers::Integer,
         num_decoder_layers::Integer,
+        num_σ_channels::Integer,
         σ::Float32=1f-2,
-        learn_σ::Bool=true
+        learn_σ::Bool=true,
+        pooling_type::String="sum"
     )
 
 # Arguments
 - `dim_embedding::Integer`: Dimensionality of the embedding.
 - `num_encoder_layers::Integer`: Number of layers in the encoder.
 - `num_decoder_layers::Integer`: Number of layers in the decoder.
+- `num_σ_channels::Integer`: Learn the observation noise through amortisation. Set to
+    `0` to use a constant noise. If set to a value bigger than `0`, the values for `σ` and
+    `learn_σ` are ignored.
 - `σ::Float32=1f-2`: Initialisation of the observation noise.
 - `learn_σ::Bool=true`: Learn the observation noise.
+- `pooling_type::String="sum"`: Type of pooling. Must be "sum" or "mean".
 
 # Returns
 - `NP`: Corresponding model.
@@ -249,8 +257,10 @@ function np_1d(;
     dim_embedding::Integer,
     num_encoder_layers::Integer,
     num_decoder_layers::Integer,
+    num_σ_channels::Integer,
     σ::Float32=1f-2,
-    learn_σ::Bool=true
+    learn_σ::Bool=true,
+    pooling_type::String="sum"
 )
     dim_x = 1
     dim_y = 1
@@ -286,11 +296,114 @@ function np_1d(;
         batched_mlp(
             dim_in    =2dim_embedding + dim_x,
             dim_hidden=dim_embedding,
-            dim_out   =dim_y,
+            dim_out   =num_σ_channels + dim_y,
             num_layers=num_decoder_layers,
         ),
-        learn_σ ? param([log(σ)]) : [log(σ)]
+        _np_build_noise_model(
+            num_σ_channels=num_σ_channels,
+            σ            =σ,
+            learn_σ      =learn_σ,
+            pooling_type =pooling_type
+        )
     )
+end
+
+function _np_build_noise_model(;
+    num_σ_channels,
+    σ,
+    learn_σ,
+    pooling_type
+)
+    if num_σ_channels > 0
+        # Construct pooling.
+        if pooling_type == "sum"
+            pooling = SumPooling(1000)
+        elseif pooling_type == "mean"
+            pooling = MeanPooling(layer_norm(1, num_σ_channels, 1))
+        else
+            error("Unknown pooling type \"" * pooling_type * "\".")
+        end
+
+        # Construct prediction with amortised noise.
+        return AmortisedNoise(
+            SplitGlobal(
+                num_σ_channels,
+                batched_mlp(
+                    dim_in    =num_σ_channels,
+                    dim_hidden=num_σ_channels,
+                    dim_out   =num_σ_channels,
+                    num_layers=3
+                ),
+                pooling,
+                batched_mlp(
+                    dim_in    =num_σ_channels,
+                    dim_hidden=num_σ_channels,
+                    dim_out   =1,
+                    num_layers=3
+                ),
+                identity
+            )
+        )
+    else
+        return ConstantNoise(
+            learn_σ ? param([log(σ)]) : [log(σ)]
+        )
+    end
+end
+
+
+"""
+    struct ConstantNoise
+
+Constant noise model.
+
+# Fields
+- `log_σ`: Natural logarithm of the observation noise standard deviation.
+"""
+struct ConstantNoise
+    log_σ
+end
+
+@Flux.treelike ConstantNoise
+
+"""
+    (layer::ConstantNoise)(x::AA)
+
+# Arguments
+- `x::AA`: Channels that should produce the mean and noise.
+
+# Returns
+- `Tuple{AA, AA}`: Tuple containing means and standard deviations.
+"""
+(layer::ConstantNoise)(x::AA) = x, exp.(layer.log_σ)
+
+"""
+    struct AmortisedNoise
+
+Amortised noise model.
+
+# Fields
+- `split_global`: Appropriate instance of `SplitGlobal` that produces the mean and noise
+    channels.
+"""
+struct AmortisedNoise
+    split_global
+end
+
+@Flux.treelike AmortisedNoise
+
+"""
+    (layer::AmortisedNoise)(x::AA)
+
+# Arguments
+- `x::AA`: Channels that should produce the mean and noise.
+
+# Returns
+- `Tuple{AA, AA}`: Tuple containing means and standard deviations.
+"""
+function (layer::AmortisedNoise)(x::AA)
+    transformed_σ, μ = layer.split_global(x)
+    return μ, softplus(transformed_σ)
 end
 
 """

@@ -74,17 +74,48 @@
         points_per_unit=5f0,
         pooling_type="mean"
     )
-
     anp = anp_1d(
         dim_embedding=10,
         num_encoder_layers=2,
         num_encoder_heads=3,
-        num_decoder_layers=2
+        num_decoder_layers=2,
+        num_σ_channels=0
+    )
+    anp_amortised_sum = anp_1d(
+        dim_embedding=10,
+        num_encoder_layers=2,
+        num_encoder_heads=3,
+        num_decoder_layers=2,
+        num_σ_channels=8,
+        pooling_type="sum"
+    )
+    anp_amortised_mean = anp_1d(
+        dim_embedding=10,
+        num_encoder_layers=2,
+        num_encoder_heads=3,
+        num_decoder_layers=2,
+        num_σ_channels=8,
+        pooling_type="mean"
     )
     np = np_1d(
         dim_embedding=10,
         num_encoder_layers=2,
-        num_decoder_layers=2
+        num_decoder_layers=2,
+        num_σ_channels=0
+    )
+    np_amortised_sum = np_1d(
+        dim_embedding=10,
+        num_encoder_layers=2,
+        num_decoder_layers=2,
+        num_σ_channels=8,
+        pooling_type="sum"
+    )
+    np_amortised_mean = np_1d(
+        dim_embedding=10,
+        num_encoder_layers=2,
+        num_decoder_layers=2,
+        num_σ_channels=8,
+        pooling_type="mean"
     )
 
     # CNPs:
@@ -98,7 +129,11 @@
         convnp_amortised_sum,
         convnp_amortised_mean,
         anp,
-        np
+        anp_amortised_sum,
+        anp_amortised_mean,
+        np,
+        np_amortised_sum,
+        np_amortised_mean
     ]
         push!(model_losses, (
             model,

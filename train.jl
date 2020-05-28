@@ -7,11 +7,15 @@ Pkg.instantiate()
 parser = ArgParseSettings()
 @add_arg_table! parser begin
     "--data"
-        help = "Data set: eq-small, eq, matern52, noisy-mixture, weakly-periodic, sawtooth, or mixture."
+        help =
+            "Data set: eq-small, eq, matern52, noisy-mixture, weakly-periodic, sawtooth, " *
+            "or mixture."
         arg_type = String
         required = true
     "--model"
-        help = "Model: convcnp, convnp, convnp-global-sum, convnp-global-mean, convnp-amortised-sum, convnp-amortised-mean, anp, or np."
+        help =
+            "Model: convcnp, convnp[-{global,amortised}-{sum,mean}], " *
+            "anp[-amortised-{sum,mean}], or np[-amortised-{sum,mean}]."
         arg_type = String
         required = true
     "--loss"
@@ -143,7 +147,11 @@ elseif args["model"] in [
     "convnp-amortised-sum",
     "convnp-amortised-mean",
     "anp",
-    "np"
+    "anp-amortised-sum",
+    "anp-amortised-mean",
+    "np",
+    "np-amortised-sum",
+    "np-amortised-mean"
 ]
     # Determine training loss.
     if args["loss"] == "loglik"
@@ -281,22 +289,52 @@ else
                 learn_σ=false,
                 pooling_type=pooling_type
             ) |> gpu
-        elseif args["model"] == "anp"
+        elseif args["model"] in ["anp", "anp-amortised-sum", "anp-amortised-mean"]
+            if args["model"] == "anp"
+                num_σ_channels = 0
+                pooling_type = "sum"  # This doesn't matter, but must be set to something.
+            elseif args["model"] == "anp-amortised-sum"
+                num_σ_channels = 8
+                pooling_type = "sum"
+            elseif args["model"] == "anp-amortised-mean"
+                num_σ_channels = 8
+                pooling_type = "mean"
+            else
+                error("Unknown model \"" * args["model"] * "\".")
+            end
+
             model = anp_1d(
                 dim_embedding=dim_embedding,
                 num_encoder_heads=8,
                 num_encoder_layers=3,
                 num_decoder_layers=3,
+                num_σ_channels=num_σ_channels,
                 σ=2f-2,
-                learn_σ=false
+                learn_σ=false,
+                pooling_type=pooling_type
             ) |> gpu
-        elseif args["model"] == "np"
+        elseif args["model"] in ["np", "np-amortised-sum", "np-amortised-mean"]
+            if args["model"] == "np"
+                num_σ_channels = 0
+                pooling_type = "sum"  # This doesn't matter, but must be set to something.
+            elseif args["model"] == "np-amortised-sum"
+                num_σ_channels = 8
+                pooling_type = "sum"
+            elseif args["model"] == "np-amortised-mean"
+                num_σ_channels = 8
+                pooling_type = "mean"
+            else
+                error("Unknown model \"" * args["model"] * "\".")
+            end
+
             model = np_1d(
                 dim_embedding=dim_embedding,
                 num_encoder_layers=3,
                 num_decoder_layers=3,
+                num_σ_channels=num_σ_channels,
                 σ=2f-2,
-                learn_σ=false
+                learn_σ=false,
+                pooling_type=pooling_type
             ) |> gpu
         else
             error("Unknown model \"" * args["model"] * "\".")

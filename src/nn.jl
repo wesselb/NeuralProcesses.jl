@@ -131,3 +131,98 @@ function batched_mlp(;
         return BatchedMLP(Chain(layers...), dim_out)
     end
 end
+
+
+"""
+    struct SplitGlobal
+
+# Fields
+- `num_global_channels::Integer`: Number of channels to use for the global channels.
+- `ff₁`: Feed-forward net before pooling.
+- `pooling`: Pooling.
+- `ff₂`: Feed-forward net after pooling.
+- `transform`: Function that transforms both the local and global channel after `ff₂`.
+"""
+struct SplitGlobal
+    num_global_channels::Integer
+    ff₁
+    pooling
+    ff₂
+    transform
+end
+
+@Flux.treelike SplitGlobal
+
+"""
+    (layer::SplitGlobal)(x::AA)
+
+Split `layer.num_global_channels` off of `x` to construct global channels.
+
+# Arguments
+- `x::AA`: Tensor to split global channels off of.
+
+# Returns
+- `Tuple`: Two-tuple containing the outputs for the global and local channels.
+"""
+function (layer::SplitGlobal)(x::AA)
+    # Split channels.
+    x_global = slice_at(x, 2, 1:layer.num_global_channels)
+    x_local = slice_at(x, 2, layer.num_global_channels + 1:size(x, 2))
+
+    # Pool over data points to make global channels.
+    x_global = layer.ff₁(x_global)
+    x_global = layer.pooling(x_global)
+    x_global = layer.ff₂(x_global)
+
+    return layer.transform(x_global), layer.transform(x_local)
+end
+
+"""
+    struct MeanPooling
+
+Mean pooling.
+
+# Fields
+- `ln`: Layer normalisation to depend not on the size of the discretisation.
+"""
+struct MeanPooling
+    ln
+end
+
+@Flux.treelike MeanPooling
+
+"""
+    (layer::MeanPooling)(x::AA)
+
+# Arguments
+- `x::AA`: Input to pool.
+
+# Returns
+- `AA`: `x` pooled.
+"""
+(layer::MeanPooling)(x::AA) = layer.ln(mean(x, dims=1))
+
+"""
+    struct SumPooling
+
+Sum pooling.
+
+# Fields
+- `factor::Integer`: Factor to divide by after pooling to help initialisation.
+"""
+struct SumPooling
+    factor::Integer
+end
+
+@Flux.treelike SumPooling
+
+"""
+    (layer::SumPooling)(x::AA)
+
+# Arguments
+- `x::AA`: Input to pool.
+
+# Returns
+- `AA`: `x` pooled.
+"""
+(layer::SumPooling)(x::AA) = sum(x, dims=1) ./ layer.factor

@@ -73,10 +73,10 @@ function decode(model::ConvNP, xz::AA, z::AA, r::Nothing, xt::AA)
         μ,
         _repeat_samples(xt, num_samples)
     )
-
-    # Separate samples from batches.
     μ = reshape(μ, size(μ)[1:2]..., num_batches, num_samples)
-    # The noise can be constant, in which case we do nothing.
+
+    # The noise will be constant over data, so we do not need to smooth. However, it can
+    # depend on the batch and sample, so we need to reshape in that case.
     length(σ) > 1 && (σ = reshape(σ, size(σ)[1:2]..., num_batches, num_samples))
 
     return μ, σ
@@ -164,9 +164,9 @@ function convnp_1d(;
         receptive_field,
         num_decoder_layers,
         num_decoder_channels,
-        points_per_unit=points_per_unit,
-        dimensionality=1,
-        num_in_channels=num_latent_channels + num_global_channels,
+        points_per_unit =points_per_unit,
+        dimensionality  =1,
+        num_in_channels =num_latent_channels + num_global_channels,
         num_out_channels=num_σ_channels + 1
     )
 
@@ -203,43 +203,6 @@ function convnp_1d(;
         encoder_predict = split_μ_σ
     end
 
-    # Construct the prediction for the observation noise.
-    if num_σ_channels > 0
-        # Construct pooling.
-        if pooling_type == "sum"
-            pooling = SumPooling(1000)
-        elseif pooling_type == "mean"
-            pooling = MeanPooling(layer_norm(1, num_σ_channels, 1))
-        else
-            error("Unknown pooling type \"" * pooling_type * "\".")
-        end
-
-        # Construct prediction with amortised noise.
-        decoder_predict = AmortisedNoise(
-            SplitGlobal(
-                num_σ_channels,
-                batched_mlp(
-                    dim_in    =num_σ_channels,
-                    dim_hidden=num_σ_channels,
-                    dim_out   =num_σ_channels,
-                    num_layers=3
-                ),
-                pooling,
-                batched_mlp(
-                    dim_in    =num_σ_channels,
-                    dim_hidden=num_σ_channels,
-                    dim_out   =1,
-                    num_layers=3
-                ),
-                identity
-            )
-        )
-    else
-        decoder_predict = ConstantNoise(
-            learn_σ ? param([log(σ)]) : [log(σ)]
-        )
-    end
-
     # Put model together.
     scale = 2 / arch_decoder.points_per_unit
     return ConvNP(
@@ -252,120 +215,12 @@ function convnp_1d(;
         arch_encoder.conv,
         encoder_predict,
         arch_decoder.conv,
-        decoder_predict,
+        _np_build_noise_model(
+            num_σ_channels=num_σ_channels,
+            σ             =σ,
+            learn_σ       =learn_σ,
+            pooling_type  =pooling_type
+        ),
         set_conv(1, scale)
     )
-end
-
-"""
-    struct SplitGlobal
-
-# Fields
-- `num_global_channels::Integer`: Number of channels to use for the global variable.
-- `ff₁`: Feed-forward net before pooling.
-- `pooling`: Pooling.
-- `ff₂`: Feed-forward net after pooling.
-- `transform`: Function that transforms the output.
-"""
-struct SplitGlobal
-    num_global_channels::Integer
-    ff₁
-    pooling
-    ff₂
-    transform
-end
-
-@Flux.treelike SplitGlobal
-
-"""
-    (layer::SplitGlobal)(x::AA)
-
-Split `layer.num_global_channels` off of `x` to construct the global variable.
-
-# Arguments
-- `x::AA`: Tensor to split global variable off of.
-
-# Returns
-- `Tuple`: Two-tuple containing the distributions for the global and equivariant variable.
-"""
-function (layer::SplitGlobal)(x::AA)
-    # Split channels.
-    x_global = x[:, 1:layer.num_global_channels, :]
-    x_local = x[:, layer.num_global_channels + 1:end, :]
-
-    # Pool over data points to make global channels.
-    x_global = layer.ff₁(x_global)
-    x_global = layer.pooling(x_global)
-    x_global = layer.ff₂(x_global)
-
-    return layer.transform(x_global), layer.transform(x_local)
-end
-
-"""
-    struct MeanPooling
-
-Mean pooling.
-
-# Fields
-- `ln`: Layer normalisation to depend not on the size of the discretisation.
-"""
-struct MeanPooling
-    ln
-end
-
-@Flux.treelike MeanPooling
-
-"""
-    (layer::MeanPooling)(x::AA)
-
-# Arguments
-- `x::AA`: Input to pool.
-
-# Returns
-- `AA`: `x` pooled.
-"""
-(layer::MeanPooling)(x::AA) = layer.ln(mean(x, dims=1))
-
-"""
-    struct SumPooling
-
-Sum pooling.
-
-# Fields
-- `factor::Integer`: Factor to divide by after pooling to help initialisation.
-"""
-struct SumPooling
-    factor::Integer
-end
-
-@Flux.treelike SumPooling
-
-"""
-    (layer::SumPooling)(x::AA)
-
-# Arguments
-- `x::AA`: Input to pool.
-
-# Returns
-- `AA`: `x` pooled.
-"""
-(layer::SumPooling)(x::AA) = sum(x, dims=1) ./ layer.factor
-
-struct ConstantNoise
-    log_σ
-end
-
-@Flux.treelike ConstantNoise
-
-(layer::ConstantNoise)(x::AA) = x, exp.(layer.log_σ)
-
-struct AmortisedNoise
-    split_global
-end
-
-@Flux.treelike AmortisedNoise
-
-function (layer::AmortisedNoise)(x::AA)
-    transformed_σ, μ = layer.split_global(x)
-    return μ, softplus(transformed_σ)
 end
