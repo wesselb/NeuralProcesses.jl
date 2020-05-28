@@ -342,7 +342,8 @@ function _np_build_noise_model(;
                     num_layers=3
                 ),
                 identity
-            )
+            ),
+            100
         )
     else
         return ConstantNoise(
@@ -385,9 +386,12 @@ Amortised noise model.
 # Fields
 - `split_global`: Appropriate instance of `SplitGlobal` that produces the mean and noise
     channels.
+- `offset::Integer`: Constant to subtract from the output for the standard deviation to
+    help initialisation.
 """
 struct AmortisedNoise
     split_global
+    offset
 end
 
 @Flux.treelike AmortisedNoise
@@ -403,7 +407,7 @@ end
 """
 function (layer::AmortisedNoise)(x::AA)
     transformed_σ, μ = layer.split_global(x)
-    return μ, softplus(transformed_σ)
+    return μ, softplus(transformed_σ .- layer.offset)
 end
 
 """
