@@ -152,9 +152,9 @@ function convnp_1d(;
         receptive_field,
         num_encoder_layers,
         num_encoder_channels,
-        points_per_unit=points_per_unit,
-        dimensionality=1,
-        num_in_channels=2,  # Account for density channel.
+        points_per_unit =points_per_unit,
+        dimensionality  =1,
+        num_in_channels =2,  # Account for density channel.
         # Outputs means and standard deviations.
         num_out_channels=2(num_latent_channels + num_global_channels)
     )
