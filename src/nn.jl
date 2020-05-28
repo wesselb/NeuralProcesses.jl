@@ -132,7 +132,6 @@ function batched_mlp(;
     end
 end
 
-
 """
     struct SplitGlobal
 
