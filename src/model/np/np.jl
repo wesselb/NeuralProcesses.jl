@@ -343,7 +343,7 @@ function _np_build_noise_model(;
                 ),
                 identity
             ),
-            100
+            10
         )
     else
         return ConstantNoise(
