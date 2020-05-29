@@ -571,8 +571,9 @@ function predict(model::AbstractNP, xc::AV, yc::AV, xt::AV; num_samples::Integer
 
     # Get samples and estimate statistics.
     samples = μ[:, 1:num_samples]
-    lowers = mean(μ .- 2 .* σ, dims=2)
-    uppers = mean(μ .+ 2 .* σ, dims=2)
+    noisy_samples = μ + randn(size(μ...)) .* σ
+    lowers = [percentile(noisy_samples[i, :], 2.5) for i = 1:size(noisy_samples, 1)]
+    uppers = [percentile(noisy_samples[i, :], 100 - 2.5) for i = 1:size(noisy_samples, 1)]
     μ = mean(μ, dims=2)
 
     return μ, lowers, uppers, samples
