@@ -9,12 +9,9 @@ parser = ArgParseSettings()
     "--data"
         help =
             "Data set: eq-small, eq, matern52, noisy-mixture, weakly-periodic, sawtooth, " *
-            "or mixture."
+            "or mixture. Append \"-noisy\" to a data set to make it noisy."
         arg_type = String
         required = true
-    "--noisy"
-        help = "Make the data sets noisy by sampling with 0.01 noise variance."
-        action = :store_true
     "--model"
         help =
             "Model: convcnp, convnp[-{global,amortised}-{sum,mean}], " *
@@ -51,8 +48,17 @@ using Flux
 using Flux.Tracker
 using Stheno
 
+# Determine the noise level.
+if endswith(args["data"], "-noisy")
+    trimmed_data_name = args["data"][1:end - length("-noisy")]
+    noise = 1e-2  # This matches the fixed noise of the NP models!
+else
+    trimmed_data_name = args["data"]
+    noise = 1e-8  # Use very little noise, but still some for regularisation.
+end
+
 # Set up experiment.
-if args["data"] == "eq-small"
+if trimmed_data_name == "eq-small"
     process = GP(stretch(eq(), 1 / 0.25), GPC())
     receptive_field = 1f0
     points_per_unit = 32f0
@@ -60,7 +66,7 @@ if args["data"] == "eq-small"
     num_target = DiscreteUniform(50, 50)
     num_channels = 16
     dim_embedding = 32
-elseif args["data"] == "eq"
+elseif trimmed_data_name == "eq"
     process = GP(stretch(eq(), 1 / 0.25), GPC())
     receptive_field = 2f0
     points_per_unit = 64f0
@@ -68,7 +74,7 @@ elseif args["data"] == "eq"
     num_target = DiscreteUniform(50, 50)
     num_channels = 64
     dim_embedding = 128
-elseif args["data"] == "matern52"
+elseif trimmed_data_name == "matern52"
     process = GP(stretch(matern52(), 1 / 0.25), GPC())
     receptive_field = 2f0
     points_per_unit = 64f0
@@ -76,7 +82,7 @@ elseif args["data"] == "matern52"
     num_target = DiscreteUniform(50, 50)
     num_channels = 64
     dim_embedding = 128
-elseif args["data"] == "noisy-mixture"
+elseif trimmed_data_name == "noisy-mixture"
     process = GP(stretch(eq(), 1 / 0.25) + eq() + 1e-3 * Stheno.Noise(), GPC())
     receptive_field = 4f0
     points_per_unit = 64f0
@@ -84,7 +90,7 @@ elseif args["data"] == "noisy-mixture"
     num_target = DiscreteUniform(50, 50)
     num_channels = 64
     dim_embedding = 128
-elseif args["data"] == "weakly-periodic"
+elseif trimmed_data_name == "weakly-periodic"
     process = GP(stretch(eq(), 1 / 0.5) * stretch(Stheno.PerEQ(), 1 / 0.25), GPC())
     receptive_field = 4f0
     points_per_unit = 64f0
@@ -92,7 +98,7 @@ elseif args["data"] == "weakly-periodic"
     num_target = DiscreteUniform(50, 50)
     num_channels = 64
     dim_embedding = 128
-elseif args["data"] == "sawtooth"
+elseif trimmed_data_name == "sawtooth"
     process = Sawtooth()
     receptive_field = 16f0
     points_per_unit = 64f0
@@ -100,7 +106,7 @@ elseif args["data"] == "sawtooth"
     num_target = DiscreteUniform(100, 100)
     num_channels = 64
     dim_embedding = 128
-elseif args["data"] == "mixture"
+elseif trimmed_data_name == "mixture"
     process = Mixture(
         GP(stretch(eq(), 1 / 0.25), GPC()),
         GP(stretch(matern52(), 1 / 0.25), GPC()),
@@ -116,14 +122,6 @@ elseif args["data"] == "mixture"
     dim_embedding = 128
 else
     error("Unknown data \"" * args["data"] * "\".")
-end
-
-# Determine the noise level.
-if args["noisy"]
-    noise = 1e-2  # This matches the fixed noise of the NP models!
-    args["data"] = args["data"] * "-noisy"  # Append noisy to the name of the data set.
-else
-    noise = 1e-8  # Use very little noise, but still some for regularisation.
 end
 
 # Determine name of file to write model to and folder to output images.
