@@ -290,7 +290,7 @@ else
                 num_decoder_layers=8,
                 num_encoder_channels=num_channels,
                 num_decoder_channels=num_channels,
-                num_latent_channels=16,
+                num_latent_channels=2,
                 num_global_channels=num_global_channels,
                 num_σ_channels=num_σ_channels,
                 points_per_unit=points_per_unit,
