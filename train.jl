@@ -51,7 +51,7 @@ using Stheno
 # Determine the noise level.
 if endswith(args["data"], "-noisy")
     trimmed_data_name = args["data"][1:end - length("-noisy")]
-    noise = 1e-2  # This matches the fixed noise of the NP models!
+    noise = 0.05^2  # This matches the fixed noise of the NP models!
 else
     trimmed_data_name = args["data"]
     noise = 1e-8  # Use very little noise, but still some for regularisation.
@@ -295,7 +295,7 @@ else
                 num_σ_channels=num_σ_channels,
                 points_per_unit=points_per_unit,
                 margin=1f0,
-                σ=1f-1,
+                σ=5f-2,
                 learn_σ=false,
                 pooling_type=pooling_type
             ) |> gpu
@@ -319,7 +319,7 @@ else
                 num_encoder_layers=3,
                 num_decoder_layers=3,
                 num_σ_channels=num_σ_channels,
-                σ=1f-1,
+                σ=5f-2,
                 learn_σ=false,
                 pooling_type=pooling_type
             ) |> gpu
@@ -342,7 +342,7 @@ else
                 num_encoder_layers=3,
                 num_decoder_layers=3,
                 num_σ_channels=num_σ_channels,
-                σ=1f-1,
+                σ=5f-2,
                 learn_σ=false,
                 pooling_type=pooling_type
             ) |> gpu
