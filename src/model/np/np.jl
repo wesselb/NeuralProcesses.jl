@@ -561,11 +561,19 @@ _sum(xs::Tuple) = reduce((x, y) -> x .+ y, _sum.(xs))
 - `num_samples::Integer=10`: Number of posterior samples.
 
 # Returns
-- `Tuple{Nothing, Nothing, Nothing, AA}`: Tuple containing `nothing`, `nothing`,
-    `nothing`, and `num_samples` posterior samples.
+- `Tuple{AA, AA, AA, AA}`:  Tuple containing means, lower and upper 95% central
+    credible bounds, and `num_samples` posterior samples.
 """
 function predict(model::AbstractNP, xc::AV, yc::AV, xt::AV; num_samples::Integer=10)
-    μ, σ = untrack(model)(expand_gpu.((xc, yc, xt))..., num_samples)
-    samples = μ[:, 1, 1, :] |> cpu
-    return nothing, nothing, nothing, samples
+    μ, σ = untrack(model)(expand_gpu.((xc, yc, xt))..., max(num_samples, 100))
+    μ = μ[:, 1, 1, :] |> cpu
+    σ = σ[:, 1, 1, :] |> cpu
+
+    # Get samples and estimate statistics.
+    samples = μ[:, 1:num_samples]
+    lowers = mean(μ .- 2 .* σ, dims=2)
+    uppers = mean(μ .+ 2 .* σ, dims=2)
+    μ = mean(μ, dims=2)
+
+    return μ, lowers, uppers, samples
 end
