@@ -14,6 +14,7 @@ export DataGenerator, UniformUnion, Sawtooth, BayesianConvNP, Mixture
     points in a task.
 - `num_target::Distribution=DiscreteUniform(100, 100)`: Distribution of number of target
     points in a task.
+- `σ²::Float64`: Noise variance to add to the data.
 """
 struct DataGenerator
     process
@@ -22,6 +23,7 @@ struct DataGenerator
     x_target::Distribution
     num_context::Distribution
     num_target::Distribution
+    σ²::Float64
 
     function DataGenerator(
         process;
@@ -29,7 +31,8 @@ struct DataGenerator
         x_context::Distribution=Uniform(-2, 2),
         x_target::Distribution=Uniform(-2, 2),
         num_context::Distribution=DiscreteUniform(10, 10),
-        num_target::Distribution=DiscreteUniform(100, 100)
+        num_target::Distribution=DiscreteUniform(100, 100),
+        σ²::Float64=1e-8
     )
         return new(
             process,
@@ -37,7 +40,8 @@ struct DataGenerator
             x_context,
             x_target,
             num_context,
-            num_target
+            num_target,
+            σ²
         )
     end
 end
@@ -104,7 +108,7 @@ function _make_batch(generator::DataGenerator, num_context::Integer, num_target:
 
         # Concatenate inputs and sample.
         x = vcat(xc, xt)
-        y = rand(generator.process(x, 1e-10))
+        y = rand(generator.process(x, generator.σ²))
 
         push!(tasks, _float32.((
             xc,

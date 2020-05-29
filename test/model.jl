@@ -5,7 +5,8 @@
         x_context=Uniform(-2, 2),
         x_target=Uniform(-2, 2),
         num_context=DiscreteUniform(0, 3),
-        num_target=DiscreteUniform(1, 3)
+        num_target=DiscreteUniform(1, 3),
+        σ²=1e-4
     )
 
     # Construct models.

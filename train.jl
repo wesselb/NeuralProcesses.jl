@@ -12,6 +12,9 @@ parser = ArgParseSettings()
             "or mixture."
         arg_type = String
         required = true
+    "--noisy"
+        help = "Make the data sets noisy by sampling with 0.01 noise variance."
+        action = :store_true
     "--model"
         help =
             "Model: convcnp, convnp[-{global,amortised}-{sum,mean}], " *
@@ -115,6 +118,14 @@ else
     error("Unknown data \"" * args["data"] * "\".")
 end
 
+# Determine the noise level.
+if args["noisy"]
+    noise = 1e-2  # This matches the fixed noise of the NP models!
+    args["data"] = args["data"] * "-noisy"  # Append noisy to the name of the data set.
+else
+    noise = 1e-8  # Use very little noise, but still some for regularisation.
+end
+
 # Determine name of file to write model to and folder to output images.
 bson =
     args["models-dir"] * "/" *
@@ -177,7 +188,8 @@ function build_data_gen(; x_context, x_target, num_context, num_target)
         x_context=x_context,
         x_target=x_target,
         num_context=num_context,
-        num_target=num_target
+        num_target=num_target,
+        σ²=noise
     )
 end
 
@@ -285,7 +297,7 @@ else
                 num_σ_channels=num_σ_channels,
                 points_per_unit=points_per_unit,
                 margin=1f0,
-                σ=2f-2,
+                σ=1f-1,
                 learn_σ=false,
                 pooling_type=pooling_type
             ) |> gpu
@@ -309,7 +321,7 @@ else
                 num_encoder_layers=3,
                 num_decoder_layers=3,
                 num_σ_channels=num_σ_channels,
-                σ=2f-2,
+                σ=1f-1,
                 learn_σ=false,
                 pooling_type=pooling_type
             ) |> gpu
@@ -332,7 +344,7 @@ else
                 num_encoder_layers=3,
                 num_decoder_layers=3,
                 num_σ_channels=num_σ_channels,
-                σ=2f-2,
+                σ=1f-1,
                 learn_σ=false,
                 pooling_type=pooling_type
             ) |> gpu

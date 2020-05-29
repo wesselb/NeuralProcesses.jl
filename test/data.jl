@@ -5,7 +5,8 @@ function test_generator(process)
         x_context=Uniform(-1, 3),
         x_target=Uniform(5, 10),
         num_context=DiscreteUniform(0, 5),
-        num_target=DiscreteUniform(8, 8)
+        num_target=DiscreteUniform(8, 8),
+        σ²=1e-2
     )
 
     epoch = gen(500)  # `num_batches = 500`.

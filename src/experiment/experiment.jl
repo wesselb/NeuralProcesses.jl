@@ -118,7 +118,7 @@ function plot_task(
     model,
     data_gen,
     epoch,
-    plot_true = (plt, xc, yc, xt) -> nothing;
+    plot_true = (plt, xc, yc, xt, σ²) -> nothing;
     path = "output",
     num_tasks = 5
 )
@@ -136,7 +136,7 @@ function plot_task(
         scatter!(plt, xc, yc, c=:black, label="Context set", dpi=200)
 
         # Plot prediction of true, underlying model.
-        plot_true(plt, xc, yc, x)
+        plot_true(plt, xc, yc, x, data_gen.σ²)
 
         # Plot prediction.
         if !isnothing(μ)
@@ -164,20 +164,21 @@ function plot_task(
     end
 end
 
-make_plot_true(process) = (plt, xc, yc, xt) -> nothing
+make_plot_true(process) = (plt, xc, yc, xt, σ²) -> nothing
 
 function make_plot_true(process::GP)
-    function plot_true(plt, xc, yc, xt)
+    function plot_true(plt, xc, yc, xt, σ²)
         xc = Float64.(xc)
         yc = Float64.(yc)
         xt = Float64.(xt)
-        posterior = process | Obs(process(xc, 1e-6) ← yc)
+        posterior = process | Obs(process(xc, σ²) ← yc)
         margs = marginals(posterior(xt))
         plot!(plt, xt, mean.(margs), c=:blue, label="GP", dpi=200)
+        error = 2 .* sqrt.(std.(margs).^2 .+ σ²)
         plot!(
             plt,
             xt,
-            mean.(margs) .- 2 .* std.(margs),
+            mean.(margs) .- error,
             c=:blue,
             linestyle=:dash,
             label="",
@@ -186,7 +187,7 @@ function make_plot_true(process::GP)
         plot!(
             plt,
             xt,
-            mean.(margs) .+ 2 .* std.(margs),
+            mean.(margs) .+ error,
             c=:blue,
             linestyle=:dash,
             label="",
