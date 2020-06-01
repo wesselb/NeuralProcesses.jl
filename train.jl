@@ -18,6 +18,10 @@ parser = ArgParseSettings()
             "anp[-amortised-{sum,mean}], or np[-amortised-{sum,mean}]."
         arg_type = String
         required = true
+    "--num-samples"
+        help = "Number of samples to estimate the training loss. Defaults to 20 for " *
+        "\"loglik\" and 5 for \"elbo\"."
+        arg_type = Int
     "--loss"
         help = "Loss: loglik, loglik-iw, or elbo."
         arg_type = String
@@ -164,11 +168,37 @@ elseif args["model"] in [
 ]
     # Determine training loss.
     if args["loss"] == "loglik"
-        loss(xs...) = ConvCNPs.loglik(xs..., num_samples=20, importance_weighted=false)
+        if !isnothing(args["num-samples"])
+            num_samples = args["num-samples"]
+            args["loss"] *= "-$num_samples"  # Incorporate number of samples in the loss.
+        else
+            num_samples = 20
+        end
+        loss(xs...) = ConvCNPs.loglik(
+            xs...,
+            num_samples=num_samples,
+            importance_weighted=false
+        )
     elseif args["loss"] == "loglik-iw"
-        loss(xs...) = ConvCNPs.loglik(xs..., num_samples=20, importance_weighted=true)
+        if !isnothing(args["num-samples"])
+            num_samples = args["num-samples"]
+            args["loss"] *= "-$num_samples"  # Incorporate number of samples in the loss.
+        else
+            num_samples = 20
+        end
+        loss(xs...) = ConvCNPs.loglik(
+            xs...,
+            num_samples=num_samples,
+            importance_weighted=true
+        )
     elseif args["loss"] == "elbo"
-        loss(xs...) = ConvCNPs.elbo(xs..., num_samples=5)
+        if !isnothing(args["num-samples"])
+            num_samples = args["num-samples"]
+            args["loss"] *= "-$num_samples"  # Incorporate number of samples in the loss.
+        else
+            num_samples = 5
+        end
+        loss(xs...) = ConvCNPs.elbo(xs..., num_samples=num_samples)
     else
         error("Unknown loss \"" * args["loss"] * "\".")
     end
