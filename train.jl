@@ -128,18 +128,6 @@ else
     error("Unknown data \"" * args["data"] * "\".")
 end
 
-# Determine name of file to write model to and folder to output images.
-bson =
-    args["models-dir"] * "/" *
-    args["model"] * "/" *
-    args["loss"] * "/" *
-    args["data"] * ".bson"
-path = "output/" * args["model"] * "/" * args["loss"] * "/" * args["data"]
-
-# Ensure that the appropriate directories exist.
-mkpath(args["models-dir"] * "/" * args["model"] * "/" * args["loss"])
-mkpath("output/" * args["model"] * "/" * args["loss"] * "/" * args["data"])
-
 # Set the loss.
 if args["model"] == "convcnp"
     # Determine training loss.
@@ -208,6 +196,18 @@ elseif args["model"] in [
 else
     error("Unknown model \"" * args["model"] * "\".")
 end
+
+# Determine name of file to write model to and folder to output images.
+bson =
+    args["models-dir"] * "/" *
+    args["model"] * "/" *
+    args["loss"] * "/" *
+    args["data"] * ".bson"
+path = "output/" * args["model"] * "/" * args["loss"] * "/" * args["data"]
+
+# Ensure that the appropriate directories exist.
+mkpath(args["models-dir"] * "/" * args["model"] * "/" * args["loss"])
+mkpath("output/" * args["model"] * "/" * args["loss"] * "/" * args["data"])
 
 function build_data_gen(; x_context, x_target, num_context, num_target)
     return DataGenerator(
