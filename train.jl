@@ -387,7 +387,7 @@ else
         model,
         loss,
         data_gen,
-        ADAM(5e-4),
+        ADAM(1e-4),
         bson=bson,
         starting_epoch=args["starting-epoch"],
         tasks_per_epoch=2^14,
