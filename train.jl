@@ -22,10 +22,6 @@ parser = ArgParseSettings()
         help = "Number of samples to estimate the training loss. Defaults to 20 for " *
         "\"loglik\" and 5 for \"elbo\"."
         arg_type = Int
-    "--num-eval-samples"
-        help = "Number of samples to estimate the evaluation loss."
-        arg_type = Int
-        default = 100
     "--loss"
         help = "Loss: loglik, loglik-iw, or elbo."
         arg_type = String
@@ -41,13 +37,23 @@ parser = ArgParseSettings()
     "--evaluate"
         help = "Evaluate model."
         action = :store_true
+    "--evaluate-num-samples"
+        help = "Number of samples to estimate the evaluation loss."
+        arg_type = Int
+        default = 100
+    "--evaluate-only-within"
+        help = "Evaluate with only the task of interpolation within training range."
+        action = :store_true
+    "--evaluate-light"
+        help = "Evaluate with a smaller batch size and fewer tasks."
+        action = :store_true
     "--models-dir"
         help = "Directory to store models in."
         arg_type = String
         default = "models"
     "--bson"
         help = "Directly specify the file to save the model to and load it from."
-        args_type = String
+        arg_type = String
 end
 args = parse_args(parser)
 
@@ -201,14 +207,14 @@ elseif args["model"] in [
     # Use a high-sample log-EL for the eval loss.
     eval_loss(xs...) = ConvCNPs.loglik(
         xs...,
-        num_samples=args["num-eval-samples"],
+        num_samples=args["evaluate-num-samples"],
         importance_weighted=false
     )
 else
     error("Unknown model \"" * args["model"] * "\".")
 end
 
-# Determine name of file to write model to and folder to output images.
+# Determine name of file to write model to.
 if !isnothing(args["bson"])
     bson = args["bson"]
 else
@@ -217,17 +223,17 @@ else
         args["model"] * "/" *
         args["loss"] * "/" *
         args["data"] * ".bson"
+    mkpath(args["models-dir"] * "/" * args["model"] * "/" * args["loss"])
 end
-path = "output/" * args["model"] * "/" * args["loss"] * "/" * args["data"]
 
-# Ensure that the appropriate directories exist.
-mkpath(args["models-dir"] * "/" * args["model"] * "/" * args["loss"])
+# Determine folder to output images.
+path = "output/" * args["model"] * "/" * args["loss"] * "/" * args["data"]
 mkpath("output/" * args["model"] * "/" * args["loss"] * "/" * args["data"])
 
-function build_data_gen(; x_context, x_target, num_context, num_target)
+function build_data_gen(; x_context, x_target, num_context, num_target, batch_size)
     return DataGenerator(
         process,
-        batch_size=16,
+        batch_size=batch_size,
         x_context=x_context,
         x_target=x_target,
         num_context=num_context,
@@ -241,38 +247,55 @@ if args["evaluate"]
     model = best_model(bson) |> gpu
     report_num_params(model)
 
-    # Loop over various data generators for various tasks.
-    for (name, data_gen) in [
-        (
-            "interpolation on training range",
-            build_data_gen(
-                x_context=Uniform(-2, 2),
-                x_target=Uniform(-2, 2),
-                num_context=num_context,
-                num_target=num_target
-            )
-        ),
-        (
+    # Determine evaluation mode.
+    if args["evaluate-light"]
+        println("Evaluation mode: light")
+        num_batches = 5000
+        batch_size = 1
+    else
+        println("Evaluation mode: normal")
+        num_batches = 5000
+        batch_size = 16
+    end
+
+    # Determine which evaluation tasks to perform.
+    tasks = [(
+        "interpolation on training range",
+        build_data_gen(
+            x_context=Uniform(-2, 2),
+            x_target=Uniform(-2, 2),
+            num_context=num_context,
+            num_target=num_target,
+            batch_size=batch_size
+        )
+    )]
+    if !args["evaluate-only-within"]
+        push!(tasks, (
             "interpolation beyond training range",
             build_data_gen(
                 x_context=Uniform(2, 6),
                 x_target=Uniform(2, 6),
                 num_context=num_context,
-                num_target=num_target
+                num_target=num_target,
+                batch_size=batch_size
             )
-        ),
-        (
+        ))
+        push!(tasks, (
             "extrapolation beyond training range",
             build_data_gen(
                 x_context=Uniform(-2, 2),
                 x_target=UniformUnion(Uniform(-4, -2), Uniform(2, 4)),
                 num_context=num_context,
-                num_target=num_target
+                num_target=num_target,
+                batch_size=batch_size
             )
-        )
-    ]
+        ))
+    end
+
+    # Perform evaluation tasks.
+    for (name, data_gen) in tasks
         println("Evaluation task: $name")
-        eval_model(model, eval_loss, data_gen, 100, num_batches=5000)
+        eval_model(model, eval_loss, data_gen, 100, num_batches=num_batches)
     end
 else
     # Construct data generator for training.
@@ -280,7 +303,8 @@ else
         x_context=Uniform(-2, 2),
         x_target=Uniform(-2, 2),
         num_context=num_context,
-        num_target=num_target
+        num_target=num_target,
+        batch_size=16
     )
 
     if args["starting-epoch"] > 1
