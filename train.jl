@@ -22,6 +22,10 @@ parser = ArgParseSettings()
         help = "Number of samples to estimate the training loss. Defaults to 20 for " *
         "\"loglik\" and 5 for \"elbo\"."
         arg_type = Int
+    "--num-eval-samples"
+        help = "Number of samples to estimate the evaluation loss."
+        arg_type = Int
+        default = 100
     "--loss"
         help = "Loss: loglik, loglik-iw, or elbo."
         arg_type = String
@@ -41,6 +45,9 @@ parser = ArgParseSettings()
         help = "Directory to store models in."
         arg_type = String
         default = "models"
+    "--bson"
+        help = "Directly specify the file to save the model to and load it from."
+        args_type = String
 end
 args = parse_args(parser)
 
@@ -192,17 +199,25 @@ elseif args["model"] in [
     end
 
     # Use a high-sample log-EL for the eval loss.
-    eval_loss(xs...) = ConvCNPs.loglik(xs..., num_samples=100, importance_weighted=false)
+    eval_loss(xs...) = ConvCNPs.loglik(
+        xs...,
+        num_samples=args["num-eval-samples"],
+        importance_weighted=false
+    )
 else
     error("Unknown model \"" * args["model"] * "\".")
 end
 
 # Determine name of file to write model to and folder to output images.
-bson =
-    args["models-dir"] * "/" *
-    args["model"] * "/" *
-    args["loss"] * "/" *
-    args["data"] * ".bson"
+if !isnothing(args["bson"])
+    bson = args["bson"]
+else
+    bson =
+        args["models-dir"] * "/" *
+        args["model"] * "/" *
+        args["loss"] * "/" *
+        args["data"] * ".bson"
+end
 path = "output/" * args["model"] * "/" * args["loss"] * "/" * args["data"]
 
 # Ensure that the appropriate directories exist.
