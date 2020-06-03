@@ -41,18 +41,12 @@ parser = ArgParseSettings()
     "--evaluate"
         help = "Evaluate model."
         action = :store_true
-    "--evaluate-iw"
-        help = "Use importance weighting to estimate the evaluation loss."
-        action = :store_true
     "--evaluate-num-samples"
         help = "Number of samples to estimate the evaluation loss."
         arg_type = Int
-        default = 100
+        default = 2048
     "--evaluate-only-within"
         help = "Evaluate with only the task of interpolation within training range."
-        action = :store_true
-    "--evaluate-light"
-        help = "Evaluate with a smaller batch size and fewer tasks."
         action = :store_true
     "--models-dir"
         help = "Directory to store models in."
@@ -187,6 +181,7 @@ elseif args["model"] in [
             num_samples=num_samples,
             importance_weighted=false
         )
+        eval_importance_weighted = false  # Encoder is not suited for IW.
     elseif args["loss"] == "loglik-iw"
         if !isnothing(args["num-samples"])
             num_samples = args["num-samples"]
@@ -199,6 +194,7 @@ elseif args["model"] in [
             num_samples=num_samples,
             importance_weighted=true
         )
+        eval_importance_weighted = true  # Encoder is suited for IW!
     elseif args["loss"] == "elbo"
         if !isnothing(args["num-samples"])
             num_samples = args["num-samples"]
@@ -207,6 +203,7 @@ elseif args["model"] in [
             num_samples = 5
         end
         loss(xs...) = ConvCNPs.elbo(xs..., num_samples=num_samples)
+        eval_importance_weighted = true  # Encoder is suited for IW!
     else
         error("Unknown loss \"" * args["loss"] * "\".")
     end
@@ -215,7 +212,7 @@ elseif args["model"] in [
     eval_loss(xs...) = ConvCNPs.loglik(
         xs...,
         num_samples=args["evaluate-num-samples"],
-        importance_weighted=args["evaluate-iw"]
+        importance_weighted=eval_importance_weighted
     )
 else
     error("Unknown model \"" * args["model"] * "\".")
@@ -254,17 +251,10 @@ if args["evaluate"]
     model = best_model(bson) |> gpu
     report_num_params(model)
 
-    # Determine evaluation mode.
-    if args["evaluate-light"]
-        println("Evaluation mode: light")
-        num_batches = 5000
-        batch_size = 1
-    else
-        println("Evaluation mode: normal")
-        # Normal evaluation mode should correspond to the settings used during training.
-        num_batches = 5000
-        batch_size = args["batch-size"]
-    end
+    # Use a batch size of one to support a high number of samples. We alleviate the increase
+    # in variance of the objective by using a high number of batches.
+    batch_size = 1
+    num_batches = 10000
 
     # Determine which evaluation tasks to perform.
     tasks = [(
@@ -303,7 +293,7 @@ if args["evaluate"]
     # Perform evaluation tasks.
     for (name, data_gen) in tasks
         println("Evaluation task: $name")
-        eval_model(model, eval_loss, data_gen, 100, num_batches=num_batches)
+        eval_model(model, eval_loss, data_gen, 1000, num_batches=num_batches)
     end
 else
     # Construct data generator for training.
