@@ -22,6 +22,10 @@ parser = ArgParseSettings()
         help = "Number of samples to estimate the training loss. Defaults to 20 for " *
         "\"loglik\" and 5 for \"elbo\"."
         arg_type = Int
+    "--batch-size"
+        help = "Batch size."
+        arg_type = Int
+        default = 16
     "--loss"
         help = "Loss: loglik, loglik-iw, or elbo."
         arg_type = String
@@ -254,8 +258,9 @@ if args["evaluate"]
         batch_size = 1
     else
         println("Evaluation mode: normal")
+        # Normal evaluation mode should correspond to the settings used during training.
         num_batches = 5000
-        batch_size = 16
+        batch_size = args["batch-size"]
     end
 
     # Determine which evaluation tasks to perform.
@@ -304,7 +309,7 @@ else
         x_target=Uniform(-2, 2),
         num_context=num_context,
         num_target=num_target,
-        batch_size=16
+        batch_size=args["batch-size"]
     )
 
     if args["starting-epoch"] > 1
