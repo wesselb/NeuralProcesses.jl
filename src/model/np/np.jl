@@ -456,9 +456,6 @@ function loglik(
         # Construct posterior over latent variable for an importance-weighted estimate.
         qz = encode_lat(model, cat(xc, xt, dims=1), cat(yc, yt, dims=1), xz)
 
-        # Regularise the proposal: sometimes channels collapse.
-        qz = _regularise(qz...)
-
         # Sample latent variable and perform decoding.
         z = _sample(qz..., num_samples)
         μ, σ = decode(model, xz, z, r, xt)
@@ -482,9 +479,6 @@ function loglik(
     # Return average over batches.
     return -mean(logpdfs)
 end
-
-_regularise(μ::AA, σ::AA) = (μ, σ .+ 1f-3)
-_regularise(ds::Tuple...) = map(d -> _regularise(d...), ds)
 
 _logpdf(xs::AA...) = sum(gaussian_logpdf(xs...), dims=(1, 2))
 _logpdf(ys::Tuple, ds::Tuple...) =
