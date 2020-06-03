@@ -43,7 +43,7 @@ parser = ArgParseSettings()
         action = :store_true
     "--evaluate-iw"
         help = "Use importance weighting to estimate the evaluation loss."
-        action = :store_store
+        action = :store_true
     "--evaluate-num-samples"
         help = "Number of samples to estimate the evaluation loss."
         arg_type = Int
