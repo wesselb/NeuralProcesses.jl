@@ -41,6 +41,9 @@ parser = ArgParseSettings()
     "--evaluate"
         help = "Evaluate model."
         action = :store_true
+    "--evaluate-iw"
+        help = "Use importance weighting to estimate the evaluation loss."
+        action = :store_store
     "--evaluate-num-samples"
         help = "Number of samples to estimate the evaluation loss."
         arg_type = Int
@@ -212,7 +215,7 @@ elseif args["model"] in [
     eval_loss(xs...) = ConvCNPs.loglik(
         xs...,
         num_samples=args["evaluate-num-samples"],
-        importance_weighted=false
+        importance_weighted=args["evaluate-iw"]
     )
 else
     error("Unknown model \"" * args["model"] * "\".")
