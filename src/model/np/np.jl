@@ -456,15 +456,11 @@ function loglik(
         # Construct posterior over latent variable for an importance-weighted estimate.
         qz = encode_lat(model, cat(xc, xt, dims=1), cat(yc, yt, dims=1), xz)
 
-        # Regularise the proposal: sometimes channels collapse.
-        qz = _regularise(qz...)
+        # Safely sample from proposal and get the weights.
+        z, weights = _safe_sample_weights(pz..., qz..., num_samples)
 
-        # Sample latent variable and perform decoding.
-        z = _sample(qz..., num_samples)
+        # Perform decoding.
         μ, σ = decode(model, xz, z, r, xt)
-
-        # Do an importance weighted estimate.
-        weights = _logpdf(z, pz...) .- _logpdf(z, qz...)
     else
         # Sample from the prior.
         μ, σ = model(xc, yc, xt, num_samples)
@@ -483,12 +479,85 @@ function loglik(
     return -mean(logpdfs)
 end
 
-_regularise(μ::AA, σ::AA) = (μ, σ .+ 1f-3)
-_regularise(ds::Tuple...) = map(d -> _regularise(d...), ds)
+_sum(x::AA) = sum(x, dims=(1, 2))
+_sum(xs::Tuple) = reduce((x, y) -> x .+ y, _sum.(xs))
 
-_logpdf(xs::AA...) = sum(gaussian_logpdf(xs...), dims=(1, 2))
+_logpdf(xs::AA...) = _sum(gaussian_logpdf(xs...))
 _logpdf(ys::Tuple, ds::Tuple...) =
     reduce((x, y) -> x .+ y, [_logpdf(y, d...) for (y, d) in zip(ys, ds)])
+
+function _safe_sample_weights(pz_μ::AA, pz_σ::AA, qz_μ::AA, qz_σ::AA, num_samples)
+    σ_threshold = 1f-4
+
+    # Determine the indices on the CPU to avoid indexing troubles on the GPU.
+    safe = cpu(Flux.data(pz_σ)) .>= σ_threshold
+    unsafe = .!safe
+
+    # Split prior into safe and unsafe parts.
+    pz_μₛ = pz_μ[safe]
+    pz_σₛ = pz_σ[safe]
+    pz_μᵤ = pz_μ[unsafe]
+    pz_σᵤ = pz_σ[unsafe]
+
+    # Split posterior into safe and unsafe parts.
+    qz_μₛ = qz_μ[safe]
+    qz_σₛ = qz_σ[safe]
+    qz_μᵤ = qz_μ[unsafe]
+    qz_σᵤ = qz_σ[unsafe]
+
+    # Sample and merge the samples.
+    zₛ = _sample(qz_μₛ, qz_σₛ, num_samples)
+    zᵤ = _sample(pz_μᵤ, pz_σᵤ, num_samples)
+    z = _merge(safe, zₛ, zᵤ)
+
+    # Determine and merge the weights.
+    wₛ = gaussian_logpdf(zₛ, pz_μₛ, pz_σₛ) .- gaussian_logpdf(zₛ, qz_μₛ, qz_σₛ)
+    wᵤ = zeros_gpu(Float32, size(zᵤ)...)
+    w = _merge(safe, wₛ, wᵤ)
+
+    # Reshape the sample and weights to the right shape.
+    shape = (size(pz_μ)..., num_samples)
+    z = reshape(z, shape...)
+    w = reshape(w, shape...)
+
+    # Finish computation of weights: sum over channels and data points.
+    w = _sum(w)
+
+    return z, w
+end
+
+function _safe_sample_weights(pz₁::Tuple, pz₂::Tuple, qz₁::Tuple, qz₂::Tuple, num_samples)
+    zs, ws = zip(
+        _safe_sample_weights(pz₁..., qz₁..., num_samples),
+        _safe_sample_weights(pz₂..., qz₂..., num_samples)
+    )
+    return zs, reduce((x, y) -> x .+ y, ws)
+end
+
+function _merge(s, x::AA, y::AA)
+    # Determine ordering of simply concatenating `x` and `y`.
+    indices_x = Int[]
+    indices_y = Int[]
+    for i = 1:length(s)
+        if s[i]
+            push!(indices_x, i)
+        else
+            push!(indices_y, i)
+        end
+    end
+    z = vcat(x, y)
+    indices = vcat(indices_x, indices_y)
+
+    # Determine the permutation that fixes the ordering.
+    perm = Vector{Int}(undef, length(indices))
+    for (i_from, i_to) in enumerate(indices)
+        perm[i_to] = i_from
+    end
+
+    # Apply permutation whilst batching over the second dimension, which is the sample
+    # dimension.
+    return z[perm, :]
+end
 
 """
     elbo(
@@ -550,9 +619,6 @@ function elbo(
     # Return average over batches.
     return -mean(elbos)
 end
-
-_sum(x::AA) = sum(x, dims=(1, 2))
-_sum(xs::Tuple) = reduce((x, y) -> x .+ y, _sum.(xs))
 
 """
     predict(model::AbstractNP, xc::AV, yc::AV, xt::AV; num_samples::Integer=10)
