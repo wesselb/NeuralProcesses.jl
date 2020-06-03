@@ -41,6 +41,12 @@ parser = ArgParseSettings()
     "--evaluate"
         help = "Evaluate model."
         action = :store_true
+    "--evaluate-iw"
+        help = "Force to use importance weighting for the evaluation objective."
+        action = :store_true
+    "--evaluate-no-iw"
+        help = "Force to NOT use importance weighting for the evaluation objective."
+        action = :store_true
     "--evaluate-num-samples"
         help = "Number of samples to estimate the evaluation loss."
         arg_type = Int
@@ -206,6 +212,17 @@ elseif args["model"] in [
         eval_importance_weighted = true  # Encoder is suited for IW!
     else
         error("Unknown loss \"" * args["loss"] * "\".")
+    end
+
+    # Check if `eval_importance_weighted` needs to be forced.
+    if args["evaluate-iw"] && args["evaluate-no-iw"]
+        error("Cannot set both \"--evaluate-iw\" and \"--evaluate-no-iw\".")
+    elseif args["evaluate-iw"]
+        println("Force using importance weighting for evaluation objective.")
+        eval_importance_weighted = true
+    elseif args["evaluate-no-iw"]
+        println("Force NOT using importance weighting for evaluation objective.")
+        eval_importance_weighted = false
     end
 
     # Use a high-sample log-EL for the eval loss.
