@@ -517,9 +517,12 @@ function _safe_sample_weights(pz_μ::AA, pz_σ::AA, qz_μ::AA, qz_σ::AA, num_sa
     w = _merge(safe, wₛ, wᵤ)
 
     # Reshape the sample and weights to the right shape.
-    shape = (size(pz_μ)..., num_samples)
-    z = reshape(z, shape...)
-    w = reshape(w, shape...)
+    z = permutedims(z, (2, 1))
+    w = permutedims(w, (2, 1))
+    z = reshape(z, num_samples, size(pz_μ)...)
+    w = reshape(w, num_samples, size(pz_μ)...)
+    z = permutedims(z, (2, 3, 4, 1))
+    w = permutedims(w, (2, 3, 4, 1))
 
     # Finish computation of weights: sum over channels and data points.
     w = _sum(w)
