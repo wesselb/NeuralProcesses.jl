@@ -487,7 +487,7 @@ _logpdf(ys::Tuple, ds::Tuple...) =
     reduce((x, y) -> x .+ y, [_logpdf(y, d...) for (y, d) in zip(ys, ds)])
 
 function _safe_sample_weights(pz_μ::AA, pz_σ::AA, qz_μ::AA, qz_σ::AA, num_samples)
-    σ_threshold = 1f-2
+    σ_threshold = 1f-4
 
     # Determine the indices on the CPU to avoid indexing troubles on the GPU.
     safe = (cpu(Flux.data(pz_σ)) .>= σ_threshold) .&
