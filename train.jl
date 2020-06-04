@@ -235,6 +235,7 @@ elseif args["model"] in [
     eval_loss(xs...) = ConvCNPs.loglik(
         xs...,
         num_samples=args["evaluate-num-samples"],
+        batch_size=256,
         importance_weighted=eval_importance_weighted
     )
 else
