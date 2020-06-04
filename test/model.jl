@@ -138,11 +138,21 @@
     ]
         push!(model_losses, (
             model,
-            (xs...) -> ConvCNPs.loglik(xs..., num_samples=2, importance_weighted=false)
+            (xs...) -> ConvCNPs.loglik(
+                xs...,
+                num_samples=2,
+                batch_size=1,
+                importance_weighted=false
+            )
         ))
         push!(model_losses, (
             model,
-            (xs...) -> ConvCNPs.loglik(xs..., num_samples=2, importance_weighted=true)
+            (xs...) -> ConvCNPs.loglik(
+                xs...,
+                num_samples=2,
+                batch_size=1,
+                importance_weighted=true
+            )
         ))
         push!(model_losses, (
             model,

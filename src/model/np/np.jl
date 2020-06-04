@@ -434,6 +434,7 @@ Log-expected-likelihood loss. This is a biased estimate of the log-likelihood.
 
 # Keywords
 - `num_samples::Integer`: Number of samples.
+- `batch_size::Integer=1024`: Batch size to use in sampling.
 - `importance_weighted::Bool=true`: Do an importance-weighted estimate.
 
 # Returns
@@ -447,34 +448,54 @@ function loglik(
     xt::AA,
     yt::AA;
     num_samples::Integer,
+    batch_size::Integer=1024,
     importance_weighted::Bool=true
 )
-    if importance_weighted
-        # Perform deterministic and latent encoding.
-        xz, pz, r = encode(model, xc, yc, xt)
+    # Determine batches.
+    num_batches, batch_size_last = divrem(num_samples, batch_size)
+    batches = Int[batch_size for _ = 1:num_batches]
+    batch_size_last > 0 && push!(batches, batch_size_last)
 
+    # Initialise variable that accumulates the log-pdfs.
+    logpdfs = nothing
+
+    # Perform deterministic and latent encoding.
+    xz, pz, r = encode(model, xc, yc, xt)
+
+    if importance_weighted
         # Construct posterior over latent variable for an importance-weighted estimate.
         qz = encode_lat(model, cat(xc, xt, dims=1), cat(yc, yt, dims=1), xz)
-
-        # Sample latent variable and perform decoding.
-        z = _sample(qz..., num_samples)
-        μ, σ = decode(model, xz, z, r, xt)
-
-        # Do an importance weighted estimate.
-        weights = _logpdf(z, pz...) .- _logpdf(z, qz...)
-    else
-        # Sample from the prior.
-        μ, σ = model(xc, yc, xt, num_samples)
-
-        # Do a regular Monte Carlo estimate.
-        weights = 0
     end
 
-    # Perform Monte Carlo estimate.
-    logpdfs = weights .+ _logpdf(yt, μ, σ)
+    # Compute the loss in a batched way.
+    for batch in batches
+        if importance_weighted
+            # Sample from posterior.
+            z = _sample(qz..., batch)
 
-    # Log-mean-exp over samples.
-    logpdfs = logsumexp(logpdfs, dims=4) .- Float32(log(num_samples))
+            # Do an importance weighted estimate.
+            weights = _logpdf(z, pz...) .- _logpdf(z, qz...)
+        else
+            # Sample from the prior.
+            z = _sample(pz..., batch)
+
+            # Do a regular Monte Carlo estimate.
+            weights = 0
+        end
+
+        # Perform decoding
+        μ, σ = decode(model, xz, z, r, xt)
+
+        # Perform Monte Carlo estimate.
+        batch_logpdfs = weights .+ _logpdf(yt, μ, σ)
+
+        # Accumulate sum.
+        logpdfs = isnothing(logpdfs) ? batch_logpdfs : cat(logpdfs, batch_logpdfs, dims=4)
+        logpdfs = logsumexp(logpdfs, dims=4)
+    end
+
+    # Turn log-sum-exp into a log-mean-exp.
+    logpdfs = logpdfs .- Float32(log(num_samples))
 
     # Return average over batches.
     return -mean(logpdfs)
