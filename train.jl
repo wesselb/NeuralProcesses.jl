@@ -307,7 +307,7 @@ if args["evaluate"]
         ))
     end
 
-    # Perform evaluation tasks.
+    # Perform evaluation tasks with `epoch` set to 1000.
     for (name, data_gen) in tasks
         println("Evaluation task: $name")
         eval_model(model, eval_loss, data_gen, 1000, num_batches=num_batches)
