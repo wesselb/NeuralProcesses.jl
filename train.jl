@@ -50,7 +50,7 @@ parser = ArgParseSettings()
     "--evaluate-num-samples"
         help = "Number of samples to estimate the evaluation loss."
         arg_type = Int
-        default = 2048
+        default = 4096
     "--evaluate-only-within"
         help = "Evaluate with only the task of interpolation within training range."
         action = :store_true
@@ -90,6 +90,7 @@ if trimmed_data_name == "eq-small"
     num_target = DiscreteUniform(50, 50)
     num_channels = 16
     dim_embedding = 32
+    num_context_eval = DiscreteUniform(0, 10)
 elseif trimmed_data_name == "eq"
     process = GP(stretch(eq(), 1 / 0.25), GPC())
     receptive_field = 2f0
@@ -98,6 +99,7 @@ elseif trimmed_data_name == "eq"
     num_target = DiscreteUniform(50, 50)
     num_channels = 64
     dim_embedding = 128
+    num_context_eval = DiscreteUniform(0, 10)
 elseif trimmed_data_name == "matern52"
     process = GP(stretch(matern52(), 1 / 0.25), GPC())
     receptive_field = 2f0
@@ -106,6 +108,7 @@ elseif trimmed_data_name == "matern52"
     num_target = DiscreteUniform(50, 50)
     num_channels = 64
     dim_embedding = 128
+    num_context_eval = DiscreteUniform(0, 10)
 elseif trimmed_data_name == "noisy-mixture"
     process = GP(stretch(eq(), 1 / 0.25) + eq() + 1e-3 * Stheno.Noise(), GPC())
     receptive_field = 4f0
@@ -114,6 +117,7 @@ elseif trimmed_data_name == "noisy-mixture"
     num_target = DiscreteUniform(50, 50)
     num_channels = 64
     dim_embedding = 128
+    num_context_eval = DiscreteUniform(0, 10)
 elseif trimmed_data_name == "weakly-periodic"
     process = GP(stretch(eq(), 1 / 0.5) * stretch(Stheno.PerEQ(), 1 / 0.25), GPC())
     receptive_field = 4f0
@@ -122,6 +126,7 @@ elseif trimmed_data_name == "weakly-periodic"
     num_target = DiscreteUniform(50, 50)
     num_channels = 64
     dim_embedding = 128
+    num_context_eval = DiscreteUniform(0, 10)
 elseif trimmed_data_name == "sawtooth"
     process = Sawtooth()
     receptive_field = 16f0
@@ -130,6 +135,7 @@ elseif trimmed_data_name == "sawtooth"
     num_target = DiscreteUniform(100, 100)
     num_channels = 64
     dim_embedding = 128
+    num_context_eval = DiscreteUniform(0, 10)
 elseif trimmed_data_name == "mixture"
     process = Mixture(
         GP(stretch(eq(), 1 / 0.25), GPC()),
@@ -271,7 +277,7 @@ if args["evaluate"]
     # Use a batch size of one to support a high number of samples. We alleviate the increase
     # in variance of the objective by using a high number of batches.
     batch_size = 1
-    num_batches = 10000
+    num_batches = 5000
 
     # Determine which evaluation tasks to perform.
     tasks = [(
@@ -279,7 +285,7 @@ if args["evaluate"]
         build_data_gen(
             x_context=Uniform(-2, 2),
             x_target=Uniform(-2, 2),
-            num_context=num_context,
+            num_context=num_context_eval,
             num_target=num_target,
             batch_size=batch_size
         )
@@ -290,7 +296,7 @@ if args["evaluate"]
             build_data_gen(
                 x_context=Uniform(2, 6),
                 x_target=Uniform(2, 6),
-                num_context=num_context,
+                num_context=num_context_eval,
                 num_target=num_target,
                 batch_size=batch_size
             )
@@ -300,7 +306,7 @@ if args["evaluate"]
             build_data_gen(
                 x_context=Uniform(-2, 2),
                 x_target=UniformUnion(Uniform(-4, -2), Uniform(2, 4)),
-                num_context=num_context,
+                num_context=num_context_eval,
                 num_target=num_target,
                 batch_size=batch_size
             )
@@ -371,10 +377,10 @@ else
             model = convnp_1d(
                 receptive_field=receptive_field,
                 num_encoder_layers=8,
-                num_decoder_layers=4,
+                num_decoder_layers=8,
                 num_encoder_channels=num_channels,
                 num_decoder_channels=num_channels,
-                num_latent_channels=2,
+                num_latent_channels=16,
                 num_global_channels=num_global_channels,
                 num_σ_channels=num_σ_channels,
                 points_per_unit=points_per_unit,
