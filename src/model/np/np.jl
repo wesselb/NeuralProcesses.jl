@@ -450,7 +450,7 @@ function loglik(
     num_samples::Integer,
     batch_size::Integer=1024,
     importance_weighted::Bool=true,
-    init_σ::Float32=5f-2,
+    init_σ::Float32=2f-2,
     init_σ_epochs::Integer=3
 )
     # Determine batches.
@@ -489,7 +489,7 @@ function loglik(
         μ, σ = decode(model, xz, z, r, xt)
 
         # Fix the noise for the early epochs to force the model to fit.
-        epoch <= init_σ_epochs && (σ = init_σ)
+        epoch <= init_σ_epochs && (σ = [init_σ] |> gpu)
 
         # Perform Monte Carlo estimate.
         batch_logpdfs = weights .+ _logpdf(yt, μ, σ)
