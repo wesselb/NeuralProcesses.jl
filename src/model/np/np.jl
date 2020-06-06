@@ -593,8 +593,8 @@ function predict(model::AbstractNP, xc::AV, yc::AV, xt::AV; num_samples::Integer
     # Get samples and estimate statistics.
     samples = μ[:, 1:num_samples]
     μ_σ = std(μ, dims=2)  # Compute functional uncertainty.
-    ε = 2 .* means(sqrt(μ_σ.^2 .+ σ.^2), dims=2)  # Add variances to make total errors.
-    μ = means(μ, dims=2)
+    ε = 2 .* mean(sqrt.(μ_σ.^2 .+ σ.^2), dims=2)  # Add variances to make total errors.
+    μ = mean(μ, dims=2)
     lowers = μ .- ε
     uppers = μ .+ ε
     return μ, lowers, uppers, samples
