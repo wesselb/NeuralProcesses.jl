@@ -142,7 +142,8 @@
                 xs...,
                 num_samples=2,
                 batch_size=1,
-                importance_weighted=false
+                importance_weighted=false,
+                init_σ_epochs=1
             )
         ))
         push!(model_losses, (
@@ -151,7 +152,8 @@
                 xs...,
                 num_samples=2,
                 batch_size=1,
-                importance_weighted=true
+                importance_weighted=true,
+                init_σ_epochs=1
             )
         ))
         push!(model_losses, (
