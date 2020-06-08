@@ -343,7 +343,7 @@ function _np_build_noise_model(;
                 ),
                 identity
             ),
-            5
+            10
         )
     else
         return ConstantNoise(
@@ -450,7 +450,7 @@ function loglik(
     num_samples::Integer,
     batch_size::Integer=1024,
     importance_weighted::Bool=true,
-    init_σ::Float32=2f-2,
+    init_σ::Float32=1f-2,
     init_σ_epochs::Integer=3
 )
     # Determine batches.
@@ -559,6 +559,10 @@ function elbo(
     # Sample latent variable and perform decoding.
     z = _sample(qz..., num_samples)
     μ, σ = decode(model, xz, z, r, x_all)
+
+    if epoch <= 3
+        σ = [1f-2] |> gpu
+    end
 
     # Compute the components of the ELBO.
     exps = _sum(gaussian_logpdf(y_all, μ, σ))

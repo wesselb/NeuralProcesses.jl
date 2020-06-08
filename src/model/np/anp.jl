@@ -67,11 +67,6 @@ function anp_1d(;
             dim_out   =num_σ_channels + dim_y,
             num_layers=num_decoder_layers,
         ),
-        _np_build_noise_model(
-            num_σ_channels=num_σ_channels,
-            σ             =σ,
-            learn_σ       =learn_σ,
-            pooling_type  =pooling_type
-        )
+        split_μ_σ
     )
 end

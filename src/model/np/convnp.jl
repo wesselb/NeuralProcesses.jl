@@ -63,23 +63,19 @@ function decode(model::ConvNP, xz::AA, z::AA, r::Nothing, xt::AA)
     # Apply CNN.
     channels = with_dummy(model.decoder_conv, z)
 
-    # Compute predictive distribution at encoding locations.
-    μ, σ = model.decoder_predict(channels)
-
-    # Perform smoothing for the mean.
-    μ = decode(
+    # Perform smoothing.
+    channels = decode(
         model.decoder_setconv,
         _repeat_samples(xz, num_samples),
-        μ,
+        channels,
         _repeat_samples(xt, num_samples)
     )
-    μ = reshape(μ, size(μ)[1:2]..., num_batches, num_samples)
 
-    # The noise will be constant over data, so we do not need to smooth. However, it can
-    # depend on the batch and sample, so we need to reshape in that case.
-    length(σ) > 1 && (σ = reshape(σ, size(σ)[1:2]..., num_batches, num_samples))
+    # Separate samples from batches.
+    channels = reshape(channels, size(channels)[1:2]..., num_batches, num_samples)
 
-    return μ, σ
+    # Return predictive distribution.
+    return model.decoder_predict(channels)
 end
 
 decode(model::ConvNP, xz::AA, z::Tuple, r::Nothing, xt::AA) =
@@ -215,12 +211,7 @@ function convnp_1d(;
         arch_encoder.conv,
         encoder_predict,
         arch_decoder.conv,
-        _np_build_noise_model(
-            num_σ_channels=num_σ_channels,
-            σ             =σ,
-            learn_σ       =learn_σ,
-            pooling_type  =pooling_type
-        ),
-        set_conv(1, scale)
+        split_μ_σ,
+        set_conv(2, scale)
     )
 end

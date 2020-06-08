@@ -364,11 +364,11 @@ else
                 pooling_type = "mean"
             elseif args["model"] == "convnp-amortised-sum"
                 num_global_channels = 0
-                num_σ_channels = 8
+                num_σ_channels = 1
                 pooling_type = "sum"
             elseif args["model"] == "convnp-amortised-mean"
                 num_global_channels = 0
-                num_σ_channels = 8
+                num_σ_channels = 1
                 pooling_type = "mean"
             else
                 error("Unknown model \"" * args["model"] * "\".")
@@ -385,8 +385,8 @@ else
                 num_σ_channels=num_σ_channels,
                 points_per_unit=points_per_unit,
                 margin=1f0,
-                σ=5f-2,
-                learn_σ=false,
+                σ=1f-2,
+                learn_σ=true,
                 pooling_type=pooling_type
             ) |> gpu
         elseif args["model"] in ["anp", "anp-amortised-sum", "anp-amortised-mean"]
@@ -394,10 +394,10 @@ else
                 num_σ_channels = 0
                 pooling_type = "sum"  # This doesn't matter, but must be set to something.
             elseif args["model"] == "anp-amortised-sum"
-                num_σ_channels = 8
+                num_σ_channels = 1
                 pooling_type = "sum"
             elseif args["model"] == "anp-amortised-mean"
-                num_σ_channels = 8
+                num_σ_channels = 1
                 pooling_type = "mean"
             else
                 error("Unknown model \"" * args["model"] * "\".")
