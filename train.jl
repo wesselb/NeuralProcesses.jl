@@ -406,8 +406,8 @@ else
             model = anp_1d(
                 dim_embedding=dim_embedding,
                 num_encoder_heads=8,
-                num_encoder_layers=3,
-                num_decoder_layers=3,
+                num_encoder_layers=6,
+                num_decoder_layers=6,
                 num_σ_channels=num_σ_channels,
                 σ=5f-2,
                 learn_σ=false,
@@ -418,10 +418,10 @@ else
                 num_σ_channels = 0
                 pooling_type = "sum"  # This doesn't matter, but must be set to something.
             elseif args["model"] == "np-amortised-sum"
-                num_σ_channels = 8
+                num_σ_channels = 1
                 pooling_type = "sum"
             elseif args["model"] == "np-amortised-mean"
-                num_σ_channels = 8
+                num_σ_channels = 1
                 pooling_type = "mean"
             else
                 error("Unknown model \"" * args["model"] * "\".")
@@ -429,8 +429,8 @@ else
 
             model = np_1d(
                 dim_embedding=dim_embedding,
-                num_encoder_layers=3,
-                num_decoder_layers=3,
+                num_encoder_layers=6,
+                num_decoder_layers=6,
                 num_σ_channels=num_σ_channels,
                 σ=5f-2,
                 learn_σ=false,

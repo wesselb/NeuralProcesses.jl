@@ -299,12 +299,7 @@ function np_1d(;
             dim_out   =num_σ_channels + dim_y,
             num_layers=num_decoder_layers,
         ),
-        _np_build_noise_model(
-            num_σ_channels=num_σ_channels,
-            σ            =σ,
-            learn_σ      =learn_σ,
-            pooling_type =pooling_type
-        )
+        split_μ_σ
     )
 end
 
@@ -560,7 +555,7 @@ function elbo(
     z = _sample(qz..., num_samples)
     μ, σ = decode(model, xz, z, r, x_all)
 
-    if epoch <= 3
+    if epoch <= 50
         σ = [1f-2] |> gpu
     end
 
