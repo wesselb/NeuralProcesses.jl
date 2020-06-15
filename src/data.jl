@@ -174,7 +174,7 @@ function Base.rand(s::FDD{Sawtooth})
     trunc = rand(s.process.trunc_dist)
 
     # Apply shift.
-    x = s.x .+ shift
+    x = s.x .- shift
 
     # Construct expansion.
     k = collect(range(1, trunc + 1, step=1))'
