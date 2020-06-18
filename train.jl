@@ -14,8 +14,11 @@ parser = ArgParseSettings()
         required = true
     "--model"
         help =
-            "Model: convcnp, convnp[-{global,amortised}-{sum,mean}], " *
-            "anp[-amortised-{sum,mean}], or np[-amortised-{sum,mean}]."
+            "Model: " *
+            "convcnp, " *
+            "convnp[-{global,amortised,het}-{mean,sum}], " *
+            "anp[-{amortised,het}-{mean,sum}], or " *
+            "np[-{amortised,het}-{mean,sum}]."
         arg_type = String
         required = true
     "--num-samples"
@@ -169,16 +172,15 @@ if args["model"] == "convcnp"
     eval_loss = ConvCNPs.loglik
 elseif args["model"] in [
     "convnp",
-    "convnp-global-sum",
-    "convnp-global-mean",
-    "convnp-amortised-sum",
-    "convnp-amortised-mean",
+    "convnp-global-mean", "convnp-global-sum",
+    "convnp-amortised-mean", "convnp-amortised-sum",
+    "convnp-het-mean", "convnp-het-sum",
     "anp",
-    "anp-amortised-sum",
-    "anp-amortised-mean",
+    "anp-amortised-mean", "anp-amortised-sum",
+    "anp-het-mean", "anp-het-sum",
     "np",
-    "np-amortised-sum",
-    "np-amortised-mean"
+    "np-amortised-mean" "np-amortised-sum",
+    "np-het-mean", "np-het-sum"
 ]
     # Determine training loss.
     if args["loss"] == "loglik"
@@ -191,7 +193,8 @@ elseif args["model"] in [
         loss(xs...) = ConvCNPs.loglik(
             xs...,
             num_samples=num_samples,
-            importance_weighted=false
+            importance_weighted=false,
+            fixed_σ_epochs=20
         )
         eval_importance_weighted = false  # Encoder is not suited for IW.
     elseif args["loss"] == "loglik-iw"
@@ -204,7 +207,8 @@ elseif args["model"] in [
         loss(xs...) = ConvCNPs.loglik(
             xs...,
             num_samples=num_samples,
-            importance_weighted=true
+            importance_weighted=true,
+            fixed_σ_epochs=20
         )
         eval_importance_weighted = true  # Encoder is suited for IW!
     elseif args["loss"] == "elbo"
@@ -214,7 +218,11 @@ elseif args["model"] in [
         else
             num_samples = 5
         end
-        loss(xs...) = ConvCNPs.elbo(xs..., num_samples=num_samples)
+        loss(xs...) = ConvCNPs.elbo(
+            xs...,
+            num_samples=num_samples,
+            fixed_σ_epochs=20
+        )
         eval_importance_weighted = true  # Encoder is suited for IW!
     else
         error("Unknown loss \"" * args["loss"] * "\".")
@@ -345,31 +353,35 @@ else
             ) |> gpu
         elseif args["model"] in [
             "convnp",
-            "convnp-global-sum",
-            "convnp-global-mean",
-            "convnp-amortised-sum",
-            "convnp-amortised-mean"
+            "convnp-global-mean", "convnp-global-sum",
+            "convnp-amortised-mean", "convnp-amortised-sum",
+            "convnp-het-mean", "convnp-het-sum"
         ]
             if args["model"] == "convnp"
-                num_global_channels = 0
-                num_σ_channels = 0
+                noise_type = "fixed"
                 pooling_type = "sum"  # This doesn't matter, but must be set to something.
-            elseif args["model"] == "convnp-global-sum"
-                num_global_channels = 16
-                num_σ_channels = 0
-                pooling_type = "sum"
             elseif args["model"] == "convnp-global-mean"
                 num_global_channels = 16
-                num_σ_channels = 0
+                noise_type = "fixed"
+                pooling_type = "mean"
+                error("Not implement yet.")
+            elseif args["model"] == "convnp-global-sum"
+                num_global_channels = 16
+                noise_type = "fixed"
+                pooling_type = "sum"
+                error("Not implement yet.")
+            elseif args["model"] == "convnp-amortised-mean"
+                noise_type = "amortised"
                 pooling_type = "mean"
             elseif args["model"] == "convnp-amortised-sum"
-                num_global_channels = 0
-                num_σ_channels = 8
+                noise_type = "amortised"
                 pooling_type = "sum"
-            elseif args["model"] == "convnp-amortised-mean"
-                num_global_channels = 0
-                num_σ_channels = 8
+            elseif args["model"] == "convnp-het-mean"
+                noise_type = "het"
                 pooling_type = "mean"
+            elseif args["model"] == "convnp-het-sum"
+                noise_type = "het"
+                pooling_type = "sum"
             else
                 error("Unknown model \"" * args["model"] * "\".")
             end
@@ -382,23 +394,33 @@ else
                 num_decoder_channels=num_channels,
                 num_latent_channels=16,
                 num_global_channels=num_global_channels,
-                num_σ_channels=num_σ_channels,
                 points_per_unit=points_per_unit,
                 margin=1f0,
+                noise_type=noise_type,
+                pooling_type=pooling_type,
                 σ=5f-2,
-                learn_σ=false,
-                pooling_type=pooling_type
+                learn_σ=false
             ) |> gpu
-        elseif args["model"] in ["anp", "anp-amortised-sum", "anp-amortised-mean"]
+        elseif args["model"] in [
+            "anp",
+            "anp-amortised-mean", "anp-amortised-sum",
+            "anp-het-mean", "anp-het-sum"
+        ]
             if args["model"] == "anp"
-                num_σ_channels = 0
+                noise_type = "fixed"
                 pooling_type = "sum"  # This doesn't matter, but must be set to something.
-            elseif args["model"] == "anp-amortised-sum"
-                num_σ_channels = 8
-                pooling_type = "sum"
             elseif args["model"] == "anp-amortised-mean"
-                num_σ_channels = 8
+                noise_type = "amortised"
                 pooling_type = "mean"
+            elseif args["model"] == "anp-amortised-sum"
+                noise_type = "amortised"
+                pooling_type = "sum"
+            elseif args["model"] == "anp-het-mean"
+                noise_type = "het"
+                pooling_type = "mean"
+            elseif args["model"] == "anp-het-sum"
+                noise_type = "het"
+                pooling_type = "sum"
             else
                 error("Unknown model \"" * args["model"] * "\".")
             end
@@ -408,21 +430,31 @@ else
                 num_encoder_heads=8,
                 num_encoder_layers=3,
                 num_decoder_layers=3,
-                num_σ_channels=num_σ_channels,
+                noise_type=noise_type,
+                pooling_type=pooling_type,
                 σ=5f-2,
-                learn_σ=false,
-                pooling_type=pooling_type
+                learn_σ=false
             ) |> gpu
-        elseif args["model"] in ["np", "np-amortised-sum", "np-amortised-mean"]
+        elseif args["model"] in [
+            "np",
+            "np-amortised-mean", "np-amortised-sum",
+            "np-het-mean", "np-het-sum"
+        ]
             if args["model"] == "np"
-                num_σ_channels = 0
+                noise_type = "fixed"
                 pooling_type = "sum"  # This doesn't matter, but must be set to something.
-            elseif args["model"] == "np-amortised-sum"
-                num_σ_channels = 8
-                pooling_type = "sum"
             elseif args["model"] == "np-amortised-mean"
-                num_σ_channels = 8
+                noise_type = "amortised"
                 pooling_type = "mean"
+            elseif args["model"] == "np-amortised-sum"
+                noise_type = "amortised"
+                pooling_type = "sum"
+            elseif args["model"] == "np-het-mean"
+                noise_type = "het"
+                pooling_type = "mean"
+            elseif args["model"] == "np-het-sum"
+                noise_type = "het"
+                pooling_type = "sum"
             else
                 error("Unknown model \"" * args["model"] * "\".")
             end
@@ -431,10 +463,10 @@ else
                 dim_embedding=dim_embedding,
                 num_encoder_layers=3,
                 num_decoder_layers=3,
-                num_σ_channels=num_σ_channels,
+                noise_type=noise_type,
+                pooling_type=pooling_type,
                 σ=5f-2,
-                learn_σ=false,
-                pooling_type=pooling_type
+                learn_σ=false
             ) |> gpu
         else
             error("Unknown model \"" * args["model"] * "\".")

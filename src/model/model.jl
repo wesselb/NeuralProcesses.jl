@@ -32,8 +32,8 @@ end
         num_samples::Integer,
         batch_size::Integer=1024,
         importance_weighted::Bool=true,
-        init_σ::Float32=1f-2,
-        init_σ_epochs::Integer=0,
+        fixed_σ::Float32=1f-2,
+        fixed_σ_epochs::Integer=0,
         kws...
     )
 
@@ -51,8 +51,8 @@ Log-expected-likelihood loss. This is a biased estimate of the log-likelihood.
 - `num_samples::Integer`: Number of samples.
 - `batch_size::Integer=1024`: Batch size to use in sampling.
 - `importance_weighted::Bool=true`: Do an importance-weighted estimate.
-- `init_σ::Float32=1f-2`: Hold the observation noise fixed to this value initially.
-- `init_σ_epochs::Integer=0`: Number of iterations to hold the observation noise fixed for.
+- `fixed_σ::Float32=1f-2`: Hold the observation noise fixed to this value initially.
+- `fixed_σ_epochs::Integer=0`: Number of iterations to hold the observation noise fixed for.
 - `kws...`: Further keywords to pass on.
 
 # Returns
@@ -69,8 +69,8 @@ function loglik(
     num_samples::Integer,
     batch_size::Integer=1024,
     importance_weighted::Bool=true,
-    init_σ::Float32=1f-2,
-    init_σ_epochs::Integer=0,
+    fixed_σ::Float32=1f-2,
+    fixed_σ_epochs::Integer=0,
     kws...
 )
     # Determine batches.
@@ -111,8 +111,8 @@ function loglik(
         _, d = decode(model.decoder, xz, z, xt)
 
         # Fix the noise for the early epochs to force the model to fit.
-        if epoch <= init_σ_epochs
-            d = Normal(mean(d), [init_σ] |> gpu)
+        if epoch <= fixed_σ_epochs
+            d = Normal(mean(d), [fixed_σ] |> gpu)
         end
 
         # Perform Monte Carlo estimate.
@@ -139,8 +139,8 @@ end
         xt::AA,
         yt::AA;
         num_samples::Integer,
-        init_σ::Float32=1f-2,
-        init_σ_epochs::Integer=0,
+        fixed_σ::Float32=1f-2,
+        fixed_σ_epochs::Integer=0,
         kws...
     )
 
@@ -156,8 +156,8 @@ Neural process ELBO-style loss. Subsumes the context set into the target set.
 
 # Keywords
 - `num_samples::Integer`: Number of samples.
-- `init_σ::Float32=1f-2`: Hold the observation noise fixed to this value initially.
-- `init_σ_epochs::Integer=0`: Number of iterations to hold the observation noise fixed for.
+- `fixed_σ::Float32=1f-2`: Hold the observation noise fixed to this value initially.
+- `fixed_σ_epochs::Integer=0`: Number of iterations to hold the observation noise fixed for.
 - `kws...`: Further keywords to pass on.
 
 # Returns
@@ -171,8 +171,8 @@ function elbo(
     xt::AA,
     yt::AA;
     num_samples::Integer,
-    init_σ::Float32=1f-2,
-    init_σ_epochs::Integer=0,
+    fixed_σ::Float32=1f-2,
+    fixed_σ_epochs::Integer=0,
     kws...
 )
     # We subsume the context set into the target set for this ELBO.
@@ -190,8 +190,8 @@ function elbo(
     _, d = decode(model.decoder, xz, z, x_all)
 
     # Fix the noise for the early epochs to force the model to fit.
-    if epoch <= init_σ_epochs
-        d = Normal(mean(d), [init_σ] |> gpu)
+    if epoch <= fixed_σ_epochs
+        d = Normal(mean(d), [fixed_σ] |> gpu)
     end
 
     # Estimate ELBO from samples.
