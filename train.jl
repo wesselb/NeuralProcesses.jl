@@ -428,8 +428,8 @@ else
             model = anp_1d(
                 dim_embedding=dim_embedding,
                 num_encoder_heads=8,
-                num_encoder_layers=3,
-                num_decoder_layers=3,
+                num_encoder_layers=6,
+                num_decoder_layers=6,
                 noise_type=noise_type,
                 pooling_type=pooling_type,
                 σ=5f-2,
@@ -461,8 +461,8 @@ else
 
             model = np_1d(
                 dim_embedding=dim_embedding,
-                num_encoder_layers=3,
-                num_decoder_layers=3,
+                num_encoder_layers=6,
+                num_decoder_layers=6,
                 noise_type=noise_type,
                 pooling_type=pooling_type,
                 σ=5f-2,
