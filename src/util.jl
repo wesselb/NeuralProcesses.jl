@@ -1,5 +1,3 @@
-export gaussian_logpdf, logsumexp
-
 """
     untrack(model)
 
@@ -144,6 +142,33 @@ gaussian_logpdf(x::CuOrVector, μ::CuOrVector, Σ::CuOrMatrix) =
 end
 
 """
+    kl(μ₁::AA, σ₁::AA, μ₂::AA, σ₂::AA)
+
+Kullback--Leibler divergence between one-dimensional Gaussian distributions.
+
+# Arguments
+- `μ₁::AA`: Mean of `p`.
+- `σ₁::AA`: Standard deviation of `p`.
+- `μ₂::AA`: Mean of `q`.
+- `σ₂::AA`: Standard deviation of `q`.
+
+# Returns
+- `AA`: `KL(p, q)`.
+"""
+function kl(μ₁::AA, σ₁::AA, μ₂::AA, σ₂::AA)
+    # Loop fusion introduces indexing, which severly bottlenecks GPU computation, so
+    # we roll out the computation like this.
+    # TODO: What is going on?
+    logdet = log.(σ₂ ./ σ₁)
+    logdet = 2 .* logdet  # This cannot be combined with the `log`.
+    z = μ₁ .- μ₂
+    σ₁², σ₂² = σ₁.^2, σ₂.^2  # This must be separated from the calulation in `quad`.
+    quad = (σ₁² .+ z .* z) ./ σ₂²
+    sum = logdet .+ quad .- 1
+    return sum ./ 2
+end
+
+"""
     diagonal(x::AV)
 
 Turn a vector `x` into a diagonal matrix.
@@ -199,8 +224,8 @@ dimensions and dimension `3:end` are the batch dimensions.
 batched_mul(x::AA, y::AA) = Tracker.track(batched_mul, x, y)
 
 function _batched_mul(x, y)
-    x, back = to_rank_3(x)
-    y, _ = to_rank_3(y)
+    x, back = to_rank(3, x)
+    y, _ = to_rank(3, y)
     return back(Flux.batched_mul(x, y)), x, y
 end
 
@@ -209,7 +234,7 @@ batched_mul(x::CuOrArray, y::CuOrArray) = first(_batched_mul(x, y))
 @Tracker.grad function batched_mul(x, y)
     z, x, y = _batched_mul(Tracker.data.((x, y))...)
     return z, function (ȳ)
-        ȳ, back = to_rank_3(ȳ)
+        ȳ, back = to_rank(3, ȳ)
         return (
             back(Flux.batched_mul(ȳ, batched_transpose(y))),
             back(Flux.batched_mul(batched_transpose(x), ȳ))
@@ -337,49 +362,6 @@ Expand a vector to a three-tensor and move it to the GPU.
 expand_gpu(x::AV) = reshape(x, :, 1, 1) |> gpu
 
 """
-    kl(μ₁::AA, σ₁::AA, μ₂::AA, σ₂::AA)
-
-Kullback--Leibler divergence between one-dimensional Gaussian distributions.
-
-# Arguments
-- `μ₁::AA`: Mean of `p`.
-- `σ₁::AA`: Standard deviation of `p`.
-- `μ₂::AA`: Mean of `q`.
-- `σ₂::AA`: Standard deviation of `q`.
-
-# Returns
-- `AA`: `KL(p, q)`.
-"""
-function kl(μ₁::AA, σ₁::AA, μ₂::AA, σ₂::AA)
-    # Loop fusion introduces indexing, which severly bottlenecks GPU computation, so
-    # we roll out the computation like this.
-    # TODO: What is going on?
-    logdet = log.(σ₂ ./ σ₁)
-    logdet = 2 .* logdet  # This cannot be combined with the `log`.
-    z = μ₁ .- μ₂
-    σ₁², σ₂² = σ₁.^2, σ₂.^2  # This must be separated from the calulation in `quad`.
-    quad = (σ₁² .+ z .* z) ./ σ₂²
-    sum = logdet .+ quad .- 1
-    return sum ./ 2
-end
-
-"""
-    kl(p₁::Tuple, p₂::Tuple, q₁::Tuple, q₂::Tuple)
-
-Kullback--Leibler divergences between multiple one-dimensional Gaussian distributions.
-
-# Arguments
-- `p₁::Tuple`: Means and standard deviations corresponding to `p₁`.
-- `p₂::Tuple`: Means and standard deviations corresponding to `p₂`.
-- `q₁::Tuple`: Means and standard deviations corresponding to `q₁`.
-- `q₂::Tuple`: Means and standard deviations corresponding to `q₂`.
-
-# Returns
-- `Tuple{AA, AA}`: `KL(p₁, q₁)` and `KL(p₂, q₂)`.
-"""
-kl(p₁::Tuple, p₂::Tuple, q₁::Tuple, q₂::Tuple) = kl(p₁..., q₁...), kl(p₂..., q₂...)
-
-"""
     slice_at(x::AA, dim::Integer, slice)
 
 Slice `x` at dimension `dim` with slice `slice`.
@@ -438,6 +420,7 @@ end
 
 """
     with_dummy(f, x)
+    with_dummy(f)
 
 Insert dimension two to `x` before applying `f` and remove dimension two afterwards.
 
@@ -451,26 +434,42 @@ Insert dimension two to `x` before applying `f` and remove dimension two afterwa
 with_dummy(f, x) = dropdims(f(insert_dim(x, pos=2)), dims=2)
 
 """
-    to_rank_3(x::AA)
+    to_rank(rank, x::AA)
 
-Transform `x` into a three-tensor by compression the dimensions `3:end`.
+Transform `x` into a tensor of rank `rank` by compressing the dimensions `rank + 1:end`.
 
 # Arguments
+- `rank::Integer`: Desired rank.
 - `x::AA`: Tensor to compress.
 
 # Returns
-- `Tuple`: Tuple containing `x` as a three-tensor and a function to transform back to
+- `Tuple`: Tuple containing `x` as a `rank`-tensor and a function to transform back to
     the original dimensions.
 """
-function to_rank_3(x::AA)
-    # If `x` is already rank three, there is nothing to be done.
-    if ndims(x) == 3
-        return x, identity
-    end
+function to_rank(rank::Integer, x::AA)
+    # If `x` is already rank `rank`, there is nothing to be done.
+    ndims(x) == rank && (return x, identity)
 
-    # Reshape `x` into a three-tensor.
+    # If `x` is a tensor that broadcasts to anything, do nothing.
+    size(x) == (1,) && (return x, identity)
+
+    # Reshape `x` into a `rank`-tensor.
     size_x = size(x)
-    return reshape(x, size_x[1:2]..., prod(size_x[3:end])), function (y)
-        return reshape(y, size(y)[1:2]..., size_x[3:end]...)
+    return reshape(x, size_x[1:rank - 1]..., prod(size_x[rank:end])), function (y)
+        size(y) == (1,) && (return y)
+        return reshape(y, size(y)[1:rank - 1]..., size_x[rank:end]...)
     end
 end
+
+"""
+    second(x)
+
+Get the second element of `x`. This function complements `first`.
+
+# Arguments
+- `x`: Object to get second element of.
+
+# Returns
+- Second element of `x`.
+"""
+second(x) = x[2]

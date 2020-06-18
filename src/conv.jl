@@ -1,9 +1,4 @@
-export Architecture, build_conv
-
-const Architecture = NamedTuple{
-    (:conv, :points_per_unit, :multiple),
-    Tuple{S, Float32, T}
-} where S<:Chain where T<:Integer
+export build_conv
 
 function _compute_kernel_size(receptive_field, points_per_unit, num_layers)
     receptive_points = receptive_field * points_per_unit
@@ -65,7 +60,7 @@ Build a CNN with a specified receptive field size.
 - `act=x -> leakyrelu(x, 0.1f0)`: Activation function to use.
 
 # Returns
-- `Architecture`: Corresponding CNN bundled with the specified points per unit and margin.
+- `BatchedConv`: CNN.
 """
 function build_conv(
     receptive_field::Float32,
@@ -101,9 +96,45 @@ function build_conv(
     end
     push!(layers, Conv(Flux.param.(init_conv((1, 1), num_channels=>num_out_channels))...))
 
-    return (
-        conv=Chain(layers...),
-        points_per_unit=points_per_unit,
-        multiple=multiple
+    return BatchedConv(
+        Chain(layers...),
+        points_per_unit,
+        multiple,
+        dimensionality
     )
+end
+
+"""
+    struct BatchedConv
+
+A batched CNN bundled with contextual information.
+
+# Fields
+- `conv`: Batched CNN.
+- `points_per_unit::Float32`: Points per unit for the discretisation. See
+     `UniformDiscretisation1d`.
+- `multiple::Integer`: Multiple for the discretisation. See `UniformDiscretisation1d`.
+- `dimensionality::Integer`: Dimensionality of the filters.
+"""
+struct BatchedConv
+    conv
+    points_per_unit::Float32
+    multiple::Integer
+    dimensionality::Integer
+end
+
+@Flux.treelike BatchedConv
+
+(layer::BatchedConv)(x) =  layer(x, Val(layer.dimensionality))
+
+function (layer::BatchedConv)(x, dimensionality::Val{1})
+    x, back = to_rank(3, x)        # Compress batch dimensions.
+    x = with_dummy(layer.conv, x)  # Dummy dimension required!
+    return back(x)                 # Uncompress batch dimensions
+end
+
+function (layer::BatchedConv)(x, dimensionality::Val{2})
+    x, back = to_rank(4, x)  # Compress batch dimensions.
+    x = layer.conv(x)        # No dummy dimension required!
+    return back(x)           # Uncompress batch dimensions
 end

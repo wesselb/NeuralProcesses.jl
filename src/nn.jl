@@ -1,3 +1,5 @@
+export layer_norm, batched_mlp, Splitter, MeanPooling, SumPooling
+
 """
     struct LayerNorm
 
@@ -36,15 +38,6 @@ function layer_norm(shape::Integer...)
     )
 end
 
-"""
-    (layer::LayerNorm)(x::AA)
-
-# Arguments
-- `x::AA`: Unnormalised input.
-
-# Returns
-- `AA`: `x` normalised.
-"""
 function (layer::LayerNorm)(x::AA)
     x = x .- mean(x, dims=layer.dims)
     x = x ./ sqrt.(mean(x .* x, dims=layer.dims) .+ 1f-8)
@@ -65,17 +58,8 @@ end
 
 @Flux.treelike BatchedMLP
 
-"""
-    (layer::BatchedMLP)(x::AA)
-
-# Arguments
-- `x::AA`: Batched input.
-
-# Returns
-- `AA`: Result of applying `layer.mlp` to every batch in `x`.
-"""
 function (layer::BatchedMLP)(x::AA)
-    x, back = to_rank_3(x)  # Compress all batch dimensions.
+    x, back = to_rank(3, x)  # Compress all batch dimensions.
 
     n, _, batch_size = size(x)
 
@@ -133,56 +117,31 @@ function batched_mlp(;
 end
 
 """
-    struct SplitGlobal
+    struct Splitter
 
 # Fields
-- `num_global_channels::Integer`: Number of channels to use for the global channels.
-- `ff₁`: Feed-forward net before pooling.
-- `pooling`: Pooling.
-- `ff₂`: Feed-forward net after pooling.
-- `transform`: Function that transforms both the local and global channel after `ff₂`.
+- `num_channels::Integer`: Number of channels to split off.
 """
-struct SplitGlobal
-    num_global_channels::Integer
-    ff₁
-    pooling
-    ff₂
-    transform
+struct Splitter
+    num_channels::Integer
 end
 
-@Flux.treelike SplitGlobal
+@Flux.treelike Splitter
 
-"""
-    (layer::SplitGlobal)(x::AA)
-
-Split `layer.num_global_channels` off of `x` to construct global channels.
-
-# Arguments
-- `x::AA`: Tensor to split global channels off of.
-
-# Returns
-- `Tuple`: Two-tuple containing the outputs for the global and local channels.
-"""
-function (layer::SplitGlobal)(x::AA)
-    # Split channels.
-    x_global = slice_at(x, 2, 1:layer.num_global_channels)
-    x_local = slice_at(x, 2, layer.num_global_channels + 1:size(x, 2))
-
-    # Pool over data points to make global channels.
-    x_global = layer.ff₁(x_global)
-    x_global = layer.pooling(x_global)
-    x_global = layer.ff₂(x_global)
-
-    return layer.transform(x_global), layer.transform(x_local)
+function (layer::Splitter)(x::AA)
+    num_remaining_channels = size(x, 2) - layer.num_channels
+    x₁ = slice_at(x, 2, 1:num_remaining_channels)
+    x₂ = slice_at(x, 2, (num_remaining_channels + 1):size(x, 2))
+    return x₁, x₂
 end
 
 """
     struct MeanPooling
 
-Mean pooling.
+Mean pooling over dimension one.
 
 # Fields
-- `ln`: Layer normalisation to depend not on the size of the discretisation.
+- `ln`: Layer normalisation to apply after pooling.
 """
 struct MeanPooling
     ln
@@ -190,21 +149,12 @@ end
 
 @Flux.treelike MeanPooling
 
-"""
-    (layer::MeanPooling)(x::AA)
-
-# Arguments
-- `x::AA`: Input to pool.
-
-# Returns
-- `AA`: `x` pooled.
-"""
 (layer::MeanPooling)(x::AA) = layer.ln(mean(x, dims=1))
 
 """
     struct SumPooling
 
-Sum pooling.
+Sum pooling over dimension one.
 
 # Fields
 - `factor::Integer`: Factor to divide by after pooling to help initialisation.
@@ -215,13 +165,4 @@ end
 
 @Flux.treelike SumPooling
 
-"""
-    (layer::SumPooling)(x::AA)
-
-# Arguments
-- `x::AA`: Input to pool.
-
-# Returns
-- `AA`: `x` pooled.
-"""
 (layer::SumPooling)(x::AA) = sum(x, dims=1) ./ layer.factor

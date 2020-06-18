@@ -37,16 +37,20 @@ const MaybeAA = Union{Nothing, AbstractArray}
 include("util.jl")
 include("data.jl")
 include("conv.jl")
-
 include("discretisation.jl")
 include("nn.jl")
-include("setconv.jl")
-include("attention.jl")
-include("model/cnp/convcnp.jl")
-include("model/cnp/correlatedconvcnp.jl")
-include("model/np/np.jl")
-include("model/np/convnp.jl")
-include("model/np/anp.jl")
+include("distribution.jl")
+
+include("model/setconv.jl")
+include("model/attention.jl")
+include("model/coding.jl")
+include("model/noise.jl")
+include("model/model.jl")
+include("model/convcnp.jl")
+include("model/convnp.jl")
+include("model/np.jl")
+include("model/anp.jl")
+# include("model/correlatedconvcnp.jl")
 
 include("experiment/experiment.jl")
 

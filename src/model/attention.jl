@@ -1,4 +1,4 @@
-export Attention, attention
+export attention
 
 """
     Attention
@@ -18,22 +18,11 @@ end
 
 @Flux.treelike Attention
 
-"""
-    (layer::Attention)(xc::AA, yc::AA, xt::AA)
-
-# Arguments
-- `xc::AA`: Locations of context set of shape `(n, dims, batch)`.
-- `yc::AA`: Observed values of context set of shape `(n, channels, batch)`.
-- `xz::AA`: Locations of latent encoding of shape `(k, dims, batch)`.
-
-# Returns
-- `AA`: Encodings of shape `(k, dim_embedding, batch)`.
-"""
-function (layer::Attention)(xc::AA, yc::AA, xz::AA)
+function encode(layer::Attention, xz::AA, z::AA, x::AA)
     # Perform encodings.
-    keys = layer.encoder_x(xc)
-    queries = layer.encoder_x(xz)
-    values = layer.encoder_xy(cat(xc, yc, dims=2))
+    keys = layer.encoder_x(xz)
+    queries = layer.encoder_x(x)
+    values = layer.encoder_xy(cat(xz, z, dims=2))
 
     # Perform attention mechanism.
     products = batched_mul(queries, batched_transpose(keys))
@@ -44,24 +33,12 @@ function (layer::Attention)(xc::AA, yc::AA, xz::AA)
     channels = layer.mixer(channels)
 
     # Finish transformer architecture.
-    return layer.transformer(channels, queries)
+    return x, layer.transformer(channels, queries)
 end
 
-"""
-    empty_encoding(layer::Attention, xz::AA)
-
-Construct an encoding for the empty set.
-
-# Arguments
-- `layer::Attention`: Layer.
-- `xz`: Locations of encoding of shape `(k, dims, batch)`.
-
-# Returns
-- `AA`: Empty encoding.
-"""
-function empty_encoding(layer::Attention, xz::AA)
-    batch_size = size(xz, 3)
-    return zeros(Float32, 1, layer.transformer.ff₂.dim_out, batch_size) |> gpu
+function encode(layer::Attention, xz::Nothing, z::Nothing, x::AA)
+    batch_size = size(x, 3)
+    return x, zeros(Float32, 1, layer.transformer.ff₂.dim_out, batch_size) |> gpu
 end
 
 function _extract_channels(x, num_channels)
@@ -95,7 +72,7 @@ end
 @Flux.treelike Transformer
 
 """
-    Transformer(dim_embedding::Integer, num_heads::Integer)
+    transformer(dim_embedding::Integer, dim_head::Integer, num_heads::Integer)
 
 # Arguments
 - `dim_embedding::Integer`: Dimensionality of the embedding.
@@ -168,7 +145,6 @@ function attention(;
     num_heads::Integer,
     num_encoder_layers::Integer=3
 )
-
     dim_head = div(dim_embedding, num_heads)
     return Attention(
         Chain(

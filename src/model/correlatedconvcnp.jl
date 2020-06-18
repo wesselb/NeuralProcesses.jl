@@ -1,4 +1,4 @@
-export CorrelatedConvCNP, convcnp_1d_correlated, loglik, predict
+export convcnp_1d_correlated
 
 """
     CorrelatedConvCNP

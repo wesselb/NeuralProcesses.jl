@@ -76,7 +76,7 @@ function UniformUnion(uniforms::Uniform...)
     return UniformUnion(collect(uniforms), pweights([x / sum(lengths) for x in lengths]))
 end
 
-Base.rand(u::UniformUnion) = rand(sample(u.uniforms, u.probs))
+Base.rand(u::UniformUnion) = rand(StatsBase.sample(u.uniforms, u.probs))
 Base.rand(u::UniformUnion, n::Int64) = [rand(u) for _ = 1:n]
 
 """
@@ -251,7 +251,7 @@ function Base.rand(convnp::FDD{BayesianConvNP})
 
     # Perform decoding.
     xt = reshape(convnp.x, length(convnp.x), 1, 1)
-    sample = decode(decoder, xz, latent, xt)[:, 1, 1]
+    sample = decode(decoder, xz, latent, xt)[2][:, 1, 1]  # Also returns inputs.
 
     # Normalise sample.
     sample = (sample .- mean(sample)) ./ std(sample)

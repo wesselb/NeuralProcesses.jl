@@ -52,7 +52,7 @@
         reference = layer.transformer(layer.mixer(embeddings), queries)
 
         # Check that the layer lines up with the brute-force reference.
-        @test layer(xc, yc, xt) ≈ reference
+        @test encode(layer, xc, yc, xt)[2] ≈ reference
     end
 
     @testset "BatchedMLP" begin

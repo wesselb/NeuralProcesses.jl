@@ -85,6 +85,16 @@ end
         test_gradient(dummy, x, μ, L)
     end
 
+    @testset "kl" begin
+        μ₁, σ₁ = [1.2], [0.2]
+        μ₂, σ₂ = [2.4], [0.1]
+
+        # Test against a Monte Carlo estimate.
+        x = μ₁ .+ σ₁ .* randn(1000000)
+        estimate = mean(gaussian_logpdf(x, μ₁, σ₁) .- gaussian_logpdf(x, μ₂, σ₂))
+        @test ConvCNPs.kl(μ₁, σ₁,  μ₂, σ₂)[1] ≈ estimate atol=5e-2
+    end
+
     @testset "diagonal" begin
         x = randn(3)
         @test ConvCNPs.diagonal(x) ≈ collect(Diagonal(x))
@@ -142,22 +152,6 @@ end
         @test size(ConvCNPs.expand_gpu(randn(3))) == (3, 1, 1)
     end
 
-    @testset "kl" begin
-        μ₁, σ₁ = [1.2], [0.2]
-        μ₂, σ₂ = [2.4], [0.1]
-
-        # Test against a Monte Carlo estimate.
-        x = μ₁ .+ σ₁ .* randn(1000000)
-        estimate = mean(gaussian_logpdf(x, μ₁, σ₁) .- gaussian_logpdf(x, μ₂, σ₂))
-        @test ConvCNPs.kl(μ₁, σ₁,  μ₂, σ₂)[1] ≈ estimate atol=5e-2
-
-        # Test multi-argument usage.
-        p₁, q₁ = (rand(1), rand(1)), (rand(1), rand(1))
-        p₂, q₂ = (rand(1), rand(1)), (rand(1), rand(1))
-        @test ConvCNPs.kl(p₁, p₂, q₁, q₂) ==
-            (ConvCNPs.kl(p₁..., q₁...), ConvCNPs.kl(p₂..., q₂...))
-    end
-
     @testset "slice_at" begin
         x = randn(3, 4, 5)
         @test ConvCNPs.slice_at(x, 2, 2:3) == x[:, 2:3, :]
@@ -182,17 +176,26 @@ end
         @test ConvCNPs.with_dummy(y -> (@test(size(y) == (3, 1)); y), x) == x
     end
 
-    @testset "to_rank_3" begin
+    @testset "to_rank" begin
         # Test compression.
         x = randn(3, 4, 5, 6)
-        y, back = ConvCNPs.to_rank_3(x)
+        y, back = ConvCNPs.to_rank(3, x)
         @test y == reshape(x, 3, 4, :)
         @test back(y) == x
 
         # Test that rank-three tensors are left untouched.
         x = randn(3, 4, 5)
-        y, back = ConvCNPs.to_rank_3(x)
+        y, back = ConvCNPs.to_rank(3, x)
         @test x === y
         @test back(x) === x
+
+        # Test that globally broadcasting tensors are left untouched.
+        x = randn(1)
+        @test back(x) === x
+        @test ConvCNPs.to_rank(3, x)[1] === x
+    end
+
+    @testset "second" begin
+        @test ConvCNPs.second((1, 2, 3)) == 2
     end
 end

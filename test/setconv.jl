@@ -20,9 +20,9 @@ end
         # Compute with layer.
         layer = set_conv(num_channels + perform_encoding, scale)
         if perform_encoding
-            out = ConvCNPs.encode(layer, xc, yc, xt)
+            _, out = ConvCNPs.encode(layer, xc, yc, xt)
         else
-            out = ConvCNPs.decode(layer, xc, yc, xt)
+            _, out = ConvCNPs.decode(layer, xc, yc, xt)
         end
 
         # Brute-force the calculation.

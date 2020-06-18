@@ -9,133 +9,53 @@
         σ²=1e-4
     )
 
-    # Construct models.
-    convcnp = convcnp_1d(
+    # Construct CNPs:
+    cnps = [convcnp_1d(
         receptive_field=1f0,
         num_layers=2,
         num_channels=2,
         points_per_unit=5f0
-    )
-    convnp = convnp_1d(
-        receptive_field=1f0,
-        num_encoder_layers=2,
-        num_decoder_layers=3,
-        num_encoder_channels=2,
-        num_decoder_channels=1,
-        num_latent_channels=2,
-        num_global_channels=0,
-        num_σ_channels=0,
-        points_per_unit=5f0
-    )
-    convnp_global_sum = convnp_1d(
-        receptive_field=1f0,
-        num_encoder_layers=2,
-        num_decoder_layers=3,
-        num_encoder_channels=2,
-        num_decoder_channels=1,
-        num_latent_channels=2,
-        num_global_channels=2,
-        num_σ_channels=0,
-        points_per_unit=5f0,
-        pooling_type="sum"
-    )
-    convnp_global_mean = convnp_1d(
-        receptive_field=1f0,
-        num_encoder_layers=2,
-        num_decoder_layers=3,
-        num_encoder_channels=2,
-        num_decoder_channels=1,
-        num_latent_channels=2,
-        num_global_channels=2,
-        num_σ_channels=0,
-        points_per_unit=5f0,
-        pooling_type="mean"
-    )
-    convnp_amortised_sum = convnp_1d(
-        receptive_field=1f0,
-        num_encoder_layers=2,
-        num_decoder_layers=3,
-        num_encoder_channels=2,
-        num_decoder_channels=1,
-        num_latent_channels=2,
-        num_global_channels=0,
-        num_σ_channels=8,
-        points_per_unit=5f0,
-        pooling_type="sum"
-    )
-    convnp_amortised_mean = convnp_1d(
-        receptive_field=1f0,
-        num_encoder_layers=2,
-        num_decoder_layers=3,
-        num_encoder_channels=2,
-        num_decoder_channels=1,
-        num_latent_channels=2,
-        num_global_channels=0,
-        num_σ_channels=8,
-        points_per_unit=5f0,
-        pooling_type="mean"
-    )
-    anp = anp_1d(
-        dim_embedding=10,
-        num_encoder_layers=2,
-        num_encoder_heads=3,
-        num_decoder_layers=2,
-        num_σ_channels=0
-    )
-    anp_amortised_sum = anp_1d(
-        dim_embedding=10,
-        num_encoder_layers=2,
-        num_encoder_heads=3,
-        num_decoder_layers=2,
-        num_σ_channels=8,
-        pooling_type="sum"
-    )
-    anp_amortised_mean = anp_1d(
-        dim_embedding=10,
-        num_encoder_layers=2,
-        num_encoder_heads=3,
-        num_decoder_layers=2,
-        num_σ_channels=8,
-        pooling_type="mean"
-    )
-    np = np_1d(
-        dim_embedding=10,
-        num_encoder_layers=2,
-        num_decoder_layers=2,
-        num_σ_channels=0
-    )
-    np_amortised_sum = np_1d(
-        dim_embedding=10,
-        num_encoder_layers=2,
-        num_decoder_layers=2,
-        num_σ_channels=8,
-        pooling_type="sum"
-    )
-    np_amortised_mean = np_1d(
-        dim_embedding=10,
-        num_encoder_layers=2,
-        num_decoder_layers=2,
-        num_σ_channels=8,
-        pooling_type="mean"
-    )
+    )]
 
-    # CNPs:
-    model_losses = Any[(convcnp, ConvCNPs.loglik)]
+    # Construct NPs:
+    nps = Any[]
+    for noise_type in ["fixed", "amortised", "het"], pooling_type in ["mean", "sum"]
+        push!(nps, convnp_1d(
+            receptive_field=1f0,
+            num_encoder_layers=2,
+            num_decoder_layers=3,
+            num_encoder_channels=2,
+            num_decoder_channels=1,
+            num_latent_channels=2,
+            points_per_unit=5f0,
+            noise_type=noise_type,
+            pooling_type=pooling_type
+        ))
+        push!(nps, anp_1d(
+            dim_embedding=10,
+            num_encoder_layers=2,
+            num_encoder_heads=3,
+            num_decoder_layers=2,
+            noise_type=noise_type,
+            pooling_type=pooling_type
+        ))
+        push!(nps, np_1d(
+            dim_embedding=10,
+            num_encoder_layers=2,
+            num_decoder_layers=2,
+            noise_type=noise_type,
+            pooling_type=pooling_type
+        ))
+    end
+
+    # Construct all pairs of models and losses. CNPs:
+    model_losses = Any[]
+    for model in cnps
+        push!(model_losses, (model, (xs...) -> ConvCNPs.loglik(xs..., num_samples=1)))
+    end
 
     # NPs:
-    for model in [
-        convnp,
-        convnp_global_sum,
-        convnp_global_mean,
-        convnp_amortised_sum,
-        convnp_amortised_mean,
-        anp,
-        anp_amortised_sum,
-        anp_amortised_mean,
-        np,
-        np_amortised_sum,
-        np_amortised_mean
-    ]
+    for model in nps
         push!(model_losses, (
             model,
             (xs...) -> ConvCNPs.loglik(
