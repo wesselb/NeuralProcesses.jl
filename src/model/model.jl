@@ -225,9 +225,14 @@ function predict(model::Model, xc::AV, yc::AV, xt::AV; num_samples::Integer=10, 
         num_samples=max(num_samples, 100),
         kws...
     )
-    μ = mean(d)[:, 1, 1, :] |> cpu
-    σ = std(d)[:, 1, 1, :] |> cpu
+    μ = mean(d) |> cpu
+    σ = std(d) |> cpu
 
+    # Remove the channel and batch dimension.
+    μ = μ[:, 1, 1, :]
+    σ = σ[:, 1, 1, :]
+
+    # Extract samples.
     if size(μ, 2) >= num_samples
         samples = μ[:, 1:num_samples]
     else
