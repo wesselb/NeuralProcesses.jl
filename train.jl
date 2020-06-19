@@ -14,11 +14,10 @@ parser = ArgParseSettings()
         required = true
     "--model"
         help =
-            "Model: " *
-            "convcnp, " *
-            "convnp[-{global,amortised,het}-{mean,sum}], " *
-            "anp[-{amortised,het}-{mean,sum}], or " *
-            "np[-{amortised,het}-{mean,sum}]."
+            "Model: convcnp, convnp, anp, or np. Append \"-global-{mean,sum}\" to " *
+            "introduce a global latent variable. Append \"-amortised-{mean,sum}\" to use " *
+            "amortised observation noise. Append \"-het\" to use heterogeneous " *
+            "observation noise."
         arg_type = String
         required = true
     "--num-samples"
@@ -174,13 +173,13 @@ elseif args["model"] in [
     "convnp",
     "convnp-global-mean", "convnp-global-sum",
     "convnp-amortised-mean", "convnp-amortised-sum",
-    "convnp-het-mean", "convnp-het-sum",
+    "convnp-het",
     "anp",
     "anp-amortised-mean", "anp-amortised-sum",
-    "anp-het-mean", "anp-het-sum",
+    "anp-het",
     "np",
-    "np-amortised-mean" "np-amortised-sum",
-    "np-het-mean", "np-het-sum"
+    "np-amortised-mean", "np-amortised-sum",
+    "np-het"
 ]
     # Determine training loss.
     if args["loss"] == "loglik"
@@ -355,11 +354,11 @@ else
             "convnp",
             "convnp-global-mean", "convnp-global-sum",
             "convnp-amortised-mean", "convnp-amortised-sum",
-            "convnp-het-mean", "convnp-het-sum"
+            "convnp-het"
         ]
             if args["model"] == "convnp"
                 noise_type = "fixed"
-                pooling_type = "sum"  # This doesn't matter, but must be set to something.
+                pooling_type = "mean"  # This doesn't matter, but must be set to something.
             elseif args["model"] == "convnp-global-mean"
                 num_global_channels = 16
                 noise_type = "fixed"
@@ -376,12 +375,9 @@ else
             elseif args["model"] == "convnp-amortised-sum"
                 noise_type = "amortised"
                 pooling_type = "sum"
-            elseif args["model"] == "convnp-het-mean"
+            elseif args["model"] == "convnp-het"
                 noise_type = "het"
-                pooling_type = "mean"
-            elseif args["model"] == "convnp-het-sum"
-                noise_type = "het"
-                pooling_type = "sum"
+                pooling_type = "mean"  # This doesn't matter, but must be set to something.
             else
                 error("Unknown model \"" * args["model"] * "\".")
             end
@@ -404,23 +400,20 @@ else
         elseif args["model"] in [
             "anp",
             "anp-amortised-mean", "anp-amortised-sum",
-            "anp-het-mean", "anp-het-sum"
+            "anp-het"
         ]
             if args["model"] == "anp"
                 noise_type = "fixed"
-                pooling_type = "sum"  # This doesn't matter, but must be set to something.
+                pooling_type = "mean"  # This doesn't matter, but must be set to something.
             elseif args["model"] == "anp-amortised-mean"
                 noise_type = "amortised"
                 pooling_type = "mean"
             elseif args["model"] == "anp-amortised-sum"
                 noise_type = "amortised"
                 pooling_type = "sum"
-            elseif args["model"] == "anp-het-mean"
+            elseif args["model"] == "anp-het"
                 noise_type = "het"
-                pooling_type = "mean"
-            elseif args["model"] == "anp-het-sum"
-                noise_type = "het"
-                pooling_type = "sum"
+                pooling_type = "mean"  # This doesn't matter, but must be set to something.
             else
                 error("Unknown model \"" * args["model"] * "\".")
             end
@@ -438,23 +431,20 @@ else
         elseif args["model"] in [
             "np",
             "np-amortised-mean", "np-amortised-sum",
-            "np-het-mean", "np-het-sum"
+            "np-het"
         ]
             if args["model"] == "np"
                 noise_type = "fixed"
-                pooling_type = "sum"  # This doesn't matter, but must be set to something.
+                pooling_type = "mean"  # This doesn't matter, but must be set to something.
             elseif args["model"] == "np-amortised-mean"
                 noise_type = "amortised"
                 pooling_type = "mean"
             elseif args["model"] == "np-amortised-sum"
                 noise_type = "amortised"
                 pooling_type = "sum"
-            elseif args["model"] == "np-het-mean"
+            elseif args["model"] == "np-het"
                 noise_type = "het"
-                pooling_type = "mean"
-            elseif args["model"] == "np-het-sum"
-                noise_type = "het"
-                pooling_type = "sum"
+                pooling_type = "mean"  # This doesn't matter, but must be set to something.
             else
                 error("Unknown model \"" * args["model"] * "\".")
             end
