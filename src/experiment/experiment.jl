@@ -158,6 +158,10 @@ function plot_task(
         if !isnothing(path)
             savefig(plt, "$path/epoch$epoch-$i.png")
         end
+
+        # Close the window. It is unclear whether Plots.jl allows us to close just `plt`,
+        # but we can close all windows.
+        close("all")
     end
 end
 

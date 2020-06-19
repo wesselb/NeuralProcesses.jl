@@ -222,7 +222,8 @@ function predict(model::Model, xc::AV, yc::AV, xt::AV; num_samples::Integer=10, 
     # Run model.
     d = untrack(model)(
         expand_gpu.((xc, yc, xt))...;
-        num_samples=max(num_samples, 100),
+        # Use at least 20 samples to estimate uncertainty.
+        num_samples=max(num_samples, 20),
         kws...
     )
     μ = mean(d)[:, 1, 1, :] |> cpu
