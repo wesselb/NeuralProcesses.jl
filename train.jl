@@ -179,7 +179,11 @@ elseif args["model"] in [
     "anp-het",
     "np",
     "np-amortised-mean", "np-amortised-sum",
+<<<<<<< HEAD
     "np-het"
+=======
+    "np-het-mean", "np-het-sum"
+>>>>>>> 01605aa3e1188572472227031f32df3f89992ea9
 ]
     # Determine training loss.
     if args["loss"] == "loglik"
