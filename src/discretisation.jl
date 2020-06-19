@@ -35,7 +35,7 @@ end
 - `xs::AA...`: Inputs to compute the discretisation for.
 
 # Returns
-- `T`: Discretisation.
+- `AA`: Discretisation.
 """
 function (d::UniformDiscretisation1d)(xs::AA...)
     x = cat(xs...; dims=1)
