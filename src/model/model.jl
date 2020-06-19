@@ -228,10 +228,10 @@ function predict(model::Model, xc::AV, yc::AV, xt::AV; num_samples::Integer=10, 
     μ = mean(d)[:, 1, 1, :] |> cpu
     σ = std(d)[:, 1, 1, :] |> cpu
 
-    # Get samples. If the dimension size does not match, there are no samples.
-    if size(μ, 2) == num_samples
+    if size(μ, 2) >= num_samples
         samples = μ[:, 1:num_samples]
     else
+        # There are no samples.
         samples = nothing
     end
 
