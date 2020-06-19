@@ -179,7 +179,7 @@ elseif args["model"] in [
     "anp-amortised-mean", "anp-amortised-sum",
     "anp-het-mean", "anp-het-sum",
     "np",
-    "np-amortised-mean" "np-amortised-sum",
+    "np-amortised-mean", "np-amortised-sum",
     "np-het-mean", "np-het-sum"
 ]
     # Determine training loss.
