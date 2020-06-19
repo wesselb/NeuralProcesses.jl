@@ -37,9 +37,12 @@ end
 sample(d::Dirac; num_samples::Integer) = d.x
 
 Statistics.mean(d::Dirac) = d.x
-Statistics.std(d::Dirac) = zero(d.x)
+Statistics.std(d::Dirac) = 0
 
-logpdf(d::Dirac, x) = zero(x)
-kl(p::Dirac, q::Dirac) = zero(p.x)
+logpdf(d::Dirac, x) = 0
+kl(p::Dirac, q::Dirac) = 0
 
 Base.map(d::Dirac, f) = Dirac(f(d.x))
+
+# We need to help `sum` to work with scalars and the keyword argument `dims`.
+Base.sum(x::Real; dims=nothing) = x
