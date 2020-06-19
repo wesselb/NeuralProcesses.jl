@@ -43,6 +43,6 @@ function (d::UniformDiscretisation1d)(xs::AA...; margin=d.margin, kws...)
     range_upper = maximum(x) + margin
     num_points = (range_upper - range_lower) * d.points_per_unit + 1
     num_points = ceil(num_points / d.multiple) * d.multiple
-    disc = collect(range(range_lower, range_upper, length=Integer(num_points))) |> gpu
-    return repeat_gpu(disc, 1, 1, size(x, 3))  # Match batch size of input.
+    disc = collect(range(range_lower, range_upper, length=Integer(num_points)))
+    return repeat(disc, 1, 1, size(x, 3))  # Match batch size of input.
 end

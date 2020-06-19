@@ -242,4 +242,4 @@ Flux.mapchildren(f, agg::FunctionalAggregator) =
 FunctionalAggregator(disc::Discretisation, encoders...) =
     FunctionalAggregator(disc::Discretisation, collect(encoders))
 encoding_locations(agg::FunctionalAggregator, xc::AA, xt::AA; kws...) =
-    agg.disc(xc, xt; kws...)
+    agg.disc(xc, xt; kws...) |> gpu
