@@ -220,12 +220,21 @@ end
 """
 function predict(model::Model, xc::AV, yc::AV, xt::AV; num_samples::Integer=10, kws...)
     # Run model.
-    d = untrack(model)(expand_gpu.((xc, yc, xt))...; num_samples=num_samples, kws...)
+    d = untrack(model)(
+        expand_gpu.((xc, yc, xt))...;
+        # Use at least 20 samples to estimate uncertainty.
+        num_samples=max(num_samples, 20),
+        kws...
+    )
     μ = mean(d)[:, 1, 1, :] |> cpu
     σ = std(d)[:, 1, 1, :] |> cpu
 
-    # Extract samples.
-    samples = size(μ, 2) > 1 ? μ : nothing
+    if size(μ, 2) >= num_samples
+        samples = μ[:, 1:num_samples]
+    else
+        # There are no samples.
+        samples = nothing
+    end
 
     # Estimate functional uncertainty. Do not use the correction because there may only
     # be one sample. We Gaussianise to make it appear smoother.
