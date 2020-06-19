@@ -37,10 +37,10 @@ end
 # Returns
 - `AA`: Discretisation.
 """
-function (d::UniformDiscretisation1d)(xs::AA...)
+function (d::UniformDiscretisation1d)(xs::AA...; margin=d.margin, kws...)
     x = cat(xs...; dims=1)
-    range_lower = minimum(x) - d.margin
-    range_upper = maximum(x) + d.margin
+    range_lower = minimum(x) - margin
+    range_upper = maximum(x) + margin
     num_points = (range_upper - range_lower) * d.points_per_unit + 1
     num_points = ceil(num_points / d.multiple) * d.multiple
     disc = collect(range(range_lower, range_upper, length=Integer(num_points))) |> gpu

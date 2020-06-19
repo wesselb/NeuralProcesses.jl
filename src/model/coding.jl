@@ -1,6 +1,6 @@
 export encode, decode, MultiHead, reencode_stochastic, TargetAggregator, FunctionalAggregator
 
-encode(f, xz, z, _) = xz, f(z)
+encode(f, xz, z, x; kws...) = xz, f(z)
 decode(f, xz, z, _) = xz, f(z)
 
 """
@@ -98,8 +98,8 @@ MultiHead(splitter, heads...) = MultiHead(splitter, heads)
 
 @Flux.treelike MultiHead
 
-encode(mh::MultiHead, xz, zs::AA, xt) = collect(zip([
-    encode(head, xz, z, xt) for (head, z) in zip(mh.heads, mh.splitter(zs))
+encode(mh::MultiHead, xz, zs::AA, xt; kws...) = collect(zip([
+    encode(head, xz, z, xt; kws...) for (head, z) in zip(mh.heads, mh.splitter(zs))
 ]...))
 
 decode(mh::MultiHead, xz, zs::AA, xt) = collect(zip([
@@ -108,9 +108,9 @@ decode(mh::MultiHead, xz, zs::AA, xt) = collect(zip([
 
 # Chains are the generic construct used to compose encoders and decoders.
 
-function encode(chain::Chain, xz, z, x)
+function encode(chain::Chain, xz, z, x; kws...)
     for f in chain
-        xz, z = encode(f, xz, z, x)
+        xz, z = encode(f, xz, z, x; kws...)
     end
     return xz, z
 end
