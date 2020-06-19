@@ -357,25 +357,27 @@ else
             "convnp-het"
         ]
             if args["model"] == "convnp"
+                num_global_channels = 0
                 noise_type = "fixed"
                 pooling_type = "mean"  # This doesn't matter, but must be set to something.
             elseif args["model"] == "convnp-global-mean"
                 num_global_channels = 16
                 noise_type = "fixed"
                 pooling_type = "mean"
-                error("Not implement yet.")
             elseif args["model"] == "convnp-global-sum"
                 num_global_channels = 16
                 noise_type = "fixed"
                 pooling_type = "sum"
-                error("Not implement yet.")
             elseif args["model"] == "convnp-amortised-mean"
+                num_global_channels = 0
                 noise_type = "amortised"
                 pooling_type = "mean"
             elseif args["model"] == "convnp-amortised-sum"
+                num_global_channels = 0
                 noise_type = "amortised"
                 pooling_type = "sum"
             elseif args["model"] == "convnp-het"
+                num_global_channels = 0
                 noise_type = "het"
                 pooling_type = "mean"  # This doesn't matter, but must be set to something.
             else

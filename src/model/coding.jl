@@ -41,7 +41,10 @@ Turn a sample of an aggregation of encodings into a tensor.
 # Returns
 - `AA`: Tensor corresponding to sample.
 """
-materialise(sample::AggregateEncodingSample) = repeat_cat(sample.samples..., dims=2)
+materialise(sample::AggregateEncodingSample) =
+    repeat_cat(materialise.(sample.samples)..., dims=2)
+materialise(sample) = sample
+
 
 # Decoders typically cannot handle a fourth dimension (sample dimension) or an aggregation
 # of samples. Hence, we implement a generic fallback that automatically takes care of this.
@@ -186,9 +189,18 @@ function reencode_stochastic(
     ])
 end
 
-reencode_stochastic(encoder, encoding::Dirac, xz::AA, z::AA, x::AA; kws...) = x, encoding
+# Do not reencode `Dirac`s.
+
+reencode_stochastic(encoder, encoding::Dirac, xz, z, x; kws...) = x, encoding
+
+# If the encoding is aggregate, it can still contain `Dirac`s, so be careful.
+
 reencode_stochastic(encoder, encoding, xc, yc, xz; kws...) =
-    encode(encoder, xc, yc, xz; kws...)
+    _choose(encode(encoder, xc, yc, xz; kws...), encoding)
+
+_choose(new, old::AggregateEncoding) = _choose.(new, old.encodings)
+_choose(new, old::Dirac) = old
+_choose(new, old) = new
 
 """
     struct TargetAggregator <: Aggregator

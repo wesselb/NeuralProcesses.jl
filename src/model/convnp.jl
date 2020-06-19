@@ -8,6 +8,7 @@ export convnp_1d
         num_encoder_channels::Integer,
         num_decoder_channels::Integer,
         num_latent_channels::Integer,
+        num_global_channels::Integer,
         points_per_unit::Float32,
         margin::Float32=receptive_field,
         noise_type::String="het",
@@ -26,6 +27,8 @@ export convnp_1d
 - `num_encoder_channels::Integer`: Number of channels of the CNN of the encoder.
 - `num_decoder_channels::Integer`: Number of channels of the CNN of the decoder.
 - `num_latent_channels::Integer`: Number of channels of the latent variable.
+- `num_global_channels::Integer`: Number of channels of a global latent variable. Set to
+    `0` to not use a global latent variable.
 - `margin::Float32=receptive_field`: Margin for the discretisation. See
     `UniformDiscretisation1d`.
 - `noise_type::String="het"`: Type of noise model. Must be "fixed", "amortised", or "het".
@@ -43,6 +46,7 @@ function convnp_1d(;
     num_encoder_channels::Integer,
     num_decoder_channels::Integer,
     num_latent_channels::Integer,
+    num_global_channels::Integer,
     points_per_unit::Float32,
     margin::Float32=receptive_field,
     noise_type::String="het",
@@ -60,7 +64,7 @@ function convnp_1d(;
         points_per_unit =points_per_unit,
         dimensionality  =1,
         num_in_channels =dim_y + 1,  # Account for density channel.
-        num_out_channels=2num_latent_channels,
+        num_out_channels=2num_latent_channels + 2num_global_channels,
     )
     num_noise_channels, noise = build_noise_model(
         # Need to perform a smoothing before applying the noise model.
@@ -71,13 +75,55 @@ function convnp_1d(;
         σ           =σ,
         learn_σ     =learn_σ
     )
+    # Partially construct the encoder. We may need to append multiple heads if we want to
+    # split off a global variable.
+    encoder = Chain(
+        set_conv(dim_y + 1, scale),  # Account for density channel
+        encoder_conv
+    )
+    if num_global_channels == 0
+        # There is no global variable.
+        encoder = Chain(encoder..., HeterogeneousGaussian())
+    else
+        # There is a global variable. Split it off and pool.
+        if pooling_type == "mean"
+            pooling = MeanPooling(layer_norm(1, 2num_global_channels, 1))
+        elseif pooling_type == "sum"
+            pooling = SumPooling(1000)  # Divide by `1000` to help initialisation.
+        else
+            error("Unknown pooling type \"" * pooling_type * "\".")
+        end
+        encoder = Chain(
+            encoder...,
+            MultiHead(
+                Splitter(2num_global_channels),
+                HeterogeneousGaussian(),
+                Chain(
+                    batched_mlp(
+                        dim_in    =2num_global_channels,
+                        dim_hidden=2num_global_channels,
+                        dim_out   =2num_global_channels,
+                        num_layers=3
+                    ),
+                    pooling,
+                    batched_mlp(
+                        dim_in    =2num_global_channels,
+                        dim_hidden=2num_global_channels,
+                        dim_out   =2num_global_channels,
+                        num_layers=3
+                    ),
+                    HeterogeneousGaussian()
+                )
+            )
+        )
+    end
     decoder_conv = build_conv(
         receptive_field,
         num_decoder_layers,
         num_decoder_channels,
         points_per_unit =points_per_unit,
         dimensionality  =1,
-        num_in_channels =num_latent_channels,
+        num_in_channels =num_latent_channels + num_global_channels,
         num_out_channels=num_noise_channels
     )
     return Model(
@@ -87,11 +133,7 @@ function convnp_1d(;
                 margin,
                 encoder_conv.multiple  # Avoid artifacts when using up/down-convolutions.
             ),
-            Chain(
-                set_conv(dim_y + 1, scale),  # Account for density channel
-                encoder_conv,
-                HeterogeneousGaussian()
-            )
+            encoder
         ),
         Chain(
             decoder_conv,

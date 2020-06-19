@@ -26,7 +26,20 @@
             num_decoder_layers=3,
             num_encoder_channels=2,
             num_decoder_channels=1,
-            num_latent_channels=2,
+            num_latent_channels=3,
+            num_global_channels=0,
+            points_per_unit=5f0,
+            noise_type=noise_type,
+            pooling_type=pooling_type
+        ))
+        push!(nps, convnp_1d(
+            receptive_field=1f0,
+            num_encoder_layers=2,
+            num_decoder_layers=3,
+            num_encoder_channels=2,
+            num_decoder_channels=1,
+            num_latent_channels=3,
+            num_global_channels=5,
             points_per_unit=5f0,
             noise_type=noise_type,
             pooling_type=pooling_type
