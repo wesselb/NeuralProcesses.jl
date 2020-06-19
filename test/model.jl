@@ -63,7 +63,7 @@
                 num_samples=2,
                 batch_size=1,
                 importance_weighted=false,
-                init_σ_epochs=1
+                fixed_σ_epochs=1
             )
         ))
         push!(model_losses, (
@@ -73,12 +73,16 @@
                 num_samples=2,
                 batch_size=1,
                 importance_weighted=true,
-                init_σ_epochs=1
+                fixed_σ_epochs=1
             )
         ))
         push!(model_losses, (
             model,
-            (xs...) -> ConvCNPs.elbo(xs..., num_samples=2)
+            (xs...) -> ConvCNPs.elbo(
+                xs...,
+                num_samples=2,
+                fixed_σ_epochs=1
+            )
         ))
     end
 

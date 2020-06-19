@@ -68,12 +68,12 @@ end
     @testset "gaussian_logpdf" begin
         # Test one-dimensional logpdf.
         dist = Normal(1, 2)
-        @test logpdf(dist, 3) ≈ gaussian_logpdf([3], [1], [2])[1]
+        @test logpdf(dist, 3) ≈ ConvCNPs.gaussian_logpdf([3], [1], [2])[1]
 
         # Test multi-dimensional logpdf.
         function dummy(x, μ, L)
             Σ = L * L' .+ Matrix{Float64}(I, 3, 3)
-            return gaussian_logpdf(x, μ, Σ)
+            return ConvCNPs.gaussian_logpdf(x, μ, Σ)
         end
 
         x = randn(3)
@@ -91,7 +91,9 @@ end
 
         # Test against a Monte Carlo estimate.
         x = μ₁ .+ σ₁ .* randn(1000000)
-        estimate = mean(gaussian_logpdf(x, μ₁, σ₁) .- gaussian_logpdf(x, μ₂, σ₂))
+        estimate = mean(
+            ConvCNPs.gaussian_logpdf(x, μ₁, σ₁) .- ConvCNPs.gaussian_logpdf(x, μ₂, σ₂)
+        )
         @test ConvCNPs.kl(μ₁, σ₁,  μ₂, σ₂)[1] ≈ estimate atol=5e-2
     end
 
