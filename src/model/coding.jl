@@ -95,8 +95,8 @@ MultiHead(splitter, heads...) = MultiHead(splitter, heads)
 
 @Flux.treelike MultiHead
 
-(mh::MultiHead)(xs) = collect(zip([
-    head(x) for (head, x) in zip(mh.heads, mh.splitter(xs))
+encode(mh::MultiHead, xz, zs::AA, xt) = collect(zip([
+    encode(head, xz, z, xt) for (head, z) in zip(mh.heads, mh.splitter(zs))
 ]...))
 
 decode(mh::MultiHead, xz, zs::AA, xt) = collect(zip([
@@ -131,10 +131,17 @@ end
 
 function encode(agg::Aggregator, xc::AA, yc::AA, xt::AA, xz::AA; kws...)
     size(xc, 1) == 0 && (xc = yc = nothing)
-    return xz, AggregateEncoding([
+    return xz, _aggregate([
         second(encode(encoder, xc, yc, xz; kws...)) for encoder in agg.encoders
     ])
 end
+
+# `Vector`s and `Tuple`s represent aggregation of samples. Put their contents into
+# `AggregateEncoding`s.
+
+_aggregate(x) = x
+_aggregate(x::Tuple) = AggregateEncoding(_aggregate.(x))
+_aggregate(x::Vector) = AggregateEncoding(_aggregate.(x))
 
 """
     reencode_stochastic(
@@ -173,7 +180,7 @@ function reencode_stochastic(
     xz::AA;
     kws...
 )
-    return xz, AggregateEncoding([
+    return xz, _aggregate([
         second(reencode_stochastic(encoder, encoding, xc, yc, xz; kws...))
         for (encoder, encoding) in zip(agg.encoders, agg_encoding.encodings)
     ])
