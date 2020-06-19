@@ -221,8 +221,12 @@ end
 function predict(model::Model, xc::AV, yc::AV, xt::AV; num_samples::Integer=10, kws...)
     # Run model.
     d = untrack(model)(expand_gpu.((xc, yc, xt))...; num_samples=num_samples, kws...)
-    μ = mean(d)[:, 1, 1, :] |> cpu
-    σ = std(d)[:, 1, 1, :] |> cpu
+    μ = mean(d) |> cpu
+    σ = std(d) |> cpu
+
+    # Remove channel and batch dimension.
+    μ = μ[:, 1, 1, :]
+    σ = σ[:, 1, 1, :]
 
     # Extract samples.
     samples = size(μ, 2) > 1 ? μ : nothing
