@@ -19,12 +19,9 @@ pyplot()
 
 function eval_model(model, loss, data_gen, epoch; num_batches=256)
     model = ConvCNPs.untrack(model)
-    @time tuples = map(
-        x -> (loss(model, epoch, gpu.(x)...), size(x[3], 1)),
-        data_gen(num_batches)
-    )
+    @time tuples = map(x -> loss(model, epoch, gpu.(x)...), data_gen(num_batches))
     values = map(x -> x[1], tuples)
-    target_sizes = map(x -> x[2], tuples)
+    sizes = map(x -> x[2], tuples)
 
     # Compute and print loss.
     loss_value, loss_error = _mean_error(values)
@@ -39,14 +36,14 @@ function eval_model(model, loss, data_gen, epoch; num_batches=256)
     # Normalise by average size of target set.
     @printf(
         "    %8.3f +- %7.3f (%d batches; normalised)\n",
-        _mean_error(values ./ mean(target_sizes))...,
+        _mean_error(values ./ mean(sizes))...,
         num_batches
     )
 
     # Normalise by the target set size.
     @printf(
         "    %8.3f +- %7.3f (%d batches; global mean)\n",
-        _mean_error(values ./ target_sizes)...,
+        _mean_error(values ./ sizes)...,
         num_batches
     )
 
@@ -58,12 +55,12 @@ _mean_error(xs) = (mean(xs), 2std(xs) / sqrt(length(xs)))
 _nanreport = Flux.throttle(() -> println("Encountered NaN loss! Returning zero."), 1)
 
 function nansafe(loss, xs...)
-    value = loss(xs...)
+    value, value_size = loss(xs...)
     if isnan(value)
         _nanreport()
-        return Tracker.track(identity, 0f0)
+        return Tracker.track(identity, 0f0), value_size
     else
-        return value
+        return value, value_size
     end
 end
 
@@ -94,7 +91,7 @@ function train!(
         # Perform epoch.
         println("Epoch: $epoch")
         @time Flux.train!(
-            (xs...) -> nansafe(loss, model, epoch, gpu.(xs)...),
+            (xs...) -> first(nansafe(loss, model, epoch, gpu.(xs)...)),
             Flux.params(model),
             data_gen(batches_per_epoch),
             opt

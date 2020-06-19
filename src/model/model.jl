@@ -56,8 +56,8 @@ Log-expected-likelihood loss. This is a biased estimate of the log-likelihood.
 - `kws...`: Further keywords to pass on.
 
 # Returns
-- `Real`: Average negative log-expected likelihood.
-
+- `Tuple{Real, Integer}`: Average negative log-expected likelihood and the "size" of the
+    loss.
 """
 function loglik(
     model::Model,
@@ -126,8 +126,8 @@ function loglik(
     # Turn log-sum-exp into a log-mean-exp.
     logpdfs = logpdfs .- Float32(log(num_samples))
 
-    # Return average over batches.
-    return -mean(logpdfs)
+    # Return average over batches and the "size" of the loss.
+    return -mean(logpdfs), size(xt, 1)
 end
 
 """
@@ -161,7 +161,7 @@ Neural process ELBO-style loss. Subsumes the context set into the target set.
 - `kws...`: Further keywords to pass on.
 
 # Returns
-- `Real`: Average negative NP loss.
+- `Tuple{Real, Integer}`: Average negative NP loss and the "size" of the loss.
 """
 function elbo(
     model::Model,
@@ -197,8 +197,8 @@ function elbo(
     # Estimate ELBO from samples.
     elbos = mean(sum(logpdf(d, y_all), dims=(1, 2)), dims=4) .- sum(kl(qz, pz), dims=(1, 2))
 
-    # Return average over batches.
-    return -mean(elbos)
+    # Return average over batches and the "size" of the loss.
+    return -mean(elbos), size(x_all, 1)
 end
 
 """
