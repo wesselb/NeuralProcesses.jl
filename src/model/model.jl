@@ -235,9 +235,10 @@ function predict(model::Model, xc::AV, yc::AV, xt::AV; num_samples::Integer=10, 
         samples = nothing
     end
 
-    # Estimate uncertainty by adding the errors. Gaussianise to make it appear smoother.
-    μ_σ = std(μ, dims=2)                            # Compute functional uncertainty.
-    ε = 2 .* mean(sqrt.(μ_σ.^2 .+ σ.^2), dims=2)    # Add variances to make total error.
+    # Estimate functional uncertainty. Do not use the correction because there may only
+    # be one sample. We Gaussianise to make it appear smoother.
+    μ_σ = std(μ, dims=2, corrected=false)
+    ε = 2 .* mean(sqrt.(μ_σ.^2 .+ σ.^2), dims=2) # Add variances to make total error.
 
     # Compute bounds.
     μ = mean(μ, dims=2)
