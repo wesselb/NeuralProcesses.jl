@@ -33,9 +33,10 @@ end
 """
     materialise(sample::AggregateEncodingSample)
 
+Turn a sample of an aggregation of encodings into a tensor.
+
 # Arguments
-- `sample::AggregateEncodingSample`: Turn a sample of an aggregation of encodings into
-    a tensor.
+- `sample::AggregateEncodingSample`: Sample to turn into a tensor.
 
 # Returns
 - `AA`: Tensor corresponding to sample.
