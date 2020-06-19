@@ -160,7 +160,8 @@ end
 if args["model"] == "convcnp"
     # Determine training loss.
     if args["loss"] == "loglik"
-        loss = ConvCNPs.loglik
+        # Use a single sample: there is nothing random.
+        loss(xs...) = ConvCNPs.loglik(xs..., num_samples=1)
     elseif args["loss"] in ["elbo", "loglik-iw"]
         error("Losses \"elbo\" and \"loglik-iw\" not applicable to the ConvCNP.")
     else
