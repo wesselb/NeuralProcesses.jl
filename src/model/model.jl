@@ -40,7 +40,7 @@ end
 Log-expected-likelihood loss. This is a biased estimate of the log-likelihood.
 
 # Arguments
-- `model::AbstractNP`: Model.
+- `model::Model`: Model.
 - `epoch::Integer`: Current epoch.
 - `xc::AA`: Locations of context set of shape `(n, dims, batch)`.
 - `yc::AA`: Observed values of context set of shape `(n, channels, batch)`.
@@ -147,7 +147,7 @@ end
 Neural process ELBO-style loss. Subsumes the context set into the target set.
 
 # Arguments
-- `model::AbstractNP`: Model.
+- `model::Model`: Model.
 - `epoch::Integer`: Current epoch.
 - `xc::AA`: Locations of context set of shape `(n, dims, batch)`.
 - `yc::AA`: Observed values of context set of shape `(n, channels, batch)`.
@@ -202,10 +202,10 @@ function elbo(
 end
 
 """
-    predict(model::AbstractNP, xc::AV, yc::AV, xt::AV; num_samples::Integer=10)
+    predict(model::Model, xc::AV, yc::AV, xt::AV; num_samples::Integer=10)
 
 # Arguments
-- `model::AbstractNP`: Model.
+- `model::Model`: Model.
 - `xc::AV`: Locations of observed values of shape `(n)`.
 - `yc::AV`: Observed values of shape `(n)`.
 - `xt::AV`: Locations of target values of shape `(m)`.
