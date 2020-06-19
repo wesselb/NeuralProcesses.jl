@@ -169,7 +169,7 @@ if args["model"] == "convcnp"
     end
 
     # Use the train loss for evaluation.
-    eval_loss = ConvCNPs.loglik
+    eval_loss = loss
 elseif args["model"] in [
     "convnp",
     "convnp-global-mean", "convnp-global-sum",
@@ -243,7 +243,8 @@ elseif args["model"] in [
     eval_loss(xs...) = ConvCNPs.loglik(
         xs...,
         num_samples=args["evaluate-num-samples"],
-        importance_weighted=eval_importance_weighted
+        importance_weighted=eval_importance_weighted,
+        fixed_σ_epochs=0
     )
 else
     error("Unknown model \"" * args["model"] * "\".")
