@@ -255,6 +255,8 @@ Safe log-sum-exp reduction of array `x` along dimensions `dims`.
 - `AA`: Log-sum-exp reduction of `x` along dimensions `dims`.
 """
 function logsumexp(x::AA; dims=:)
+    # Only do work if there is work to be done.
+    prod([size(x, d) for d in dims]) == 1 && (return x)
     u = maximum(Tracker.data(x), dims=dims)  # Do not track the maximum!
     return u .+ log.(sum(exp.(x .- u), dims=dims))
 end
@@ -328,6 +330,7 @@ function repeat_cat(xs::AA...; dims::Integer)
     # Return concatenation.
     return cat(xs..., dims=dims)
 end
+repeat_cat(x::AA; dims::Integer) = x
 
 """
     repeat_gpu(x::AA, reps::Integer...)
@@ -344,7 +347,10 @@ only repeat along dimensions of size one.
 """
 function repeat_gpu(x::AA, reps::Integer...)
     # Only do work if there is work to be done.
-    all(reps .== 1) && ndims(x) >= length(reps) && return x
+    all(reps .== 1) && ndims(x) >= length(reps) && (return x)
+    all(reps .== 1) && (return reshape(
+        x, size(x)..., ntuple(_ -> 1, length(reps) - ndims(x))...
+    ))
     return x .* ones_gpu(Float32, reps...)
 end
 

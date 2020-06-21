@@ -52,12 +52,15 @@ materialise(sample) = sample
 function decode(decoder, xz::AA, z::AggregateEncodingSample, x::AA)
     z = materialise(z)
 
-    # Repeat the inputs over samples to match batch dimensions.
+    # Repeat the inputs over samples to match batch dimensions. Only repeat if there are
+    # samples.
     num_samples = size(z, 4)
-    xz = repeat_gpu(xz, 1, 1, 1, num_samples)
-    x  = repeat_gpu(x, 1, 1, 1, num_samples)
+    if num_samples > 1
+        xz = repeat_gpu(xz, 1, 1, 1, num_samples)
+        x  = repeat_gpu(x, 1, 1, 1, num_samples)
+    end
 
-    # Merge the sample and batch dimension.
+    # Merge the sample and batch dimension. Everything expects three-tensors.
     xz, back = to_rank(3, xz)
     z, _     = to_rank(3, z)
     x, _     = to_rank(3, x)
@@ -65,7 +68,10 @@ function decode(decoder, xz::AA, z::AggregateEncodingSample, x::AA)
     # Perform decoding.
     x, d = decode(decoder, xz, z, x)
 
-    return x, map(d, back)  # Separate samples from batches again.
+    # Separate samples from batches again.
+    d = map(d, back)
+
+    return x, d
 end
 
 function kl(encoding1::AggregateEncoding, encoding2::AggregateEncoding)
