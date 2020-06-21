@@ -124,6 +124,14 @@ end
         x = randn(3, 4, 5)
         @test StatsFuns.logsumexp(x, dims=1) ≈ ConvCNPs.logsumexp(x, dims=1)
         test_gradient((y) -> ConvCNPs.logsumexp(y, dims=1), x)
+
+        # Test optimisations.
+        x = randn(3, 1, 5)
+        @test ConvCNPs.logsumexp(x, dims=2) === x
+        @test ConvCNPs.logsumexp(x, dims=4) === x
+        @test ConvCNPs.logsumexp(x, dims=(2, 4)) === x
+        x = randn(1, 1, 1)
+        @test ConvCNPs.logsumexp(x, dims=:) === x
     end
 
     @testset "softmax" begin
@@ -142,12 +150,18 @@ end
         y = randn(1, 5, 2, 4)
         @test ConvCNPs.repeat_cat(x, y, dims=2) ==
             cat(repeat(x, 1, 1, 1, 4), repeat(y, 3, 1, 1, 1), dims=2)
+
+        # Test optimisation.
+        @test ConvCNPs.repeat_cat(x, dims=2) === x
     end
 
     @testset "repeat_gpu" begin
-        θ = randn(3, 2, 5, 3)
         x = randn(3, 1, 5)
-        @test θ .* ConvCNPs.repeat_gpu(x, 1, 2, 1, 3) ≈ θ .* repeat(x, 1, 2, 1, 3)
+        @test ConvCNPs.repeat_gpu(x, 1, 2, 1, 3) == repeat(x, 1, 2, 1, 3)
+
+        # Test optimisations.
+        @test ConvCNPs.repeat_gpu(x, 1, 1) === x
+        @test ConvCNPs.repeat_gpu(x, 1, 1, 1, 1) == reshape(x, 3, 1, 5, 1)
     end
 
     @testset "expand_gpu" begin
