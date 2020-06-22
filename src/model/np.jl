@@ -27,10 +27,10 @@ end
 
 @Flux.treelike MLPEncoder
 
-encode(encoder::MLPEncoder, xz::AA, z::AA, x::AA) =
+encode(encoder::MLPEncoder, xz::AA, z::AA, x::AA; kws...) =
     x, encoder.mlp₂(mean(encoder.mlp₁(cat(xz, z, dims=2)), dims=1))
 
-function encode(encoder::MLPEncoder, xz::Nothing, z::Nothing, x::AA)
+function encode(encoder::MLPEncoder, xz::Nothing, z::Nothing, x::AA; kws...)
     batch_size = size(x, 3)
     r = zeros_gpu(Float32, 1, encoder.mlp₁.dim_out, batch_size)
     return x, encoder.mlp₂(r)

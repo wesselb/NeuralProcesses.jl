@@ -18,7 +18,7 @@ end
 
 @Flux.treelike Attention
 
-function encode(layer::Attention, xz::AA, z::AA, x::AA)
+function encode(layer::Attention, xz::AA, z::AA, x::AA; kws...)
     # Perform encodings.
     keys = layer.encoder_x(xz)
     queries = layer.encoder_x(x)
@@ -36,7 +36,7 @@ function encode(layer::Attention, xz::AA, z::AA, x::AA)
     return x, layer.transformer(channels, queries)
 end
 
-function encode(layer::Attention, xz::Nothing, z::Nothing, x::AA)
+function encode(layer::Attention, xz::Nothing, z::Nothing, x::AA; kws...)
     batch_size = size(x, 3)
     return x, zeros(Float32, 1, layer.transformer.ff₂.dim_out, batch_size) |> gpu
 end

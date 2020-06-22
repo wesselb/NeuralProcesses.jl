@@ -60,14 +60,14 @@ function _normalise_by_first_channel(z)
     return cat(normaliser, others ./ (normaliser .+ 1f-8), dims=channels_dim)
 end
 
-function encode(layer::SetConv, xz::AA, z::AA, x::AA)
+function encode(layer::SetConv, xz::AA, z::AA, x::AA; kws...)
     weights = _compute_weights(x, xz, _get_scales(layer))
     z = _prepend_density_channel(z)
     z = with_dummy(c -> batched_mul(weights, c), z)
     return x, _normalise_by_first_channel(z)
 end
 
-function encode(layer::SetConv, xz::Nothing, z::Nothing, x::AA)
+function encode(layer::SetConv, xz::Nothing, z::Nothing, x::AA; kws...)
     return x, zeros_gpu(
         eltype(x),
         size(x, 1),               # Size of encoding
@@ -81,7 +81,7 @@ function decode(layer::SetConv, xz::AA, z::AA, x::AA)
     return x, with_dummy(c -> batched_mul(weights, c), z)
 end
 
-function encode_pd(layer::SetConv, xz::AA, z::AA, x::AA)
+function encode_pd(layer::SetConv, xz::AA, z::AA, x::AA; kws...)
     weights = _compute_weights(x, xz, _get_scales(layer))
     z = insert_dim(_prepend_density_channel(z), pos=1)
     z = batched_mul(weights .* z, batched_transpose(weights))
@@ -89,7 +89,7 @@ function encode_pd(layer::SetConv, xz::AA, z::AA, x::AA)
     return xz, _prepend_identity_channel(z)
 end
 
-function encode_pd(layer::SetConv, xz::Nothing, z::Nothing, x::AA)
+function encode_pd(layer::SetConv, xz::Nothing, z::Nothing, x::AA; kws...)
     return x, _prepend_identity_channel(zeros_gpu(  # Also prepend identity channel.
         eltype(x),
         size(x, 1),               # Size of encoding
