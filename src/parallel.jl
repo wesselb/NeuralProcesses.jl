@@ -76,8 +76,8 @@ _add(x, y) = x .+ y
 Compute the KL divergence between two parallels of distributions.
 
 # Arguments
-- `p::Parallell{N}`: `p`.
-- `q::Parallell{N}`: `q`.
+- `p::Parallel{N}`: `p`.
+- `q::Parallel{N}`: `q`.
 
 # Returns
 - `AA`: `KL(p, q)`.
