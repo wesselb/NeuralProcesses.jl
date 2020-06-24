@@ -1,10 +1,10 @@
 @testset "discretisation.jl" begin
-    @testset "UniformDiscretisation1d" begin
+    @testset "UniformDiscretisation1D" begin
         points_per_unit = 64
         margin = 0.1
         multiple = 3
 
-        disc = UniformDiscretisation1d(points_per_unit, margin, multiple)
+        disc = UniformDiscretisation1D(points_per_unit, margin, multiple)
         x = randn(10, 2, 3)
         xz = disc(x)
 

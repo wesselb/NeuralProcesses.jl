@@ -46,8 +46,8 @@ function (model::CorrelatedConvCNP)(xc::AA, yc::AA, xt::AA)
         # The context set is non-empty.
         μ_xz = model.μ_disc(xc, xt) |> gpu
         Σ_xz = model.Σ_disc(xc, xt) |> gpu
-        μ_channels = encode(   model.μ_encoder, xc, yc, μ_xz)
-        Σ_channels = encode_pd(model.Σ_encoder, xc, yc, Σ_xz)
+        μ_channels = code(   model.μ_encoder, xc, yc, μ_xz)
+        Σ_channels = code_pd(model.Σ_encoder, xc, yc, Σ_xz)
     else
         # The context set is empty.
         μ_xz = model.μ_disc(xt) |> gpu
@@ -57,12 +57,12 @@ function (model::CorrelatedConvCNP)(xc::AA, yc::AA, xt::AA)
     end
 
     # Apply the CNNs.
-    μ_channels = with_dummy(model.μ_conv, μ_channels)
+    μ_channels = model.μ_conv(μ_channels)
     Σ_channels = model.Σ_conv(Σ_channels)
 
     # Perform decoding.
-    μ_channels = decode(   model.μ_decoder, μ_xz, μ_channels, xt)
-    Σ_channels = decode_pd(model.Σ_decoder, Σ_xz, Σ_channels, xt)
+    μ_channels = code(   model.μ_decoder, μ_xz, μ_channels, xt)
+    Σ_channels = code_pd(model.Σ_decoder, Σ_xz, Σ_channels, xt)
 
     # Return predictive distribution.
     return model.predict(μ_channels, Σ_channels)
@@ -82,7 +82,7 @@ Construct a correlated ConvCNP for one-dimensional data.
     `build_conv`.
 
 # Keywords
-- `margin::Float32=0.1f0`: Margin for the discretisation. See `UniformDiscretisation1d`.
+- `margin::Float32=0.1f0`: Margin for the discretisation. See `UniformDiscretisation1D`.
 """
 function convcnp_1d_correlated(
     μ_arch::Architecture,
@@ -92,8 +92,8 @@ function convcnp_1d_correlated(
     μ_scale = 2 / μ_arch.points_per_unit
     Σ_scale = 2 / Σ_arch.points_per_unit
     return CorrelatedConvCNP(
-        UniformDiscretisation1d(μ_arch.points_per_unit, margin, μ_arch.multiple),
-        UniformDiscretisation1d(Σ_arch.points_per_unit, margin, Σ_arch.multiple),
+        UniformDiscretisation1D(μ_arch.points_per_unit, margin, μ_arch.multiple),
+        UniformDiscretisation1D(Σ_arch.points_per_unit, margin, Σ_arch.multiple),
         set_conv(2, μ_scale),  # Account for density channel.
         set_conv(2, Σ_scale),  # Account for density channel.
         μ_arch.conv,

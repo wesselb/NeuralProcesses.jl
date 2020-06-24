@@ -49,8 +49,8 @@ Build a CNN with a specified receptive field size.
 
 # Keywords
 - `points_per_unit::Float32=30f0`: Points per unit for the discretisation. See
-     `UniformDiscretisation1d`.
-- `multiple::Integer=1`: Multiple for the discretisation. See `UniformDiscretisation1d`.
+     `UniformDiscretisation1D`.
+- `multiple::Integer=1`: Multiple for the discretisation. See `UniformDiscretisation1D`.
 - `num_in_channels::Integer=2`: Number of input channels.
 - `num_out_channels::Integer=2`: Number of output channels.
 - `dimensionality::Integer=1`: Dimensionality of the filters.
@@ -112,8 +112,8 @@ A batched CNN bundled with contextual information.
 # Fields
 - `conv`: Batched CNN.
 - `points_per_unit::Float32`: Points per unit for the discretisation. See
-     `UniformDiscretisation1d`.
-- `multiple::Integer`: Multiple for the discretisation. See `UniformDiscretisation1d`.
+     `UniformDiscretisation1D`.
+- `multiple::Integer`: Multiple for the discretisation. See `UniformDiscretisation1D`.
 - `dimensionality::Integer`: Dimensionality of the filters.
 """
 struct BatchedConv

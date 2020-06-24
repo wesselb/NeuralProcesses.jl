@@ -9,7 +9,7 @@ struct InputsEncoder end
 
 @Flux.treelike InputsEncoder
 
-encode(encoder::InputsEncoder, xz, z, x::AA; kws...) = x, x
+code(encoder::InputsEncoder, xz, z, x::AA; kws...) = x, x
 
 """
     struct MLPEncoder
@@ -27,10 +27,10 @@ end
 
 @Flux.treelike MLPEncoder
 
-encode(encoder::MLPEncoder, xz::AA, z::AA, x::AA; kws...) =
+code(encoder::MLPEncoder, xz::AA, z::AA, x::AA; kws...) =
     x, encoder.mlp₂(mean(encoder.mlp₁(cat(xz, z, dims=2)), dims=1))
 
-function encode(encoder::MLPEncoder, xz::Nothing, z::Nothing, x::AA; kws...)
+function code(encoder::MLPEncoder, xz::Nothing, z::Nothing, x::AA; kws...)
     batch_size = size(x, 3)
     r = zeros_gpu(Float32, 1, encoder.mlp₁.dim_out, batch_size)
     return x, encoder.mlp₂(r)
@@ -78,7 +78,7 @@ function np_1d(;
         learn_σ     =learn_σ
     )
     return Model(
-        TargetAggregator(
+        Parallel(
             Chain(
                 InputsEncoder(),
                 Deterministic()

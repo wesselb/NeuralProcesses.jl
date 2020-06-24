@@ -196,7 +196,7 @@ Bayesian ConvNP.
     appropriately.
 - `num_channels::Integer`: Number of channels of the CNN.
 - `points_per_unit::Float32=30f0`: Points per unit for the discretisation. See
-     `UniformDiscretisation1d`.
+     `UniformDiscretisation1D`.
 """
 struct BayesianConvNP
     receptive_field::Float32
@@ -218,7 +218,7 @@ end
 
 function Base.rand(convnp::FDD{BayesianConvNP})
     # Contruct discretisation.
-    disc = UniformDiscretisation1d(
+    disc = UniformDiscretisation1D(
         convnp.process.points_per_unit,
         convnp.process.receptive_field / 2,
         1
@@ -240,7 +240,7 @@ function Base.rand(convnp::FDD{BayesianConvNP})
 
     # Construct decoder.
     scale = 2 / convnp.process.points_per_unit
-    decoder = SetConv([log(scale)])
+    decoder = SetConv([log(scale)], false)
 
     # Draw random encoding.
     encoding = randn(Float32, length(xz))
@@ -251,7 +251,7 @@ function Base.rand(convnp::FDD{BayesianConvNP})
 
     # Perform decoding.
     xt = reshape(convnp.x, length(convnp.x), 1, 1)
-    sample = decode(decoder, xz, latent, xt)[2][:, 1, 1]  # Also returns inputs.
+    sample = code(decoder, xz, latent, xt)[2][:, 1, 1]  # Also returns inputs.
 
     # Normalise sample.
     sample = (sample .- mean(sample)) ./ std(sample)

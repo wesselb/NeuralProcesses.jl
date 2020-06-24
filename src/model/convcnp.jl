@@ -18,7 +18,7 @@ Construct a ConvCNP for one-dimensional data.
     appropriately.
 - `num_channels::Integer`: Number of channels of the CNN.
 - `margin::Float32=receptive_field`: Margin for the discretisation. See
-    `UniformDiscretisation1d`.
+    `UniformDiscretisation1D`.
 """
 function convcnp_1d(;
     receptive_field::Float32,
@@ -30,35 +30,26 @@ function convcnp_1d(;
     dim_x = 1
     dim_y = 1
     scale = 2 / points_per_unit
-    num_noise_channels, noise = build_noise_model(
-        num_channels -> set_conv(num_channels, scale),
-        dim_y=dim_y,
-        noise_type="het"
-    )
-    decoder_conv = build_conv(
-        receptive_field,
-        num_layers,
-        num_channels,
-        points_per_unit =points_per_unit,
-        dimensionality  =1,
-        num_in_channels =dim_y + 1,  # Account for density channel.
-        num_out_channels=num_noise_channels
-    )
     return Model(
-        FunctionalAggregator(
-            UniformDiscretisation1d(
-                points_per_unit,
-                margin,
-                decoder_conv.multiple  # Avoid artifacts when using up/down-convolutions.
-            ),
+        FunctionalCoder(
+            UniformDiscretisation1D(points_per_unit, margin),
             Chain(
-                set_conv(dim_y + 1, scale),  # Account for density channel.
+                set_conv(dim_y, scale; density=true),
                 Deterministic()
             )
         ),
         Chain(
-            decoder_conv,
-            noise
+            build_conv(
+                receptive_field,
+                num_layers,
+                num_channels,
+                points_per_unit =points_per_unit,
+                dimensionality  =1,
+                num_in_channels =dim_y + 1,  # Account for density channel.
+                num_out_channels=2dim_y
+            ),
+            set_conv(2dim_y, scale),
+            HeterogeneousGaussian()
         )
     )
 end

@@ -47,7 +47,7 @@ AmortisedGaussian() = AmortisedGaussian(0)
 
 @Flux.treelike AmortisedGaussian
 
-(noise::AmortisedGaussian)(x) = Normal(x[1], softplus(x[2] .- noise.offset))
+(noise::AmortisedGaussian)(x::Parallel{2}) = Normal(x[1], softplus(x[2] .- noise.offset))
 
 """
     struct HeterogeneousGaussian <: Noise
@@ -123,8 +123,8 @@ function build_noise_model(
         end
         num_noise_channels = dim_y + num_amortised_σ_channels
         noise = Chain(
-            MultiHead(
-                Splitter(num_amortised_σ_channels),
+            Splitter(num_amortised_σ_channels),
+            Parallel(
                 build_local_transform(dim_y),
                 Chain(
                     batched_mlp(

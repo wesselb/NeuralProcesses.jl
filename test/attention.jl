@@ -26,6 +26,9 @@
 
         dim_head = div(dim_embedding, num_heads)
 
+        # Compute with layer.
+        _, out = code(layer, xc, yc, xt)
+
         # Brute-force the attention computation.
         embeddings = zeros(Float32, m, dim_head, num_heads, batch_size)
         for c = 1:num_heads
@@ -49,10 +52,10 @@
                 end
             end
         end
-        reference = layer.transformer(layer.mixer(embeddings), queries)
+        ref = layer.transformer(layer.mixer(embeddings), queries)
 
         # Check that the layer lines up with the brute-force reference.
-        @test encode(layer, xc, yc, xt)[2] ≈ reference
+        @test out ≈ ref
     end
 
     @testset "BatchedMLP" begin

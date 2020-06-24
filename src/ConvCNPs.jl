@@ -38,6 +38,7 @@ include("util.jl")
 include("data.jl")
 include("conv.jl")
 include("discretisation.jl")
+include("parallel.jl")
 include("nn.jl")
 include("distribution.jl")
 

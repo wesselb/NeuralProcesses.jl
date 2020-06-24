@@ -18,7 +18,7 @@ Statistics.std(d::Normal) = d.σ
 logpdf(d::Normal, x) = gaussian_logpdf(x, d.μ, d.σ)
 kl(p::Normal, q::Normal) = kl(p.μ, p.σ, q.μ, q.σ)
 
-Base.map(d::Normal, f) = Normal(f(d.μ), f(d.σ))
+Base.map(f, d::Normal) = Normal(f(d.μ), f(d.σ))
 
 """
     struct Dirac
@@ -42,7 +42,7 @@ Statistics.std(d::Dirac) = 0
 logpdf(d::Dirac, x) = 0
 kl(p::Dirac, q::Dirac) = 0
 
-Base.map(d::Dirac, f) = Dirac(f(d.x))
+Base.map(f, d::Dirac) = Dirac(f(d.x))
 
 # We need to help `sum` to work with scalars and the keyword argument `dims`.
 Base.sum(x::Real; dims=nothing) = x

@@ -132,7 +132,7 @@ function (layer::Splitter)(x::AA)
     num_remaining_channels = size(x, 2) - layer.num_channels
     x₁ = slice_at(x, 2, 1:num_remaining_channels)
     x₂ = slice_at(x, 2, (num_remaining_channels + 1):size(x, 2))
-    return x₁, x₂
+    return Parallel(x₁, x₂)
 end
 
 """

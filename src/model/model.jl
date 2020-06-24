@@ -4,20 +4,21 @@ export Model, loglik, elbo, predict
     struct Model
 
 # Fields
-- `encoder::Aggregator`: Encoder.
+- `encoder`: Encoder.
 - `decoder`: Decoder.
 """
 struct Model
-    encoder::Aggregator
+    encoder
     decoder
 end
 
 @Flux.treelike Model
 
 function (model::Model)(xc::AA, yc::AA, xt::AA; num_samples::Integer=1, kws...)
-    xz, pz = encode(model.encoder, xc, yc, xt; kws...)
+    size(xc, 1) == 0 && (xc = yc = nothing)  # Handle empty set case.
+    xz, pz = code(model.encoder, xc, yc, xt; kws...)
     z = sample(pz, num_samples=num_samples)
-    _, d = decode(model.decoder, xz, z, xt)
+    _, d = materialise_code(model.decoder, xz, z, xt)
     return d
 end
 
@@ -81,14 +82,21 @@ function loglik(
     # Initialise variable that accumulates the log-pdfs.
     logpdfs = nothing
 
-    # Perform encoding.
-    xz, pz = encode(model.encoder, xc, yc, xt; kws...)
-
+    # Concatenate inputs for IW estimate.
     if importance_weighted
-        # Construct posterior over latent variable for an importance-weighted estimate.
         x_all = cat(xc, xt, dims=1)
         y_all = cat(yc, yt, dims=1)
-        xz, qz = reencode_stochastic(model.encoder, pz, x_all, y_all, x_all, xz; kws...)
+    end
+
+    # Handle empty set case.
+    size(xc, 1) == 0 && (xc = yc = nothing)
+
+    # Perform encoding.
+    xz, pz = code(model.encoder, xc, yc, xt; kws...)
+
+    # Construct posterior over latent variable for IW estimate.
+    if importance_weighted
+        xz, qz = recode_stochastic(model.encoder, pz, x_all, y_all, x_all, xz; kws...)
     end
 
     # Compute the loss in a batched way.
@@ -107,8 +115,8 @@ function loglik(
             weights = 0
         end
 
-        # Perform decoding
-        _, d = decode(model.decoder, xz, z, xt)
+        # Perform decoding.
+        _, d = materialise_code(model.decoder, xz, z, xt)
 
         # Fix the noise for the early epochs to force the model to fit.
         if epoch <= fixed_σ_epochs
@@ -179,15 +187,18 @@ function elbo(
     x_all = cat(xc, xt, dims=1)
     y_all = cat(yc, yt, dims=1)
 
+    # Handle empty set case.
+    size(xc, 1) == 0 && (xc = yc = nothing)
+
     # Perform deterministic and latent encoding.
-    xz, pz = encode(model.encoder, xc, yc, x_all; kws...)
+    xz, pz = code(model.encoder, xc, yc, x_all; kws...)
 
     # Construct posterior over latent variable.
-    _, qz = reencode_stochastic(model.encoder, pz, x_all, y_all, x_all, xz; kws...)
+    _, qz = recode_stochastic(model.encoder, pz, x_all, y_all, x_all, xz; kws...)
 
     # Sample latent variable and perform decoding.
     z = sample(qz, num_samples=num_samples)
-    _, d = decode(model.decoder, xz, z, x_all)
+    _, d = materialise_code(model.decoder, xz, z, x_all)
 
     # Fix the noise for the early epochs to force the model to fit.
     if epoch <= fixed_σ_epochs

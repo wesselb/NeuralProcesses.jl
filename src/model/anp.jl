@@ -45,7 +45,7 @@ function anp_1d(;
         learn_σ     =learn_σ
     )
     return Model(
-        TargetAggregator(
+        Parallel(
             Chain(
                 InputsEncoder(),
                 Deterministic()

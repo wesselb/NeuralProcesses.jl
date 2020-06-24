@@ -4,7 +4,7 @@ function compute_dists²(x::AbstractMatrix, y::AbstractMatrix)
 end
 
 @testset "setconv.jl" begin
-    for perform_encoding in [true, false]
+    for density in [true, false]
         scale = 0.1f0
         n_context = 5
         n_target = 10
@@ -18,12 +18,8 @@ end
         xt = randn(Float32, n_target, dimensionality, batch_size)
 
         # Compute with layer.
-        layer = set_conv(num_channels + perform_encoding, scale)
-        if perform_encoding
-            _, out = ConvCNPs.encode(layer, xc, yc, xt)
-        else
-            _, out = ConvCNPs.decode(layer, xc, yc, xt)
-        end
+        layer = set_conv(num_channels, scale; density=density)
+        _, out = ConvCNPs.code(layer, xc, yc, xt)
 
         # Brute-force the calculation.
         batches = []
@@ -34,17 +30,14 @@ end
             dists² = compute_dists²(xt[:, :, i], xc[:, :, i]) ./ scale.^2
             weights = ConvCNPs.rbf(dists²)
 
-            if perform_encoding
-                # Prepend density channel only for the encoding.
-                push!(channels, weights * ones(Float32, n_context))
-            end
+            # Prepend density channel.
+            density && push!(channels, weights * ones(Float32, n_context))
 
             # Compute other channels.
             for j in 1:num_channels
                 channel = weights * yc[:, j, i]
-                if perform_encoding
-                    channel ./= channels[1] .+ 1f-8
-                end
+                # Normalise by density channel.
+                density && (channel ./= channels[1] .+ 1f-8)
                 push!(channels, channel)
             end
 

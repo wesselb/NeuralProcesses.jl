@@ -1,57 +1,64 @@
-export encode, decode, MultiHead, reencode_stochastic, TargetAggregator, FunctionalAggregator
-
-encode(f, xz, z, x; kws...) = xz, f(z)
-decode(f, xz, z, _) = xz, f(z)
+export code, recode_stochastic, FunctionalCoder
 
 """
-    struct AggregateEncoding
+    code(c, xz, z, x; kws...)
 
-Aggregation of encodings.
-
-# Fields
-- `encodings`: Aggregated encodings.
-"""
-struct AggregateEncoding
-    encodings
-end
-
-sample(encoding::AggregateEncoding; num_samples::Integer) =
-    AggregateEncodingSample(sample.(encoding.encodings, num_samples=num_samples))
-
-"""
-    struct AggregateEncodingSample
-
-Sample of an aggregation of encodings.
-
-# Fields
-- `samples`: Samples.
-"""
-struct AggregateEncodingSample
-    samples
-end
-
-"""
-    materialise(sample::AggregateEncodingSample)
-
-Turn a sample of an aggregation of encodings into a tensor.
+Perform the coding operation specified by `c`.
 
 # Arguments
-- `sample::AggregateEncodingSample`: Sample to turn into a tensor.
+- `c`: Coder.
+- `xz`: Input of the functional representation.
+- `z`: Outputs of the functional representation.
+- `x`: Target inputs.
 
 # Returns
-- `AA`: Tensor corresponding to sample.
+- `Tuple`: Tuple containing the inputs and outputs of a functional representation.
 """
-materialise(sample::AggregateEncodingSample) =
-    repeat_cat(materialise.(sample.samples)..., dims=2)
-materialise(sample) = sample
+code(c, xz, z, x; kws...) = xz, c(z)
 
+function code(c::Chain, xz, z, x; kws...)
+    for cᵢ in c
+        xz, z = code(cᵢ, xz, z, x; kws...)
+    end
+    return xz, z
+end
 
-# Decoders typically cannot handle a fourth dimension (sample dimension) or an aggregation
-# of samples. Hence, we implement a generic fallback that automatically takes care of this.
+function code(p::Parallel, xz, z, x; kws...)
+    xz, z = zip([code(pᵢ, xz, z, x; kws...) for pᵢ in p]...)
+    return Parallel(xz...), Parallel(z...)
+end
 
-function decode(decoder, xz::AA, z::AggregateEncodingSample, x::AA)
-    z = materialise(z)
+function code(p::Parallel{N}, xz, z::Parallel{N}, x; kws...) where N
+    xz, z = zip([code(pᵢ, xz, zᵢ, x; kws...) for (pᵢ, zᵢ) in zip(p, z)]...)
+    return Parallel(xz...), Parallel(z...)
+end
 
+function code(p::Parallel{N}, xz::Parallel{N}, z::Parallel{N}, x; kws...) where N
+    xz, z = zip([code(pᵢ, xzᵢ, zᵢ, x; kws...) for (pᵢ, xzᵢ, zᵢ) in zip(p, xz, z)]...)
+    return Parallel(xz...), Parallel(z...)
+end
+
+"""
+    materialise_code(c, xz, z, x; kws...)
+
+Materialise `z` and then perform the coding operation specified by `c`.
+
+When materialising `z`, assume that all elements in `xz` are the same, so we can take any
+one.
+
+When coding with `c`, merge the sample dimension into the batch dimension. Afterwards,
+separate the sample dimension back out.
+
+# Arguments
+- `c`: Coder.
+- `xz`: Input of the functional representation.
+- `z`: Outputs of the functional representation.
+- `x`: Target inputs.
+
+# Returns
+- `Tuple`: Tuple containing the inputs and outputs of a functional representation.
+"""
+function materialise_code(c, xz::AA, z::AA, x::AA; kws...) where N
     # Repeat the inputs over samples to match batch dimensions. Only repeat if there are
     # samples.
     num_samples = size(z, 4)
@@ -60,192 +67,109 @@ function decode(decoder, xz::AA, z::AggregateEncodingSample, x::AA)
         x  = repeat_gpu(x, 1, 1, 1, num_samples)
     end
 
-    # Merge the sample and batch dimension. Everything expects three-tensors.
+    # Merge the sample and batch dimension: everything expects three-tensors.
     xz, back = to_rank(3, xz)
     z, _     = to_rank(3, z)
     x, _     = to_rank(3, x)
 
-    # Perform decoding.
-    x, d = decode(decoder, xz, z, x)
+    # Perform coding.
+    x, d = code(c, xz, z, x; kws...)
 
     # Separate samples from batches again.
-    d = map(d, back)
+    d = map(back, d)
 
     return x, d
 end
-
-function kl(encoding1::AggregateEncoding, encoding2::AggregateEncoding)
-    return reduce((x, y) -> x .+ y, [
-        sum(kl(d1, d2), dims=(1, 2))
-        for (d1, d2) in zip(encoding1.encodings, encoding2.encodings)
-    ])
-end
-
-function logpdf(encoding::AggregateEncoding, sample::AggregateEncodingSample)
-    return reduce((x, y) -> x .+ y, [
-        sum(logpdf(d, z), dims=(1, 2))
-        for (d, z) in zip(encoding.encodings, sample.samples)
-    ])
-end
+materialise_code(c, xz::Parallel{N}, z::Parallel{N}, x; kws...) where N =
+    materialise_code(c, first(flatten(xz)), materialise(z), x; kws...)
 
 """
-    struct MultiHead
-
-# Fields
-- `splitter`: Function that splits the input into multiple pieces.
-- `heads`: One head for every piece that `splitter` produces.
-"""
-struct MultiHead
-    splitter
-    heads
-end
-
-MultiHead(splitter, heads...) = MultiHead(splitter, heads)
-
-@Flux.treelike MultiHead
-
-encode(mh::MultiHead, xz, zs::AA, xt; kws...) = collect(zip([
-    encode(head, xz, z, xt; kws...) for (head, z) in zip(mh.heads, mh.splitter(zs))
-]...))
-
-decode(mh::MultiHead, xz, zs::AA, xt) = collect(zip([
-    decode(head, xz, z, xt) for (head, z) in zip(mh.heads, mh.splitter(zs))
-]...))
-
-# Chains are the generic construct used to compose encoders and decoders.
-
-function encode(chain::Chain, xz, z, x; kws...)
-    for f in chain
-        xz, z = encode(f, xz, z, x; kws...)
-    end
-    return xz, z
-end
-
-function decode(chain::Chain, xz, z::AA, xt)
-    for f in chain
-        xz, z = decode(f, xz, z, xt)
-    end
-    return xz, z
-end
-
-"""
-    abstract type Aggregator
-"""
-abstract type Aggregator end
-
-function encode(agg::Aggregator, xc::AA, yc::AA, xt::AA; kws...)
-    xz = encoding_locations(agg, xc, xt; kws...)
-    return encode(agg, xc, yc, xt, xz; kws...)
-end
-
-function encode(agg::Aggregator, xc::AA, yc::AA, xt::AA, xz::AA; kws...)
-    size(xc, 1) == 0 && (xc = yc = nothing)
-    return xz, _aggregate([
-        second(encode(encoder, xc, yc, xz; kws...)) for encoder in agg.encoders
-    ])
-end
-
-# `Vector`s and `Tuple`s represent aggregation of samples. Put their contents into
-# `AggregateEncoding`s.
-
-_aggregate(x) = x
-_aggregate(x::Tuple) = AggregateEncoding(_aggregate.(x))
-_aggregate(x::Vector) = AggregateEncoding(_aggregate.(x))
-
-"""
-    reencode_stochastic(
-        agg::Aggregator,
-        agg_encoding::AggregateEncoding,
-        xc::AA,
-        yc::AA,
-        xt::AA,
-        xz::AA;
+    recode_stochastic(
+        coders::Parallel{N},
+        codings::Parallel{N},
+        xc,
+        yc,
+        xt,
+        xz::Parallel{N};
         kws...
-    )
+    ) where N
 
-In an existing aggregate encoding `agg_encoding`, eeencode the encodings that are not
-`Dirac`s for a new context and target set.
+In an existing aggregate coding `coding`, recode the codings that are not `Dirac`s for
+a new context and target set.
 
 # Arguments
-- `agg::Aggregator`: Aggregated encoders that produced the encoding.
-- `agg_encoding::AggregatedEncoding`: Aggregate encoding.
-- `xc::AA`: Locations of context set of shape `(n, dims, batch)`.
-- `yc::AA`: Observed values of context set of shape `(n, channels, batch)`.
-- `xt::AA`: Locations of target set of shape `(m, dims, batch)`.
-- `yt::AA`: Observed values of target set of shape `(m, channels, batch)`.
+- `coders::Parallel{N}`: Parallel of coders that produced the coding.
+- `codings::Parallel{N}`: Parallel of codings.
+- `xc`: Locations of context set.
+- `yc`: Observed values of context set.
+- `xt`: Locations of target set.
+- `xz::Parallel{N}`: Location of the coding.
 
 # Fields
 - `kws...`: Further keywords to pass on.
 
 # Returns
-- Updated encoding.
+- `Parallel`: Updated coding.
 """
-function reencode_stochastic(
-    agg::Aggregator,
-    agg_encoding::AggregateEncoding,
-    xc::AA,
-    yc::AA,
-    xt::AA,
-    xz::AA;
+function recode_stochastic(
+    coders::Parallel{N},
+    codings::Parallel{N},
+    xc,
+    yc,
+    xt,
+    xz::Parallel{N};
     kws...
-)
-    return xz, _aggregate([
-        second(reencode_stochastic(encoder, encoding, xc, yc, xz; kws...))
-        for (encoder, encoding) in zip(agg.encoders, agg_encoding.encodings)
-    ])
+) where N
+    xz, z = zip([
+        recode_stochastic(coder, coding, xc, yc, xt, xzᵢ; kws...)
+        for (xzᵢ, coder, coding) in zip(xz, coders, codings)
+    ]...)
+    return Parallel(xz...), Parallel(z...)
 end
 
-# Do not reencode `Dirac`s.
+# Do not recode `Dirac`s.
 
-reencode_stochastic(encoder, encoding::Dirac, xz, z, x; kws...) = x, encoding
+recode_stochastic(coder, coding::Dirac, xc, yc, xt, xz; kws...) = xz, coding
 
-# If the encoding is aggregate, it can still contain `Dirac`s, so be careful.
+# If the coding is aggregate, it can still contain `Dirac`s, so be careful.
 
-reencode_stochastic(encoder, encoding, xc, yc, xz; kws...) =
-    _choose(encode(encoder, xc, yc, xz; kws...), encoding)
+recode_stochastic(coder, coding, xc, yc, xt, xz; kws...) =
+    _choose(code(coder, xc, yc, xt; kws...), (xz, coding))
 
-_choose(new, old::AggregateEncoding) = _choose.(new, old.encodings)
-_choose(new, old::Dirac) = old
-_choose(new, old) = new
-
-"""
-    struct TargetAggregator <: Aggregator
-
-Aggregation of encoders that encode at the target set locations.
-
-# Fields
-- `encoders::Vector`: Encoders.
-"""
-struct TargetAggregator <: Aggregator
-    encoders::Vector
+function _choose(
+    new::Tuple{Parallel{N}, Parallel{N}},
+    old::Tuple{Parallel{N}, Parallel{N}}
+) where N
+    xz, z = zip([_choose(newᵢ, oldᵢ) for (newᵢ, oldᵢ) in zip(zip(new...), zip(old...))]...)
+    return Parallel(xz...), Parallel(z...)
 end
-
-Flux.children(agg::TargetAggregator) = agg.encoders
-Flux.mapchildren(f, agg::TargetAggregator) = TargetAggregator(f.(agg.encoders)...)
-
-TargetAggregator(encoders...) = TargetAggregator(collect(encoders))
-encoding_locations(agg::TargetAggregator, xc, xt::AA; kws...) = xt
+_choose(new::Tuple{AA, Dirac}, old::Tuple{AA, Dirac}) = old
+_choose(new::Tuple{AA, Normal}, old::Tuple{AA, Normal}) = new
 
 """
-    struct TargetAggregator <: Aggregator
+    struct FunctionalCoder
 
-Aggregation of encoders that encode at a discretisation determined by the context and
-target inputs.
+A coder that codes to a discretisation for a functional representation.
 
 # Fields
-- `disc::Discretisation`: Discretisation.
-- `encoders::Vector`: Encoders.
+- `disc::Discretisation`: Discretisation for the functional representation.
+- `coder`: Coder.
 """
-struct FunctionalAggregator <: Aggregator
+struct FunctionalCoder
     disc::Discretisation
-    encoders::Vector
+    coder
 end
 
-Flux.children(agg::FunctionalAggregator) = agg.encoders
-Flux.mapchildren(f, agg::FunctionalAggregator) =
-    FunctionalAggregator(agg.disc, f.(agg.encoders)...)
+@Flux.treelike FunctionalCoder
 
-FunctionalAggregator(disc::Discretisation, encoders...) =
-    FunctionalAggregator(disc::Discretisation, collect(encoders))
-encoding_locations(agg::FunctionalAggregator, xc::AA, xt::AA; kws...) =
-    agg.disc(xc, xt; kws...)
+code(c::FunctionalCoder, xz, z, x; kws...) =
+    code(c.coder, xz, z, c.disc(xz, x; kws...); kws...)
+
+# When a functional coder is recoded, the discretisation should not be recomputed, but taken
+# from the existing encoding. Moreover, the inputs can be in parallel, e.g. in the case of
+# multiple heads. In that case, simply assert that _any_ is valid and take the first.
+
+recode_stochastic(c::FunctionalCoder, xc, yc, xt, xz; kws...) =
+    code(c.coder, xc, yc, xz)
+recode_stochastic(c::FunctionalCoder, xc, yc, xt, xz::Parallel; kws...) =
+    code(c.coder, xc, yc, xt, first(flatten(xz)))

@@ -7,29 +7,34 @@ A set convolution layer.
 
 # Fields
 - `log_scales::T`: Natural logarithm of the length scales of every input channel.
+- `density::Bool`: Include the density channel.
 """
 struct SetConv{T<:AV{<:Real}}
     log_scales::T
+    density::Bool
 end
 
 @Flux.treelike SetConv
 
 """
-    set_conv(num_channels::Integer, scale::Float32)
+    set_conv(num_channels::Integer, scale::Float32; density::Bool=false)
 
 Construct a set convolution layer.
 
 # Arguments
-- `num_channels::Integer`: Number of input z. This should include the density
-    channel, which is automatically prepended upon encoding.
+- `num_channels::Integer`: Number of inputs channels, excluding the density channel.
 - `scale::Float32`: Initialisation of the length scales.
+
+# Keywords
+- `density::Bool=false`: Include the density channel.
 
 # Returns
 - `SetConv`: Corresponding set convolution layer.
 """
-function set_conv(num_channels::Integer, scale::Float32)
+function set_conv(num_channels::Integer, scale::Float32; density::Bool=false)
+    density && (num_channels += 1)
     scales = scale .* ones(Float32, num_channels)
-    return SetConv(param(log.(scales)))
+    return SetConv(param(log.(scales)), density)
 end
 
 _get_scales(layer) = reshape(exp.(layer.log_scales), 1, 1, length(layer.log_scales), 1)
@@ -60,14 +65,15 @@ function _normalise_by_first_channel(z)
     return cat(normaliser, others ./ (normaliser .+ 1f-8), dims=channels_dim)
 end
 
-function encode(layer::SetConv, xz::AA, z::AA, x::AA; kws...)
+function code(layer::SetConv, xz::AA, z::AA, x::AA; kws...)
     weights = _compute_weights(x, xz, _get_scales(layer))
-    z = _prepend_density_channel(z)
+    layer.density && (z = _prepend_density_channel(z))
     z = with_dummy(c -> batched_mul(weights, c), z)
-    return x, _normalise_by_first_channel(z)
+    layer.density && (z = _normalise_by_first_channel(z))
+    return x, z
 end
 
-function encode(layer::SetConv, xz::Nothing, z::Nothing, x::AA; kws...)
+function code(layer::SetConv, xz::Nothing, z::Nothing, x::AA; kws...)
     return x, zeros_gpu(
         eltype(x),
         size(x, 1),               # Size of encoding
@@ -76,31 +82,30 @@ function encode(layer::SetConv, xz::Nothing, z::Nothing, x::AA; kws...)
     )
 end
 
-function decode(layer::SetConv, xz::AA, z::AA, x::AA)
-    weights = _compute_weights(x, xz, _get_scales(layer))
-    return x, with_dummy(c -> batched_mul(weights, c), z)
-end
-
 function encode_pd(layer::SetConv, xz::AA, z::AA, x::AA; kws...)
     weights = _compute_weights(x, xz, _get_scales(layer))
-    z = insert_dim(_prepend_density_channel(z), pos=1)
-    z = batched_mul(weights .* z, batched_transpose(weights))
-    z = _normalise_by_first_channel(z)
-    return xz, _prepend_identity_channel(z)
+    # TODO: Disengtangle the below.
+    if layer.density
+        z = insert_dim(_prepend_density_channel(z), pos=1)
+        z = batched_mul(weights .* z, batched_transpose(weights))
+        z = _normalise_by_first_channel(z)
+        z = _prepend_identity_channel(z)
+    else
+        Ls = batched_mul(weights, z)
+        z = batched_mul(Ls, batched_transpose(Ls))
+    end
+    return x, z
 end
 
 function encode_pd(layer::SetConv, xz::Nothing, z::Nothing, x::AA; kws...)
-    return x, _prepend_identity_channel(zeros_gpu(  # Also prepend identity channel.
+    z = zeros_gpu(
         eltype(x),
         size(x, 1),               # Size of encoding
         size(x, 1),               # Again size of encoding: encoding is square
         length(layer.log_scales), # Number of z, including the density channel
         size(x, 3)                # Batch size
-    ))
-end
-
-function decode_pd(layer::SetConv, xz::AA, z::AA, x::AA)
-    weights = _compute_weights(x, xz, _get_scales(layer))
-    Ls = batched_mul(weights, z)
-    return x, batched_mul(Ls, batched_transpose(Ls))
+    )
+    # Also prepend density channel.
+    layer.density && (z = _prepend_identity_channel(z))
+    return x, z
 end
