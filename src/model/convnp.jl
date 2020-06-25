@@ -123,6 +123,7 @@ function convnp_1d(;
             encoder
         ),
         Chain(
+            Materialise(),
             build_conv(
                 receptive_field,
                 num_decoder_layers,

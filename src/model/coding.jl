@@ -39,51 +39,6 @@ function code(p::Parallel{N}, xz::Parallel{N}, z::Parallel{N}, x; kws...) where 
 end
 
 """
-    materialise_code(c, xz, z, x; kws...)
-
-Materialise `z` and then perform the coding operation specified by `c`.
-
-When materialising `z`, assume that all elements in `xz` are the same, so we can take any
-one.
-
-When coding with `c`, merge the sample dimension into the batch dimension. Afterwards,
-separate the sample dimension back out.
-
-# Arguments
-- `c`: Coder.
-- `xz`: Input of the functional representation.
-- `z`: Outputs of the functional representation.
-- `x`: Target inputs.
-
-# Returns
-- `Tuple`: Tuple containing the inputs and outputs of a functional representation.
-"""
-function materialise_code(c, xz::AA, z::AA, x::AA; kws...) where N
-    # Repeat the inputs over samples to match batch dimensions. Only repeat if there are
-    # samples.
-    num_samples = size(z, 4)
-    if num_samples > 1
-        xz = repeat_gpu(xz, 1, 1, 1, num_samples)
-        x  = repeat_gpu(x, 1, 1, 1, num_samples)
-    end
-
-    # Merge the sample and batch dimension: everything expects three-tensors.
-    xz, back = to_rank(3, xz)
-    z, _     = to_rank(3, z)
-    x, _     = to_rank(3, x)
-
-    # Perform coding.
-    x, d = code(c, xz, z, x; kws...)
-
-    # Separate samples from batches again.
-    d = map(back, d)
-
-    return x, d
-end
-materialise_code(c, xz::Parallel{N}, z::Parallel{N}, x; kws...) where N =
-    materialise_code(c, first(flatten(xz)), materialise(z), x; kws...)
-
-"""
     recode_stochastic(
         coders::Parallel{N},
         codings::Parallel{N},
@@ -145,6 +100,16 @@ function _choose(
 end
 _choose(new::Tuple{AA, Dirac}, old::Tuple{AA, Dirac}) = old
 _choose(new::Tuple{AA, Normal}, old::Tuple{AA, Normal}) = new
+
+
+"""
+    struct Materialise
+
+A coder that materialises a parallel of things.
+"""
+struct Materialise end
+
+code(c::Materialise, xz, z, x; kws...) = first(flatten(xz)), materialise(z)
 
 """
     struct FunctionalCoder

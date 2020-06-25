@@ -54,23 +54,22 @@ rbf(dists²::AA) = exp.(-0.5f0 .* dists²)
 """
     compute_dists²(x::AA, y::AA)
 
-Compute batched pairwise squared distances between 3-tensors `x` and `y`. The batch
-dimension is the last dimension.
+Compute batched pairwise squared distances between tensors `x` and `y`. The batch
+dimensions are the third to last.
 
 # Arguments
-- `x::T`: Elements that correspond to the rows in the matrices of pairwise distances.
-- `y::T`: Elements that correspond to the columns in the matrices of pairwise distances.
+- `x::AA`: Elements that correspond to the rows in the matrices of pairwise distances.
+- `y::AA`: Elements that correspond to the columns in the matrices of pairwise distances.
 
 # Returns:
-- `T`: Pairwise distances between and `x` and `y`.
+- `AA`: Pairwise distances between and `x` and `y`.
 """
 compute_dists²(x::AA, y::AA) = compute_dists²(x, y, Val(size(x, 2)))
 
-compute_dists²(x::AA, y::AA, ::Val{1}) =
-    (x .- permutedims(y, (2, 1, 3))).^2
+compute_dists²(x::AA, y::AA, ::Val{1}) = (x .- batched_transpose(y)).^2
 
 function compute_dists²(x::AA, y::AA, d::Val)
-    y = permutedims(y, (2, 1, 3))
+    y = batched_transpose(y)
     return sum(x.^2, dims=2) .+ sum(y.^2, dims=1) .- 2 .* batched_mul(x, y)
 end
 
@@ -202,7 +201,7 @@ Batch transpose tensor `x` where dimensions `1:2` are the matrix dimensions and 
 batched_transpose(x::AA) = Tracker.track(batched_transpose, x)
 
 batched_transpose(x::CuOrArray) =
-    permutedims(x, (2, 1, range(3, length(size(x)), step=1)...))
+    permutedims(x, (2, 1, 3:ndims(x)...))
 
 @Tracker.grad function batched_transpose(x)
     return batched_transpose(Tracker.data(x)), ȳ -> (batched_transpose(ȳ),)

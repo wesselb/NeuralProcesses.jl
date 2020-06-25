@@ -79,6 +79,7 @@ function anp_1d(;
             )
         ),
         Chain(
+            Materialise(),
             batched_mlp(
                 dim_in    =dim_x + 2dim_embedding,
                 dim_hidden=dim_embedding,
