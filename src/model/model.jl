@@ -108,11 +108,11 @@ function loglik(
     size(xc, 1) == 0 && (xc = yc = nothing)
 
     # Perform encoding.
-    xz, pz = code(model.encoder, xc, yc, xt; kws...)
+    xz, pz, h = code_track(model.encoder, xc, yc, xt; kws...)
 
     # Construct posterior over latent variable for IW estimate.
     if importance_weighted
-        _, qz = recode_stochastic(model.encoder, pz, x_all, y_all, x_all, xz; kws...)
+        qz = recode_stochastic(model.encoder, pz, x_all, y_all, h; kws...)
     end
 
     # Compute the loss in a batched way.
@@ -207,10 +207,10 @@ function elbo(
     size(xc, 1) == 0 && (xc = yc = nothing)
 
     # Perform deterministic and latent encoding.
-    xz, pz = code(model.encoder, xc, yc, x_all; kws...)
+    xz, pz, h = code_track(model.encoder, xc, yc, x_all; kws...)
 
     # Construct posterior over latent variable.
-    _, qz = recode_stochastic(model.encoder, pz, x_all, y_all, x_all, xz; kws...)
+    qz = recode_stochastic(model.encoder, pz, x_all, y_all, h; kws...)
 
     # Sample latent variable and perform decoding.
     z = sample(qz, num_samples=num_samples)
