@@ -1,4 +1,4 @@
-export code, recode_stochastic, FunctionalCoder
+export code, code_track, recode_stochastic, FunctionalCoder
 
 """
     code(c, xz, z, x; kws...)
