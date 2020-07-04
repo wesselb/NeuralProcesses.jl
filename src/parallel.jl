@@ -55,18 +55,19 @@ sample(p::Parallel; num_samples::Integer) =
     Parallel(sample.(p.xs, num_samples=num_samples)...)
 
 """
-    materialise(p::Parallel)
+    materialise(p::Parallel, f=xs -> repeat_cat(xs..., dims=2))
 
 Turn a parallel of tensors into a tensor.
 
 # Arguments
 - `sample::Parallel`: Sample to turn into a tensor.
+- `f`: Function that takes in a `Vector` of tensors and turns them into a tensor.
 
 # Returns
 - `AA`: Tensor corresponding to parallel.
 """
-materialise(p::Parallel) = repeat_cat(materialise.(p.xs)..., dims=2)
-materialise(sample) = sample
+materialise(p::Parallel, f=xs -> repeat_cat(xs..., dims=2)) = f(materialise.(p.xs, f))
+materialise(sample, f) = sample
 
 _add(x, y) = x .+ y
 

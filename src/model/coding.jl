@@ -7,7 +7,7 @@ Perform the coding operation specified by `c`.
 
 # Arguments
 - `c`: Coder.
-- `xz`: Input of the functional representation.
+- `xz`: Inputs of the functional representation.
 - `z`: Outputs of the functional representation.
 - `x`: Target inputs.
 
@@ -37,6 +37,9 @@ function code(p::Parallel{N}, xz::Parallel{N}, z::Parallel{N}, x; kws...) where 
     xz, z = zip([code(pᵢ, xzᵢ, zᵢ, x; kws...) for (pᵢ, xzᵢ, zᵢ) in zip(p, xz, z)]...)
     return Parallel(xz...), Parallel(z...)
 end
+
+# Implement `code` for `Poolings`s to discard the inputs.
+code(c::Pooling, xz, z, x; kws...) = nothing, c(z)
 
 """
     recode_stochastic(
@@ -98,8 +101,8 @@ function _choose(
     xz, z = zip([_choose(newᵢ, oldᵢ) for (newᵢ, oldᵢ) in zip(zip(new...), zip(old...))]...)
     return Parallel(xz...), Parallel(z...)
 end
-_choose(new::Tuple{AA, Dirac}, old::Tuple{AA, Dirac}) = old
-_choose(new::Tuple{AA, Normal}, old::Tuple{AA, Normal}) = new
+_choose(new::Tuple{MaybeAA, Dirac}, old::Tuple{MaybeAA, Dirac}) = old
+_choose(new::Tuple{MaybeAA, Normal}, old::Tuple{MaybeAA, Normal}) = new
 
 
 """
@@ -109,7 +112,9 @@ A coder that materialises a parallel of things.
 """
 struct Materialise end
 
-code(c::Materialise, xz, z, x; kws...) = first(flatten(xz)), materialise(z)
+code(c::Materialise, xz, z, x; kws...) =
+    materialise(xz, xs -> repeat_merge(xs..., dims=2)),
+    materialise(z, xs -> repeat_cat(xs..., dims=2))
 
 """
     struct FunctionalCoder

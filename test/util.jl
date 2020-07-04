@@ -148,11 +148,21 @@ end
     @testset "repeat_cat" begin
         x = randn(3, 1, 2)
         y = randn(1, 5, 2, 4)
-        @test ConvCNPs.repeat_cat(x, y, dims=2) ==
+        @test ConvCNPs.repeat_cat(x, nothing, y, dims=2) ==
             cat(repeat(x, 1, 1, 1, 4), repeat(y, 3, 1, 1, 1), dims=2)
 
         # Test optimisation.
         @test ConvCNPs.repeat_cat(x, dims=2) === x
+    end
+
+    @testset "repeat_merge" begin
+        x = randn(3, 1, 2)
+        y = randn(3, 1, 2)
+        @test ConvCNPs.repeat_merge(x, nothing, x, dims=2) === x
+        @test_throws ErrorException ConvCNPs.repeat_merge(x, nothing, y, dims=2)
+
+        # Test optimisation.
+        @test ConvCNPs.repeat_merge(x, dims=2) === x
     end
 
     @testset "repeat_gpu" begin

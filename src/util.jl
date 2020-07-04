@@ -304,18 +304,51 @@ function softplus(x::AA)
 end
 
 """
-    repeat_cat(xs::AA...; dims::Integer)
+    repeat_cat(xs::MaybeAA...; dims::Integer)
 
 Repeat the tensors `xs` appropriately many times to concatenate them along dimension `dims`.
 
 # Arguments
-- `xs::AA...`: Tensors to concatenate.
+- `xs::MaybeAA...`: Tensors to concatenate.
 - `dims::Integer`: Dimensions to concatenate along.
 
 # Returns
 - `AA`: Concatenation of `xs`.
 """
-function repeat_cat(xs::AA...; dims::Integer)
+repeat_cat(xs::AA...; dims::Integer) = cat(_repeat(xs...; dims=dims)..., dims=dims)
+repeat_cat(xs::MaybeAA...; dims::Integer) =
+    repeat_cat(_filter_nothings(xs)...; dims=dims)
+repeat_cat(x::AA; dims::Integer) = x
+
+"""
+    repeat_merge(xs::MaybeAA...; dims::Integer)
+
+Repeat the tensors `xs` appropriately many times to merge them along dimension `dims`.
+
+# Arguments
+- `xs::MaybeAA...`: Tensors to merge.
+- `dims::Integer`: Dimensions to merge along.
+
+# Returns
+- `AA`: Merge of `xs`.
+"""
+function repeat_merge(xs::AA...; dims::Integer)
+    xs = _repeat(xs...; dims=dims)
+
+    # We can only merge if all inputs are equal.
+    !all([xs[1] ≈ x for x in xs[2:end]]) && error("Not all inputs are approximately equal.")
+
+    # Since all inputs are equal, their merge is simply any, so take the first one.
+    return xs[1]
+end
+repeat_merge(xs::MaybeAA...; dims::Integer) =
+    repeat_merge(_filter_nothings(xs)...; dims=dims)
+repeat_merge(x::AA; dims::Integer) = x
+
+
+_filter_nothings(xs) = filter(x -> !isnothing(x), collect(xs))
+
+function _repeat(xs::MaybeAA...; dims::Integer)
     # Determine the maximum rank.
     max_rank = maximum(ndims.(xs))
 
@@ -333,13 +366,10 @@ function repeat_cat(xs::AA...; dims::Integer)
         reps[i][dims] = 1
     end
 
-    # Repeat every element appropriately many times.
-    xs = [repeat_gpu(x, r...) for (x, r) in zip(xs, reps)]
-
-    # Return concatenation.
-    return cat(xs..., dims=dims)
+    # Repeat every element appropriately many times and return.
+    return [repeat_gpu(x, r...) for (x, r) in zip(xs, reps)]
 end
-repeat_cat(x::AA; dims::Integer) = x
+
 
 """
     repeat_gpu(x::AA, reps::Integer...)

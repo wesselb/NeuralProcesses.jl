@@ -136,6 +136,13 @@ function (layer::Splitter)(x::AA)
 end
 
 """
+    abstract type Pooling end
+
+Poolings over dimension one.
+"""
+abstract type Pooling end
+
+"""
     struct MeanPooling
 
 Mean pooling over dimension one.
@@ -143,7 +150,7 @@ Mean pooling over dimension one.
 # Fields
 - `ln`: Layer normalisation to apply after pooling.
 """
-struct MeanPooling
+struct MeanPooling <: Pooling
     ln
 end
 
@@ -159,7 +166,7 @@ Sum pooling over dimension one.
 # Fields
 - `factor::Integer`: Factor to divide by after pooling to help initialisation.
 """
-struct SumPooling
+struct SumPooling <: Pooling
     factor::Integer
 end
 

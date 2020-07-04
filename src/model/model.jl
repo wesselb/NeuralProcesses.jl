@@ -23,9 +23,11 @@ function (model::Model)(xc::AA, yc::AA, xt::AA; num_samples::Integer=1, kws...)
 end
 
 _num_samples(x::AA) = size(x, 4)
+_num_samples(x::Nothing) = 0
 _num_samples(p::Parallel) = maximum(_num_samples.(p.xs))
 
 _repeat_samples(x::AA; num_samples::Integer) = repeat_gpu(x, size(x)..., num_samples)
+_repeat_samples(x::Nothing; num_samples::Integer) = nothing
 _repeat_samples(p::Parallel; num_samples::Integer) =
     Parallel(_repeat_samples.(p.xs; num_samples=num_samples)...)
 
@@ -110,7 +112,7 @@ function loglik(
 
     # Construct posterior over latent variable for IW estimate.
     if importance_weighted
-        xz, qz = recode_stochastic(model.encoder, pz, x_all, y_all, x_all, xz; kws...)
+        _, qz = recode_stochastic(model.encoder, pz, x_all, y_all, x_all, xz; kws...)
     end
 
     # Compute the loss in a batched way.
