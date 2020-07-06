@@ -202,12 +202,26 @@ _choose(new::Normal, old::Normal) = new
     struct Materialise
 
 A coder that materialises a parallel of things.
-"""
-struct Materialise end
 
-code(c::Materialise, xz, z, x; kws...) =
-    materialise(xz, xs -> repeat_merge(xs..., dims=2)),
-    materialise(z, xs -> repeat_cat(xs..., dims=2))
+# Fields
+- `f_x`: Strategy for materialising the inputs. See `materialise`. Defaults to
+    `repeat_merge` over the second dimension.
+- `f_y`: Strategy for materialising the outputs. See `materialise`. Defaults to
+    `repeat_cat` over the second dimension.
+"""
+struct Materialise
+    f_x
+    f_y
+end
+
+@Flux.treelike Materialise
+
+Materialise() = Materialise(
+    xs -> repeat_merge(xs..., dims=2),
+    xs -> repeat_cat(xs..., dims=2)
+)
+
+code(c::Materialise, xz, z, x; kws...) = materialise(xz, c.f_x), materialise(z, c.f_y)
 
 """
     struct FunctionalCoder
