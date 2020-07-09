@@ -1,4 +1,4 @@
-module ConvCNPs
+module NeuralProcesses
 
 using Distributions
 using Flux

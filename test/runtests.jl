@@ -1,5 +1,5 @@
-using ConvCNPs
-using ConvCNPs.Experiment
+using NeuralProcesses
+using NeuralProcesses.Experiment
 using Distributions
 using FiniteDifferences
 using Flux
@@ -10,7 +10,7 @@ using StatsFuns
 using Stheno
 using Test
 
-@testset "ConvCNPs.jl" begin
+@testset "NeuralProcesses.jl" begin
     include("util.jl")
     include("discretisation.jl")
     include("setconv.jl")

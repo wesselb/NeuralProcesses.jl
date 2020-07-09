@@ -8,7 +8,7 @@
         n = 7
         m = 8
 
-        layer = ConvCNPs.untrack(attention(
+        layer = NeuralProcesses.untrack(attention(
             dim_x=dim_x,
             dim_y=dim_y,
             dim_embedding=dim_embedding,
@@ -59,7 +59,7 @@
     end
 
     @testset "BatchedMLP" begin
-        layer = ConvCNPs.untrack(ConvCNPs.batched_mlp(
+        layer = NeuralProcesses.untrack(NeuralProcesses.batched_mlp(
             dim_in=2,
             dim_out=3,
             dim_hidden=10,

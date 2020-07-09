@@ -64,14 +64,17 @@
     # Construct all pairs of models and losses. CNPs:
     model_losses = Any[]
     for model in cnps
-        push!(model_losses, (model, (xs...) -> ConvCNPs.loglik(xs..., num_samples=1)))
+        push!(
+            model_losses,
+            (model, (xs...) -> NeuralProcesses.loglik(xs..., num_samples=1))
+        )
     end
 
     # NPs:
     for model in nps
         push!(model_losses, (
             model,
-            (xs...) -> ConvCNPs.loglik(
+            (xs...) -> NeuralProcesses.loglik(
                 xs...,
                 num_samples=2,
                 batch_size=1,
@@ -81,7 +84,7 @@
         ))
         push!(model_losses, (
             model,
-            (xs...) -> ConvCNPs.loglik(
+            (xs...) -> NeuralProcesses.loglik(
                 xs...,
                 num_samples=2,
                 batch_size=1,
@@ -91,7 +94,7 @@
         ))
         push!(model_losses, (
             model,
-            (xs...) -> ConvCNPs.elbo(
+            (xs...) -> NeuralProcesses.elbo(
                 xs...,
                 num_samples=2,
                 fixed_σ_epochs=1

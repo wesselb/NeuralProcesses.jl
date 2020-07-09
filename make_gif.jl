@@ -1,5 +1,5 @@
 using BSON
-using ConvCNPs
+using NeuralProcesses
 using Flux
 using Random
 using Plots

@@ -2,7 +2,7 @@ module Experiment
 
 export predict, loss, eval_model, train!, report_num_params, plot_task
 
-using ..ConvCNPs
+using ..NeuralProcesses
 
 using BSON
 using Flux
@@ -18,7 +18,7 @@ include("checkpoint.jl")
 pyplot()
 
 function eval_model(model, loss, data_gen, epoch; num_batches=256)
-    model = ConvCNPs.untrack(model)
+    model = NeuralProcesses.untrack(model)
     @time tuples = map(x -> loss(model, epoch, gpu.(x)...), data_gen(num_batches))
     values = map(x -> x[1], tuples)
     sizes = map(x -> x[2], tuples)

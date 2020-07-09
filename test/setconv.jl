@@ -19,7 +19,7 @@ end
 
         # Compute with layer.
         layer = set_conv(num_channels, scale; density=density)
-        _, out = ConvCNPs.code(layer, xc, yc, xt)
+        _, out = NeuralProcesses.code(layer, xc, yc, xt)
 
         # Brute-force the calculation.
         batches = []
@@ -28,7 +28,7 @@ end
 
             # Compute weights.
             dists² = compute_dists²(xt[:, :, i], xc[:, :, i]) ./ scale.^2
-            weights = ConvCNPs.rbf(dists²)
+            weights = NeuralProcesses.rbf(dists²)
 
             # Prepend density channel.
             density && push!(channels, weights * ones(Float32, n_context))

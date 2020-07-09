@@ -67,8 +67,8 @@ end
 args = parse_args(parser)
 
 using BSON
-using ConvCNPs
-using ConvCNPs.Experiment
+using NeuralProcesses
+using NeuralProcesses.Experiment
 using Distributions
 using Flux
 using Flux.Tracker
@@ -161,7 +161,7 @@ if args["model"] == "convcnp"
     # Determine training loss.
     if args["loss"] == "loglik"
         # Use a single sample: there is nothing random.
-        loss(xs...) = ConvCNPs.loglik(xs..., num_samples=1)
+        loss(xs...) = NeuralProcesses.loglik(xs..., num_samples=1)
     elseif args["loss"] in ["elbo", "loglik-iw"]
         error("Losses \"elbo\" and \"loglik-iw\" not applicable to the ConvCNP.")
     else
@@ -190,7 +190,7 @@ elseif args["model"] in [
         else
             num_samples = 20
         end
-        loss(xs...) = ConvCNPs.loglik(
+        loss(xs...) = NeuralProcesses.loglik(
             xs...,
             num_samples=num_samples,
             importance_weighted=false,
@@ -204,7 +204,7 @@ elseif args["model"] in [
         else
             num_samples = 20
         end
-        loss(xs...) = ConvCNPs.loglik(
+        loss(xs...) = NeuralProcesses.loglik(
             xs...,
             num_samples=num_samples,
             importance_weighted=true,
@@ -218,7 +218,7 @@ elseif args["model"] in [
         else
             num_samples = 5
         end
-        loss(xs...) = ConvCNPs.elbo(
+        loss(xs...) = NeuralProcesses.elbo(
             xs...,
             num_samples=num_samples,
             fixed_σ_epochs=20
@@ -240,7 +240,7 @@ elseif args["model"] in [
     end
 
     # Use a high-sample log-EL for the eval loss.
-    eval_loss(xs...) = ConvCNPs.loglik(
+    eval_loss(xs...) = NeuralProcesses.loglik(
         xs...,
         num_samples=args["evaluate-num-samples"],
         importance_weighted=eval_importance_weighted,

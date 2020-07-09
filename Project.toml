@@ -1,4 +1,4 @@
-name = "ConvCNPs"
+name = "NeuralProcesses"
 uuid = "1362ea80-6519-11ea-3d5f-f560821355d5"
 authors = ["Jonathan Gordon", "Wessel Bruinsma"]
 version = "0.1.0"
