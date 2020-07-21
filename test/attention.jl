@@ -8,12 +8,12 @@
         n = 7
         m = 8
 
-        layer = NeuralProcesses.untrack(attention(
+        layer = attention(
             dim_x=dim_x,
             dim_y=dim_y,
             dim_embedding=dim_embedding,
             num_heads=num_heads
-        ))
+        )
 
         xc = randn(Float32, n, dim_x, batch_size)
         yc = randn(Float32, n, dim_y, batch_size)
@@ -59,12 +59,12 @@
     end
 
     @testset "BatchedMLP" begin
-        layer = NeuralProcesses.untrack(NeuralProcesses.batched_mlp(
+        layer = NeuralProcesses.batched_mlp(
             dim_in=2,
             dim_out=3,
             dim_hidden=10,
             num_layers=3
-        ))
+        )
         x = randn(10, 2, 4, 5)
         @test size(layer(x)) == (10, 3, 4, 5)
     end

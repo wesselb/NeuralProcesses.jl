@@ -7,7 +7,7 @@ Encode with the target inputs.
 """
 struct InputsEncoder end
 
-@Flux.treelike InputsEncoder
+@Flux.functor InputsEncoder
 
 code(encoder::InputsEncoder, xz, z, x::AA; kws...) = x, x
 
@@ -25,7 +25,7 @@ struct MLPEncoder
     mlp₂
 end
 
-@Flux.treelike MLPEncoder
+@Flux.functor MLPEncoder
 
 code(encoder::MLPEncoder, xz::AA, z::AA, x::AA; kws...) =
     x, encoder.mlp₂(mean(encoder.mlp₁(cat(xz, z, dims=2)), dims=1))

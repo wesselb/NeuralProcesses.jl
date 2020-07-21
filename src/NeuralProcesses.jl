@@ -1,5 +1,6 @@
 module NeuralProcesses
 
+using CUDA
 using Distributions
 using Flux
 using LinearAlgebra
@@ -8,14 +9,14 @@ using Printf
 using Random
 using Statistics
 using StatsBase
+using Tracker
 
-if Flux.has_cuarrays()
+if CUDA.functional()
     include("gpu.jl")
 
-    using CuArrays
-    randn_gpu = CuArrays.randn
-    zeros_gpu = CuArrays.zeros
-    ones_gpu = CuArrays.ones
+    randn_gpu = CUDA.randn
+    zeros_gpu = CUDA.zeros
+    ones_gpu = CUDA.ones
 else
     const CuOrVector = Vector
     const CuOrMatrix = Matrix

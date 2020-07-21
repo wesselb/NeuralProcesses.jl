@@ -1,7 +1,33 @@
 """
+    Fixed
+
+Wrap a thing to indicate that it must not be learned.
+
+# Fields
+- `x`: Thing that must not be learned.
+"""
+struct Fixed
+    x
+end
+
+"""
+    unwrap(x::Fixed)
+
+Unwrap a thing wrapped by `Fixed`.
+
+# Arguments
+- `x::Fixed`: Wrapped thing.
+
+# Returns
+- Unwrapped thing.
+"""
+unwrap(x::Fixed) = x.x
+unwrap(x) = x
+
+"""
     untrack(model)
 
-Untrack a model in Flux.
+Untrack a model in Tracker.
 
 # Arguments
 - `model`: Model to untrack.
@@ -9,7 +35,25 @@ Untrack a model in Flux.
 # Returns
 - Untracked model.
 """
-untrack(model) = mapleaves(x -> Flux.data(x), model)
+untrack(model) = fmap(x -> Tracker.data(x), model)
+
+"""
+    track(model)
+
+Track a model with Tracker.
+
+Any `AbstractArray`s or `AbstractFloat`s are tracked. Everything else is not tracked.
+
+# Arguments
+- `model`: Model to track.
+
+# Returns
+- Tracked model.
+"""
+track(model) = fmap(_track, model)
+_track(x) = x
+_track(x::AbstractFloat) = Tracker.param(x)
+_track(x::AbstractArray) = Tracker.param(x)
 
 """
     ceil_odd(x::T) where T<:Real

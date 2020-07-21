@@ -10,7 +10,7 @@ abstract type Noise end
 """
 struct Deterministic <: Noise end
 
-@Flux.treelike Deterministic
+@Flux.functor Deterministic
 
 (noise::Deterministic)(x::AA) = Dirac(x)
 
@@ -26,9 +26,9 @@ struct FixedGaussian <: Noise
     log_σ
 end
 
-@Flux.treelike FixedGaussian
+@Flux.functor FixedGaussian
 
-(noise::FixedGaussian)(x::AA) = Normal(x, exp.(noise.log_σ))
+(noise::FixedGaussian)(x::AA) = Normal(x, exp.(unwrap(noise.log_σ)))
 
 """
     struct AmortisedGaussian <: Noise
@@ -45,7 +45,7 @@ end
 
 AmortisedGaussian() = AmortisedGaussian(0)
 
-@Flux.treelike AmortisedGaussian
+@Flux.functor AmortisedGaussian
 
 (noise::AmortisedGaussian)(x::Parallel{2}) = Normal(x[1], softplus(x[2] .- noise.offset))
 
@@ -62,7 +62,7 @@ end
 
 HeterogeneousGaussian() = HeterogeneousGaussian(0)
 
-@Flux.treelike HeterogeneousGaussian
+@Flux.functor HeterogeneousGaussian
 
 function (noise::HeterogeneousGaussian)(x::AA)
     μ, σ_transformed = split(x, 2)
@@ -109,7 +109,7 @@ function build_noise_model(
         num_noise_channels = dim_y
         noise = Chain(
             build_local_transform(dim_y),
-            FixedGaussian(learn_σ ? param([log(σ)]) : [log(σ)])
+            FixedGaussian(learn_σ ? [log(σ)] : Fixed([log(σ)]))
         )
 
     # Amortised observation noise:

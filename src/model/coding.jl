@@ -214,7 +214,7 @@ struct Materialise
     f_y
 end
 
-@Flux.treelike Materialise
+@Flux.functor Materialise
 
 Materialise() = Materialise(
     xs -> repeat_merge(xs..., dims=2),
@@ -237,7 +237,7 @@ struct FunctionalCoder
     coder
 end
 
-@Flux.treelike FunctionalCoder
+@Flux.functor FunctionalCoder
 
 code(c::FunctionalCoder, xz, z, x; kws...) =
     code(c.coder, xz, z, c.disc(xz, x; kws...); kws...)

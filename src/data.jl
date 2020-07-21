@@ -226,7 +226,7 @@ function Base.rand(convnp::FDD{BayesianConvNP})
     xz = reshape(disc(convnp.x), :, 1, 1)
 
     # Construct CNN with random initialisation.
-    conv = untrack(build_conv(
+    conv = build_conv(
         convnp.process.receptive_field,
         convnp.process.num_layers,
         convnp.process.num_channels;
@@ -236,11 +236,11 @@ function Base.rand(convnp::FDD{BayesianConvNP})
         dimensionality=1,
         init_conv=_init_conv_random_bias,
         init_depthwiseconv=_init_depthwiseconv_random_bias
-    ).conv)
+    )
 
     # Construct decoder.
     scale = 2 / convnp.process.points_per_unit
-    decoder = SetConv([log(scale)], false)
+    decoder = set_conv(1, scale)
 
     # Draw random encoding.
     encoding = randn(Float32, length(xz))

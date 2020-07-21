@@ -1,8 +1,8 @@
-using CuArrays
-import CuArrays: @libcudnn
-using CuArrays.CUDNN
-using CuArrays.CUBLAS
-import CuArrays.CUDNN:
+using CUDA.CUBLAS
+using CUDA.CUDNN
+
+import CUDA: @libcudnn
+import CUDA.CUDNN:
     @check, cudnnStatus_t, cudnnConvolutionDescriptor_t,
     ConvDesc, TensorDesc, FilterDesc,
     CuArray, CuVector, CUDNNFloat, cdsize,

@@ -16,7 +16,7 @@ struct Attention
     transformer
 end
 
-@Flux.treelike Attention
+@Flux.functor Attention
 
 function code(layer::Attention, xz::AA, z::AA, x::AA; kws...)
     # Perform encodings.
@@ -69,7 +69,7 @@ struct Transformer
     ln₂
 end
 
-@Flux.treelike Transformer
+@Flux.functor Transformer
 
 """
     transformer(dim_embedding::Integer, dim_head::Integer, num_heads::Integer)

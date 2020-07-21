@@ -12,7 +12,7 @@ struct Model
     decoder
 end
 
-@Flux.treelike Model
+@Flux.functor Model
 
 function (model::Model)(xc::AA, yc::AA, xt::AA; num_samples::Integer=1, kws...)
     size(xc, 1) == 0 && (xc = yc = nothing)  # Handle empty set case.

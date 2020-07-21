@@ -16,7 +16,7 @@ struct LayerNorm
     dims::Tuple
 end
 
-@Flux.treelike LayerNorm
+@Flux.functor LayerNorm
 
 """
     layer_norm(shape::Integer...)
@@ -32,8 +32,8 @@ Construct a `LayerNorm` layer.
 """
 function layer_norm(shape::Integer...)
     return LayerNorm(
-        param(ones(Float32, shape...)),
-        param(zeros(Float32, shape...)),
+        ones(Float32, shape...),
+        zeros(Float32, shape...),
         Tuple(findall(x -> x > 1, shape))
     )
 end
@@ -56,7 +56,7 @@ struct BatchedMLP
     dim_out::Integer
 end
 
-@Flux.treelike BatchedMLP
+@Flux.functor BatchedMLP
 
 function (layer::BatchedMLP)(x::AA)
     x, back = to_rank(3, x)  # Compress all batch dimensions.
@@ -126,7 +126,7 @@ struct Splitter
     num_channels::Integer
 end
 
-@Flux.treelike Splitter
+@Flux.functor Splitter
 
 function (layer::Splitter)(x::AA)
     num_remaining_channels = size(x, 2) - layer.num_channels
@@ -154,7 +154,7 @@ struct MeanPooling <: Pooling
     ln
 end
 
-@Flux.treelike MeanPooling
+@Flux.functor MeanPooling
 
 (layer::MeanPooling)(x::AA) = layer.ln(mean(x, dims=1))
 
@@ -170,6 +170,6 @@ struct SumPooling <: Pooling
     factor::Integer
 end
 
-@Flux.treelike SumPooling
+@Flux.functor SumPooling
 
 (layer::SumPooling)(x::AA) = sum(x, dims=1) ./ layer.factor

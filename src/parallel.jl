@@ -12,8 +12,7 @@ struct Parallel{N}
     xs
 end
 
-Flux.children(p::Parallel) = p.xs
-Flux.mapchildren(f, p::Parallel{N}) where N = Parallel{N}(f.(p.xs))
+Flux.functor(::Type{<:Parallel}, p) = p.xs, xs -> Parallel(xs...)
 
 Parallel(xs...) = Parallel{length(xs)}(collect(xs))
 

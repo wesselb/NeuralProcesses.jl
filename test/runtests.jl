@@ -3,12 +3,12 @@ using NeuralProcesses.Experiment
 using Distributions
 using FiniteDifferences
 using Flux
-using Flux.Tracker
 using LinearAlgebra
 using NNlib
 using StatsFuns
 using Stheno
 using Test
+using Tracker
 
 @testset "NeuralProcesses.jl" begin
     include("util.jl")

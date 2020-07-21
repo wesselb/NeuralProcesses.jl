@@ -83,18 +83,18 @@ function build_conv(
     padding = _expand_padding(_compute_padding(kernel[1]), Val(dimensionality))
 
     # Build layers of the conv net.
-    layers = Any[Conv(Flux.param.(init_conv((1, 1), num_in_channels=>num_channels))..., act)]
+    layers = Any[Conv(init_conv((1, 1), num_in_channels=>num_channels)..., act)]
     for i = 1:num_layers
         push!(layers, DepthwiseConv(
-            Flux.param.(init_depthwiseconv(kernel, num_channels=>num_channels))...,
+            init_depthwiseconv(kernel, num_channels=>num_channels)...,
             pad=padding
         ))
         push!(layers, Conv(
-            Flux.param.(init_conv((1, 1), num_channels=>num_channels))...,
+            init_conv((1, 1), num_channels=>num_channels)...,
             act
         ))
     end
-    push!(layers, Conv(Flux.param.(init_conv((1, 1), num_channels=>num_out_channels))...))
+    push!(layers, Conv(init_conv((1, 1), num_channels=>num_out_channels)...))
 
     return BatchedConv(
         Chain(layers...),
@@ -123,7 +123,7 @@ struct BatchedConv
     dimensionality::Integer
 end
 
-@Flux.treelike BatchedConv
+@Flux.functor BatchedConv
 
 (layer::BatchedConv)(x) =  layer(x, Val(layer.dimensionality))
 

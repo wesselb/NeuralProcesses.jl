@@ -17,14 +17,45 @@ function test_gradient(f, xs...)
 end
 
 @testset "util.jl" begin
+    @testset "Fixed" begin
+        struct MyModel
+            θ
+        end
+
+        @Flux.functor MyModel
+
+        x = [1]
+        model = MyModel(NeuralProcesses.Fixed(x))
+
+        # Test unwrapping.
+        @test NeuralProcesses.unwrap(model.θ) == x
+
+        # Test that `Fixed` avoids tracking.
+        @test !Tracker.istracked(model.θ)
+        @test !Tracker.istracked(NeuralProcesses.track(model).θ)
+    end
+
+    @testset "track" begin
+        struct MyModel
+            θ
+        end
+
+        @Flux.functor MyModel
+
+        model = MyModel([1])
+
+        @test !Tracker.istracked(model.θ)
+        @test Tracker.istracked(NeuralProcesses.track(model).θ)
+    end
+
     @testset "untrack" begin
         struct MyModel
             θ
         end
 
-        @Flux.treelike MyModel
+        @Flux.functor MyModel
 
-        model = MyModel(param([1]))
+        model = MyModel(Tracker.param([1]))
 
         @test Tracker.istracked(model.θ)
         @test !Tracker.istracked(NeuralProcesses.untrack(model).θ)

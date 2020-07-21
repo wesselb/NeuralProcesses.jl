@@ -28,7 +28,7 @@ struct CorrelatedConvCNP
     predict
 end
 
-@Flux.treelike CorrelatedConvCNP
+@Flux.functor CorrelatedConvCNP
 
 """
     (model::CorrelatedConvCNP)(model::CorrelatedConvCNP)(xc::AA, yc::AA, xt::AA)

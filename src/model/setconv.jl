@@ -14,7 +14,7 @@ struct SetConv{T<:AV{<:Real}}
     density::Bool
 end
 
-@Flux.treelike SetConv
+@Flux.functor SetConv
 
 """
     set_conv(num_channels::Integer, scale::Float32; density::Bool=false)
@@ -34,7 +34,7 @@ Construct a set convolution layer.
 function set_conv(num_channels::Integer, scale::Float32; density::Bool=false)
     density && (num_channels += 1)
     scales = scale .* ones(Float32, num_channels)
-    return SetConv(param(log.(scales)), density)
+    return SetConv(log.(scales), density)
 end
 
 _get_scales(layer) = reshape(exp.(layer.log_scales), 1, 1, length(layer.log_scales), 1)

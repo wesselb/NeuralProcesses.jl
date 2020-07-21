@@ -5,13 +5,14 @@ export predict, loss, eval_model, train!, report_num_params, plot_task
 using ..NeuralProcesses
 
 using BSON
+using CUDA
 using Flux
-using Flux.Tracker
-using GPUArrays
 using Plots
 using Printf
-import StatsBase: std
 using Stheno
+using Tracker
+
+import StatsBase: std
 
 include("checkpoint.jl")
 
@@ -75,7 +76,7 @@ function train!(
     tasks_per_epoch=1000,
     path="output"
 )
-    GPUArrays.allowscalar(false)
+    CUDA.GPUArrays.allowscalar(false)
 
     # Divide out batch size to get the number of batches per epoch.
     batches_per_epoch = div(tasks_per_epoch, data_gen.batch_size)
@@ -87,24 +88,56 @@ function train!(
     @printf("Batch size:           %-6d\n", data_gen.batch_size)
     @printf("Batches per epoch:    %-6d\n", batches_per_epoch)
 
+    # Track the parameters of the model for training.
+    model = NeuralProcesses.track(model)
+
     for epoch in starting_epoch:(starting_epoch + epochs - 1)
         # Perform epoch.
         println("Epoch: $epoch")
-        @time Flux.train!(
-            (xs...) -> first(nansafe(loss, model, epoch, gpu.(xs)...)),
-            Flux.params(model),
-            data_gen(batches_per_epoch),
-            opt
-        )
+        @time begin
+            ps = Flux.Params(Flux.params(model))
+            for d in data_gen(batches_per_epoch)
+                gs = Tracker.gradient(ps) do
+                    first(nansafe(loss, model, epoch, gpu.(d)...))
+                end
+                for p in ps
+                    Tracker.update!(p, -Flux.Optimise.apply!(opt, p, gs[p]))
+                end
+            end
+        end
 
         # Evalute model.
-        loss_value, loss_error = eval_model(model, loss, data_gen, epoch)
-        plot_task(model, data_gen, epoch, make_plot_true(data_gen.process), path=path)
+        loss_value, loss_error = eval_model(
+            NeuralProcesses.untrack(model),
+            loss,
+            data_gen,
+            epoch
+        )
 
+        # Plot model.
+        plot_task(
+            NeuralProcesses.untrack(model),
+            data_gen,
+            epoch,
+            make_plot_true(data_gen.process),
+            path=path
+        )
+
+        # Save result.
         if !isnothing(bson)
-            checkpoint!(bson, model, epoch, loss_value, loss_error)
+            checkpoint!(
+                bson,
+                NeuralProcesses.untrack(model),
+                epoch,
+                loss_value,
+                loss_error
+            )
         end
     end
+end
+
+function train!(loss, ps, data, opt)
+
 end
 
 function report_num_params(model)
