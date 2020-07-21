@@ -156,7 +156,7 @@ function plot_task(
 
         # Scatter target and context set.
         scatter(xt, yt, c="tab:red", label="Target set")
-        scatter(xc, yc, c="tab:black", label="Context set")
+        scatter(xc, yc, c="black", label="Context set")
 
         # Plot prediction of true, underlying model.
         plot_true(xc, yc, x, data_gen.σ²)
