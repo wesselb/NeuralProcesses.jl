@@ -71,8 +71,8 @@ using NeuralProcesses
 using NeuralProcesses.Experiment
 using Distributions
 using Flux
-using Flux.Tracker
 using Stheno
+using Tracker
 
 # Determine the noise level.
 if endswith(args["data"], "-noisy")
