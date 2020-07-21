@@ -155,24 +155,25 @@ function plot_task(
         figure(figsize=(10,6))
 
         # Scatter target and context set.
-        scatter(xt, yt, c="r", label="Target set")
-        scatter(xc, yc, c="black", label="Context set")
+        scatter(xt, yt, c="tab:red", label="Target set")
+        scatter(xc, yc, c="tab:black", label="Context set")
 
         # Plot prediction of true, underlying model.
         plot_true(xc, yc, x, data_gen.σ²)
 
         # Plot prediction.
         if !isnothing(μ)
-            plot(x, μ, c="g", label="Model output")
-            fill_between(x, lower, upper, fillalpha=0.2, facecolor=:green)
+            plot(x, μ, c="tab:green", label="Model output")
+            fill_between(x, lower, upper, fillalpha=0.2, facecolor="tab:green")
         end
 
         # Plot samples.
         if !isnothing(samples)
-            plot(x, samples, c="g", lw=0.5)
+            plot(x, samples, c="tab:green", lw=0.5)
         end
 
         legend()
+        tight_layout()
 
         if !isnothing(path)
             savefig("$path/epoch$epoch-$i.png")
@@ -191,10 +192,10 @@ function make_plot_true(process::GP)
         xt = Float64.(xt)
         posterior = process | Obs(process(xc, σ²) ← yc)
         margs = marginals(posterior(xt))
-        plot(xt, mean.(margs), c="b", label="GP")
+        plot(xt, mean.(margs), c="tab:blue", label="GP")
         error = 2 .* sqrt.(std.(margs).^2 .+ σ²)
-        plot(xt, mean.(margs) .- error, c="b", ls="--")
-        plot(xt, mean.(margs) .+ error, c="b", ls="--")
+        plot(xt, mean.(margs) .- error, c="tab:blue", ls="--")
+        plot(xt, mean.(margs) .+ error, c="tab:blue", ls="--")
     end
     return plot_true
 end
