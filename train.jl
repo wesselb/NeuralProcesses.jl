@@ -14,10 +14,10 @@ parser = ArgParseSettings()
         required = true
     "--model"
         help =
-            "Model: convcnp, convnp, anp, or np. Append \"-global-{mean,sum}\" to " *
-            "introduce a global latent variable. Append \"-amortised-{mean,sum}\" to use " *
-            "amortised observation noise. Append \"-het\" to use heterogeneous " *
-            "observation noise."
+            "Model: conv[c]np, a[c]np, or [c]np. " *
+            "Append \"-global-{mean,sum}\" to introduce a global latent variable. " *
+            "Append \"-amortised-{mean,sum}\" to use amortised observation noise. " *
+            "Append \"-het\" to use heterogeneous observation noise."
         arg_type = String
         required = true
     "--num-samples"
@@ -157,7 +157,7 @@ else
 end
 
 # Set the loss.
-if args["model"] == "convcnp"
+if args["model"] in ["convcnp", "acnp", "cnp"]
     # Determine training loss.
     if args["loss"] == "loglik"
         # Use a single sample: there is nothing random.
@@ -401,6 +401,13 @@ else
                 σ=5f-2,
                 learn_σ=false
             ) |> gpu
+        elseif args["model"] == "acnp"
+            model = acnp_1d(
+                dim_embedding=dim_embedding,
+                num_encoder_heads=8,
+                num_encoder_layers=6,
+                num_decoder_layers=6
+            ) |> gpu
         elseif args["model"] in [
             "anp",
             "anp-amortised-mean", "anp-amortised-sum",
@@ -431,6 +438,12 @@ else
                 pooling_type=pooling_type,
                 σ=5f-2,
                 learn_σ=false
+            ) |> gpu
+        elseif args["model"] == "cnp"
+            model = cnp_1d(
+                dim_embedding=dim_embedding,
+                num_encoder_layers=6,
+                num_decoder_layers=6
             ) |> gpu
         elseif args["model"] in [
             "np",
