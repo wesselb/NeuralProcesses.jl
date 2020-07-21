@@ -176,7 +176,7 @@ function plot_task(
         tight_layout()
 
         if !isnothing(path)
-            savefig("$path/epoch$epoch-$i.png")
+            savefig("$path/epoch$epoch-$i.png", dpi=200)
         end
 
         close()
