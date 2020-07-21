@@ -130,11 +130,10 @@ One-dimensional Gaussian log-pdf.
 - `AA`: Log-pdfs at `x`.
 """
 function gaussian_logpdf(x::AA, μ::AA, σ::AA)
-    # Loop fusion introduces indexing, which severly bottlenecks GPU computation, so
-    # we roll out the computation like this.
-    # TODO: What is going on?
+    # We roll out the computation to avoid GPU issues.
     logconst = 1.837877f0
-    logdet = 2 .* log.(σ)
+    logdet = log.(σ)
+    logdet = 2 .* logdet
     z = (x .- μ) ./ σ
     quad = z .* z
     sum = logconst .+ logdet .+ quad
@@ -300,7 +299,10 @@ function logsumexp(x::AA; dims=:)
     # Only do work if there is work to be done.
     !_must_work(x, dims) && (return x)
     u = maximum(Tracker.data(x), dims=dims)  # Do not track the maximum!
-    return u .+ log.(sum(exp.(x .- u), dims=dims))
+    # We roll out the computation to avoid GPU issues.
+    z = sum(exp.(x .- u), dims=dims)
+    z = log.(z)
+    return u .+ z
 end
 
 function _must_work(x, dims)
@@ -343,7 +345,10 @@ Safe softplus.
 - `AA`: Softplus applied to every element in `x`.
 """
 function softplus(x::AA)
-    return log.(1 .+ exp.(-abs.(x))) .+ max.(x, 0)
+    # We must unroll the computation to avoid issues on the GPU.
+    z = 1 .+ exp.(-abs.(x))
+    z = log.(z)
+    return z .+ max.(x, 0)
 end
 
 """
