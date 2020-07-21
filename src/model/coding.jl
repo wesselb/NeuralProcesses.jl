@@ -222,30 +222,3 @@ Materialise() = Materialise(
 )
 
 code(c::Materialise, xz, z, x; kws...) = materialise(xz, c.f_x), materialise(z, c.f_y)
-
-"""
-    struct FunctionalCoder
-
-A coder that codes to a discretisation for a functional representation.
-
-# Fields
-- `disc::Discretisation`: Discretisation for the functional representation.
-- `coder`: Coder.
-"""
-struct FunctionalCoder
-    disc::Discretisation
-    coder
-end
-
-@Flux.functor FunctionalCoder
-
-code(c::FunctionalCoder, xz, z, x; kws...) =
-    code(c.coder, xz, z, c.disc(xz, x; kws...); kws...)
-
-function code_track(c::FunctionalCoder, xz, z, x, h; kws...)
-    x_disc = c.disc(xz, x; kws...)
-    return code_track(c.coder, xz, z, x_disc, vcat(h, [x_disc]); kws...)
-end
-
-recode(c::FunctionalCoder, xz, z, h; kws...) =
-    recode(c.coder, xz, z, h[2:end]; kws...)

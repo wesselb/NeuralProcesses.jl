@@ -1,10 +1,9 @@
-export anp_1d
+export np_1d
 
 """
-    anp_1d(;
+    np_1d(;
         dim_embedding::Integer,
         num_encoder_layers::Integer,
-        num_encoder_heads::Integer,
         num_decoder_layers::Integer,
         noise_type::String="het",
         pooling_type::String="mean",
@@ -15,7 +14,6 @@ export anp_1d
 # Arguments
 - `dim_embedding::Integer`: Dimensionality of the embedding.
 - `num_encoder_layers::Integer`: Number of layers in the encoder.
-- `num_encoder_heads::Integer`: Number of heads in the encoder.
 - `num_decoder_layers::Integer`: Number of layers in the decoder.
 - `noise_type::String="het"`: Type of noise model. Must be "fixed", "amortised", or "het".
 - `pooling_type::String="mean"`: Type of pooling. Must be "mean" or "sum".
@@ -25,10 +23,9 @@ export anp_1d
 # Returns
 - `Model`: Corresponding model.
 """
-function anp_1d(;
+function np_1d(;
     dim_embedding::Integer,
     num_encoder_layers::Integer,
-    num_encoder_heads::Integer,
     num_decoder_layers::Integer,
     noise_type::String="het",
     pooling_type::String="mean",
@@ -47,21 +44,28 @@ function anp_1d(;
     return Model(
         Parallel(
             Chain(
-                InputsEncoder(),
+                InputsCoder(),
                 Deterministic()
             ),
             Chain(
-                attention(
-                    dim_x             =dim_x,
-                    dim_y             =dim_y,
-                    dim_embedding     =dim_embedding,
-                    num_heads         =num_encoder_heads,
-                    num_encoder_layers=num_encoder_layers
+                MLPCoder(
+                    batched_mlp(
+                        dim_in    =dim_x + dim_y,
+                        dim_hidden=dim_embedding,
+                        dim_out   =dim_embedding,
+                        num_layers=num_encoder_layers
+                    ),
+                    batched_mlp(
+                        dim_in    =dim_embedding,
+                        dim_hidden=dim_embedding,
+                        dim_out   =dim_embedding,
+                        num_layers=num_encoder_layers
+                    )
                 ),
                 Deterministic()
             ),
             Chain(
-                MLPEncoder(
+                MLPCoder(
                     batched_mlp(
                         dim_in    =dim_x + dim_y,
                         dim_hidden=dim_embedding,
@@ -84,7 +88,7 @@ function anp_1d(;
                 dim_in    =dim_x + 2dim_embedding,
                 dim_hidden=dim_embedding,
                 dim_out   =num_noise_channels,
-                num_layers=num_decoder_layers,
+                num_layers=num_decoder_layers
             ),
             noise
         )

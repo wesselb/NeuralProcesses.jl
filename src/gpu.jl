@@ -1,9 +1,9 @@
 using CUDA.CUBLAS
 using CUDA.CUDNN
 
-import CUDA: @libcudnn
+import CUDA: libcudnn
 import CUDA.CUDNN:
-    @check, cudnnStatus_t, cudnnConvolutionDescriptor_t,
+    @runtime_ccall, cudnnStatus_t, cudnnConvolutionDescriptor_t,
     ConvDesc, TensorDesc, FilterDesc,
     CuArray, CuVector, CUDNNFloat, cdsize,
     cudnnConvolutionForward,
@@ -44,8 +44,8 @@ diagonal(x::CuArray{T, 1}) where T<:Real = convert(CuArray, Diagonal(x))
 # Implement GPU support for depthwise separable convolutions.
 
 function cudnnGetConvolutionGroupCount(convDesc, count)
-    @check ccall(
-        (:cudnnGetConvolutionGroupCount, @libcudnn),
+    @runtime_ccall(
+        (:cudnnGetConvolutionGroupCount, libcudnn()),
         cudnnStatus_t,
         (cudnnConvolutionDescriptor_t, Ptr{Cint}),
         convDesc,
@@ -54,8 +54,8 @@ function cudnnGetConvolutionGroupCount(convDesc, count)
 end
 
 function cudnnSetConvolutionGroupCount(convDesc, count)
-    @check ccall(
-        (:cudnnSetConvolutionGroupCount, @libcudnn),
+    @runtime_ccall(
+        (:cudnnSetConvolutionGroupCount, libcudnn()),
         cudnnStatus_t,
         (cudnnConvolutionDescriptor_t, Cint),
         convDesc,
