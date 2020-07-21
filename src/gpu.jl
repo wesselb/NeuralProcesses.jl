@@ -18,25 +18,6 @@ const CuOrVector = Union{CuVector, Vector}
 const CuOrMatrix = Union{CuMatrix, Matrix}
 const CuOrArray = Union{CuArray, Array}
 
-# Accelerate `batched_mul` on the GPU.
-
-function NNlib.batched_mul!(
-    z::CuArray{T, 3},
-    x::CuArray{T, 3},
-    y::CuArray{T, 3}
-) where {T<:CUBLAS.CublasFloat}
-    CUBLAS.gemm_strided_batched!(
-        'N',
-        'N',
-        one(T),
-        NNlib._unbatch(x),
-        NNlib._unbatch(y),
-        zero(T),
-        z
-    )
-    return z
-end
-
 # Implement conversion to dense, diagonal matrix.
 
 diagonal(x::CuArray{T, 1}) where T<:Real = convert(CuArray, Diagonal(x))
