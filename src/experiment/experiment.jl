@@ -164,7 +164,7 @@ function plot_task(
         # Plot prediction.
         if !isnothing(μ)
             plot(x, μ, c="tab:green", label="Model output")
-            fill_between(x, lower, upper, fillalpha=0.2, facecolor="tab:green")
+            fill_between(x, lower, upper, alpha=0.2, facecolor="tab:green")
         end
 
         # Plot samples.
