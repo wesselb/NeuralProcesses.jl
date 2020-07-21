@@ -136,10 +136,6 @@ function train!(
     end
 end
 
-function train!(loss, ps, data, opt)
-
-end
-
 function report_num_params(model)
     @printf("Number of parameters: %-6d\n", sum(map(length, Flux.params(model))))
 end
