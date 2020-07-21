@@ -101,7 +101,7 @@ function train!(
                     first(nansafe(loss, model, epoch, gpu.(d)...))
                 end
                 for p in ps
-                    Tracker.update!(p, -Flux.Optimise.apply!(opt, p, gs[p]))
+                    Tracker.update!(p, -Flux.Optimise.apply!(opt, p, Tracker.data(gs[p])))
                 end
             end
         end
@@ -135,7 +135,6 @@ function train!(
         end
     end
 end
-
 function report_num_params(model)
     @printf("Number of parameters: %-6d\n", sum(map(length, Flux.params(model))))
 end
