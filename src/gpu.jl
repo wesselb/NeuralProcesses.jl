@@ -63,7 +63,7 @@ function ConvDesc(T, cdims::DepthwiseConvDims)
     # separable convolution.
     cudnnSetConvolutionGroupCount(cd[], NNlib.channels_in(cdims))
     this = ConvDesc(cd[])
-    CUDNN.finalizer(CUDNN.free, this)
+    CUDNN.finalizer(CUDNN.unsafe_free!, this)
     return this
 end
 
