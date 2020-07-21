@@ -187,9 +187,7 @@ make_plot_true(process) = (plt, xc, yc, xt, σ²) -> nothing
 
 function make_plot_true(process::GP)
     function plot_true(xc, yc, xt, σ²)
-        xc = Float64.(xc)
-        yc = Float64.(yc)
-        xt = Float64.(xt)
+        xc, yc, xt = Float64.(xc), Float64.(yc), Float64.(xt)
         posterior = process | Obs(process(xc, σ²) ← yc)
         margs = marginals(posterior(xt))
         plot(xt, mean.(margs), c="tab:blue", label="GP")
