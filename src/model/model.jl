@@ -273,5 +273,10 @@ function predict(model::Model, xc::AV, yc::AV, xt::AV; num_samples::Integer=10, 
     lowers = μ .- ε
     uppers = μ .+ ε
 
+    # Remove singleton dimensions.
+    μ = dropdims(μ, dims=2)
+    lowers = dropdims(lowers, dims=2)
+    uppers = dropdims(uppers, dims=2)
+
     return μ, lowers, uppers, samples
 end
