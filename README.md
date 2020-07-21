@@ -4,6 +4,10 @@
 
 NeuralProcesses.jl is a framework for building [Neural Processes](https://arxiv.org/abs/1807.01622) built on top of [Flux.jl](https://github.com/FluxML/Flux.jl).
 
+**Important:**
+NeuralProcesses.jl requires CUDA.jl at commit `8ce07c8` or later, which is
+newer than v1.2.0.
+
 ## Example: The Convolutional Conditional Neural Process
 
 As an example, below is an implementation of the [Convolutional Conditional Neural Process](https://openreview.net/forum?id=Skey4eBYPS):
