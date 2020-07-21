@@ -42,7 +42,7 @@ untrack(model) = fmap(x -> Tracker.data(x), model)
 
 Track a model with Tracker.
 
-Any `AbstractArray`s or `AbstractFloat`s are tracked. Everything else is not tracked.
+Any `AbstractArray` is tracked. Everything else is not tracked.
 
 # Arguments
 - `model`: Model to track.
@@ -52,7 +52,6 @@ Any `AbstractArray`s or `AbstractFloat`s are tracked. Everything else is not tra
 """
 track(model) = fmap(_track, model)
 _track(x) = x
-_track(x::AbstractFloat) = Tracker.param(x)
 _track(x::AbstractArray) = Tracker.param(x)
 
 """
