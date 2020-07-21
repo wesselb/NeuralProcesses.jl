@@ -85,7 +85,7 @@ end
 
 # Set up experiment.
 if trimmed_data_name == "eq-small"
-    process = GP(stretch(eq(), 1 / 0.25), GPC())
+    process = GP(stretch(EQ(), 1 / 0.25), GPC())
     receptive_field = 1f0
     points_per_unit = 32f0
     num_context = DiscreteUniform(0, 50)
@@ -94,7 +94,7 @@ if trimmed_data_name == "eq-small"
     dim_embedding = 32
     num_context_eval = DiscreteUniform(0, 10)
 elseif trimmed_data_name == "eq"
-    process = GP(stretch(eq(), 1 / 0.25), GPC())
+    process = GP(stretch(EQ(), 1 / 0.25), GPC())
     receptive_field = 2f0
     points_per_unit = 64f0
     num_context = DiscreteUniform(0, 50)
@@ -103,7 +103,7 @@ elseif trimmed_data_name == "eq"
     dim_embedding = 128
     num_context_eval = DiscreteUniform(0, 10)
 elseif trimmed_data_name == "matern52"
-    process = GP(stretch(matern52(), 1 / 0.25), GPC())
+    process = GP(stretch(Matern52(), 1 / 0.25), GPC())
     receptive_field = 2f0
     points_per_unit = 64f0
     num_context = DiscreteUniform(0, 50)
@@ -112,7 +112,7 @@ elseif trimmed_data_name == "matern52"
     dim_embedding = 128
     num_context_eval = DiscreteUniform(0, 10)
 elseif trimmed_data_name == "noisy-mixture"
-    process = GP(stretch(eq(), 1 / 0.25) + eq() + 1e-3 * Stheno.Noise(), GPC())
+    process = GP(stretch(EQ(), 1 / 0.25) + EQ() + 1e-3 * Stheno.Noise(), GPC())
     receptive_field = 4f0
     points_per_unit = 64f0
     num_context = DiscreteUniform(0, 50)
@@ -140,10 +140,10 @@ elseif trimmed_data_name == "sawtooth"
     num_context_eval = DiscreteUniform(0, 10)
 elseif trimmed_data_name == "mixture"
     process = Mixture(
-        GP(stretch(eq(), 1 / 0.25), GPC()),
-        GP(stretch(matern52(), 1 / 0.25), GPC()),
-        GP(stretch(eq(), 1 / 0.25) + eq() + 1e-3 * Stheno.Noise(), GPC()),
-        GP(stretch(eq(), 1 / 0.5) * stretch(Stheno.PerEQ(), 1 / 0.25), GPC()),
+        GP(stretch(EQ(), 1 / 0.25), GPC()),
+        GP(stretch(Matern52(), 1 / 0.25), GPC()),
+        GP(stretch(EQ(), 1 / 0.25) + EQ() + 1e-3 * Stheno.Noise(), GPC()),
+        GP(stretch(EQ(), 1 / 0.5) * stretch(Stheno.PerEQ(), 1 / 0.25), GPC()),
         Sawtooth()
     )
     receptive_field = 16f0
