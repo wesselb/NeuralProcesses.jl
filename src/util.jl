@@ -42,7 +42,8 @@ untrack(model) = fmap(x -> Tracker.data(x), model)
 
 Track a model with Tracker.
 
-Any `AbstractArray` is tracked. Everything else is not tracked.
+Any `AbstractArray{<:Number}` is tracked. Everything else is not tracked. This is similar
+to how `Flux.params` operates.
 
 # Arguments
 - `model`: Model to track.
@@ -52,7 +53,7 @@ Any `AbstractArray` is tracked. Everything else is not tracked.
 """
 track(model) = fmap(_track, model)
 _track(x) = x
-_track(x::AbstractArray) = Tracker.param(x)
+_track(x::AbstractArray{<:Number}) = Tracker.param(x)
 
 """
     ceil_odd(x::T) where T<:Real
