@@ -157,7 +157,7 @@ _epoch_to_reg(epoch) = 10^(-min(1 + Float32(epoch), 5))
     bounds, and three posterior samples.
 """
 function predict(model::CorrelatedConvCNP, xc::AV, yc::AV, xt::AV)
-    μ, Σ = untrack(model)(expand_gpu.((xc, yc, xt)))
+    μ, Σ = model(expand_gpu.((xc, yc, xt))...)
     μ = μ[:, 1, 1] |> cpu
     Σ = Σ[:, :, 1] |> cpu
     σ = sqrt.(diag(Σ))

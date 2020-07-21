@@ -247,7 +247,7 @@ end
 """
 function predict(model::Model, xc::AV, yc::AV, xt::AV; num_samples::Integer=10, kws...)
     # Run model.
-    d = untrack(model)(
+    d = model(
         expand_gpu.((xc, yc, xt))...;
         # Use at least 20 samples to estimate uncertainty.
         num_samples=max(num_samples, 20),
