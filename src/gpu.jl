@@ -12,7 +12,7 @@ import CUDA.CUDNN:
     cudnnConvolutionBackwardData,
     cudnnGetConvolutionBackwardDataWorkspaceSize, cudnnConvolutionBwdDataAlgo_t,
     cudnnConvolutionBackwardFilter,
-    cudnnGetConvolutionBackwardFilterWorkspaceSize, cudnnConvolutionBwdFilterAlgo_t,
+    cudnnGetConvolutionBackwardFilterWorkspaceSize, cudnnConvolutionBwdFilterAlgo_t
 import NNlib: depthwiseconv!, ∇depthwiseconv_filter!, ∇depthwiseconv_data!
 
 const CuOrVector = Union{CuVector, Vector}
@@ -142,18 +142,6 @@ function cudnnConvolutionBackwardData(
             dx
         )
     end
-    return dx
-    cudnnConvolutionBackwardData(
-        Ref(T(alpha)),
-        FilterDesc(w), w,
-        TensorDesc(dy), dy,
-        ConvDesc(T, cdims),
-        algo,
-        workspace,
-        workspace_size,
-        Ref(T(beta)),
-        TensorDesc(dx), dx
-    )
     return dx
 end
 
