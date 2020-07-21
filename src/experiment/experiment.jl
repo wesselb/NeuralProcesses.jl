@@ -7,7 +7,7 @@ using ..NeuralProcesses
 using BSON
 using CUDA
 using Flux
-using Plots
+using PyPlot
 using Printf
 using Stheno
 using Tracker
@@ -15,8 +15,6 @@ using Tracker
 import StatsBase: std
 
 include("checkpoint.jl")
-
-pyplot()
 
 function eval_model(model, loss, data_gen, epoch; num_batches=256)
     model = NeuralProcesses.untrack(model)
@@ -154,42 +152,31 @@ function plot_task(
         xc, yc, xt, yt = map(x -> x[:, 1, 1], data_gen(1)[1])
         μ, lower, upper, samples = predict(model, xc, yc, x)
 
-        plt = plot(show=false)
+        figure(figsize=(10,6))
 
         # Scatter target and context set.
-        scatter!(plt, xt, yt, c=:red, label="Target set", dpi=200)
-        scatter!(plt, xc, yc, c=:black, label="Context set", dpi=200)
+        scatter(xt, yt, c="r", label="Target set")
+        scatter(xc, yc, c="b", label="Context set")
 
         # Plot prediction of true, underlying model.
-        plot_true(plt, xc, yc, x, data_gen.σ²)
+        plot_true(xc, yc, x, data_gen.σ²)
 
         # Plot prediction.
         if !isnothing(μ)
-            plot!(plt, x, μ, c=:green, label="Model output", dpi=200)
-            plot!(
-                plt,
-                x,
-                [μ μ],
-                fillrange=[lower upper],
-                fillalpha=0.2,
-                c=:green,
-                label="",
-                dpi=200
-            )
+            plot(x, μ, c="g", label="Model output")
+            fill_between(x, lower, upper, fillalpha=0.2, facecolor=:green)
         end
 
         # Plot samples.
         if !isnothing(samples)
-            plot!(plt, x, samples, c=:green, lw=0.5, dpi=200, label="")
+            plot(x, samples, c="g", lw=0.5)
         end
 
         if !isnothing(path)
-            savefig(plt, "$path/epoch$epoch-$i.png")
+            savefig("$path/epoch$epoch-$i.png")
         end
 
-        # Close the window. It is unclear whether Plots.jl allows us to close just `plt`,
-        # but we can close all windows.
-        close("all")
+        close()
     end
 end
 
@@ -202,26 +189,10 @@ function make_plot_true(process::GP)
         xt = Float64.(xt)
         posterior = process | Obs(process(xc, σ²) ← yc)
         margs = marginals(posterior(xt))
-        plot!(plt, xt, mean.(margs), c=:blue, label="GP", dpi=200)
+        plot(xt, mean.(margs), c="b", label="GP")
         error = 2 .* sqrt.(std.(margs).^2 .+ σ²)
-        plot!(
-            plt,
-            xt,
-            mean.(margs) .- error,
-            c=:blue,
-            linestyle=:dash,
-            label="",
-            dpi=200
-        )
-        plot!(
-            plt,
-            xt,
-            mean.(margs) .+ error,
-            c=:blue,
-            linestyle=:dash,
-            label="",
-            dpi=200
-        )
+        plot(xt, mean.(margs) .- error, c="b", ls="--")
+        plot(xt, mean.(margs) .+ error, c="b", ls="--")
     end
     return plot_true
 end
