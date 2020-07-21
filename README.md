@@ -2,7 +2,9 @@
 
 # NeuralProcesses.jl
 
-NeuralProcesses.jl is a framework for building [Neural Processes](https://arxiv.org/abs/1807.01622) built on top of [Flux.jl](https://github.com/FluxML/Flux.jl).
+NeuralProcesses.jl is a framework for composing
+[Neural Processes](https://arxiv.org/abs/1807.01622) built on top of
+[Flux.jl](https://github.com/FluxML/Flux.jl).
 
 **Important:**
 NeuralProcesses.jl requires CUDA.jl at commit `8ce07c8` or later, which is
@@ -10,7 +12,8 @@ newer than v1.2.0.
 
 ## Example: The Convolutional Conditional Neural Process
 
-As an example, below is an implementation of the [Convolutional Conditional Neural Process](https://openreview.net/forum?id=Skey4eBYPS):
+As an example, below is an implementation of the
+[Convolutional Conditional Neural Process](https://openreview.net/forum?id=Skey4eBYPS):
 
 ```julia
 convcnp = Model(
@@ -47,3 +50,30 @@ means, lowers, uppers, samples = predict(
     randn(10)   # Random target inputs
 )
 ```
+
+## Implementation Details
+
+### Automatic Differentiation
+
+[Tracker.jl](https://github.com/FluxML/Tracker.jl) is used to automatically
+compute gradients.
+A number of custom gradients are implemented in `src/util.jl`.
+
+### Parameter Handling
+
+The package uses [Functors.jl](https://github.com/FluxML/Functors.jl) to handle
+parameters, like [Flux.jl](https://github.com/FluxML/Flux.jl), and adheres
+to [Flux.jl](https://github.com/FluxML/Flux.jl)'s principles.
+This means that _only_ `AbstractArray{<:Number}`s are parameters.
+Nothing else will be trained, not even `Float32` or `Float64` scalars.
+
+To not train an array, wrap it with `NeuralProcesses.Fixed(array)`,
+and unwrap it with `NeuralProcesses.unwrap(fixed)` at runtime.
+
+### GPU Acceleration
+
+CUDA support for depthwise separable convolutions (`DepthwiseConv` from
+[Flux.jl](https://github.com/FluxML/Flux.jl)) is implemented in `src/gpu.jl`.
+
+Loop fusion can cause issues on the GPU, so oftentimes computations are
+unrolled.
