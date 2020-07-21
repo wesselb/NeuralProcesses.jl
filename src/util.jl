@@ -130,9 +130,9 @@ One-dimensional Gaussian log-pdf.
 - `AA`: Log-pdfs at `x`.
 """
 function gaussian_logpdf(x::AA, μ::AA, σ::AA)
-    # We roll out the computation to avoid GPU issues.
+    # We unroll the computation to avoid loop fusion, which causes GPU issues.
     logconst = 1.837877f0
-    logdet = log.(σ)
+    logdet = CUDA.log.(σ)
     logdet = 2 .* logdet
     z = (x .- μ) ./ σ
     quad = z .* z
@@ -165,7 +165,7 @@ function _gaussian_logpdf(x, μ, Σ)
     logconst = 1.837877f0
     # Taking the diagonal of L = U' causes indexing on GPU, which is why we equivalently
     # take the diagonal of U.
-    logpdf = -(n * logconst + 2sum(log.(diag(U))) + dot(z, z)) / 2
+    logpdf = -(n * logconst + 2sum(CUDA.log.(diag(U))) + dot(z, z)) / 2
 
     return logpdf, n, L, U, z
 end
@@ -197,13 +197,11 @@ Kullback--Leibler divergence between one-dimensional Gaussian distributions.
 - `AA`: `KL(p, q)`.
 """
 function kl(μ₁::AA, σ₁::AA, μ₂::AA, σ₂::AA)
-    # Loop fusion introduces indexing, which severly bottlenecks GPU computation, so
-    # we roll out the computation like this.
-    # TODO: What is going on?
-    logdet = log.(σ₂ ./ σ₁)
-    logdet = 2 .* logdet  # This cannot be combined with the `log`.
+    # We unroll the computation to avoid loop fusion, which causes GPU issues.
+    logdet = CUDA.log.(σ₂ ./ σ₁)
+    logdet = 2 .* logdet
     z = μ₁ .- μ₂
-    σ₁², σ₂² = σ₁.^2, σ₂.^2  # This must be separated from the calulation in `quad`.
+    σ₁², σ₂² = σ₁.^2, σ₂.^2
     quad = (σ₁² .+ z .* z) ./ σ₂²
     sum = logdet .+ quad .- 1
     return sum ./ 2
@@ -299,9 +297,9 @@ function logsumexp(x::AA; dims=:)
     # Only do work if there is work to be done.
     !_must_work(x, dims) && (return x)
     u = maximum(Tracker.data(x), dims=dims)  # Do not track the maximum!
-    # We roll out the computation to avoid GPU issues.
+    # We unroll the computation to avoid loop fusion, which causes GPU issues.
     z = sum(exp.(x .- u), dims=dims)
-    z = log.(z)
+    z = CUDA.log.(z)
     return u .+ z
 end
 
@@ -345,9 +343,9 @@ Safe softplus.
 - `AA`: Softplus applied to every element in `x`.
 """
 function softplus(x::AA)
-    # We must unroll the computation to avoid issues on the GPU.
+    # We unroll the computation to avoid loop fusion, which causes GPU issues.
     z = 1 .+ exp.(-abs.(x))
-    z = log.(z)
+    z = CUDA.log.(z)
     return z .+ max.(x, 0)
 end
 
