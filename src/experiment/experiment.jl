@@ -156,7 +156,7 @@ function plot_task(
 
         # Scatter target and context set.
         scatter(xt, yt, c="r", label="Target set")
-        scatter(xc, yc, c="b", label="Context set")
+        scatter(xc, yc, c="black", label="Context set")
 
         # Plot prediction of true, underlying model.
         plot_true(xc, yc, x, data_gen.σ²)
@@ -171,6 +171,8 @@ function plot_task(
         if !isnothing(samples)
             plot(x, samples, c="g", lw=0.5)
         end
+
+        legend()
 
         if !isnothing(path)
             savefig("$path/epoch$epoch-$i.png")
