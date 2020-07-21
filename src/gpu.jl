@@ -3,7 +3,7 @@ using CUDA.CUDNN
 
 import CUDA: libcudnn, @checked, @argout
 import CUDA.CUDNN:
-    @check, @runtime_ccall, handle,
+    @check, @runtime_ccall, @workspace, handle,
     cudnnStatus_t, cudnnConvolutionDescriptor_t,
     ConvDesc, TensorDesc, FilterDesc,
     CuArray, CuVector, CUDNNFloat, cdsize,
