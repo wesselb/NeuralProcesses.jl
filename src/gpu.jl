@@ -1,7 +1,7 @@
 using CUDA.CUBLAS
 using CUDA.CUDNN
 
-import CUDA: libcudnn
+import CUDA: libcudnn, @checked
 import CUDA.CUDNN:
     @runtime_ccall, cudnnStatus_t, cudnnConvolutionDescriptor_t,
     ConvDesc, TensorDesc, FilterDesc,
@@ -43,7 +43,7 @@ diagonal(x::CuArray{T, 1}) where T<:Real = convert(CuArray, Diagonal(x))
 
 # Implement GPU support for depthwise separable convolutions.
 
-function cudnnGetConvolutionGroupCount(convDesc, count)
+@checked function cudnnGetConvolutionGroupCount(convDesc, count)
     @runtime_ccall(
         (:cudnnGetConvolutionGroupCount, libcudnn()),
         cudnnStatus_t,
@@ -53,7 +53,7 @@ function cudnnGetConvolutionGroupCount(convDesc, count)
     )
 end
 
-function cudnnSetConvolutionGroupCount(convDesc, count)
+@checked function cudnnSetConvolutionGroupCount(convDesc, count)
     @runtime_ccall(
         (:cudnnSetConvolutionGroupCount, libcudnn()),
         cudnnStatus_t,
