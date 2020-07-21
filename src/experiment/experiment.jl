@@ -186,7 +186,7 @@ end
 make_plot_true(process) = (plt, xc, yc, xt, σ²) -> nothing
 
 function make_plot_true(process::GP)
-    function plot_true(plt, xc, yc, xt, σ²)
+    function plot_true(xc, yc, xt, σ²)
         xc = Float64.(xc)
         yc = Float64.(yc)
         xt = Float64.(xt)
