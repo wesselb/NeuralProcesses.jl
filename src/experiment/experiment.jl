@@ -152,7 +152,7 @@ function plot_task(
         xc, yc, xt, yt = map(x -> x[:, 1, 1], data_gen(1)[1])
         μ, lower, upper, samples = predict(model, xc, yc, x)
 
-        figure(figsize=(8, 6))
+        figure(figsize=(8, 4))
 
         # Scatter target and context set.
         scatter(xt, yt, c="tab:red", label="Target set")
