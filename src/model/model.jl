@@ -48,7 +48,7 @@ end
         yt::AA;
         num_samples::Integer,
         batch_size::Integer=1024,
-        importance_weighted::Bool=true,
+        importance_weighted::Bool=false,
         fixed_σ::Float32=1f-2,
         fixed_σ_epochs::Integer=0,
         kws...
@@ -67,7 +67,7 @@ Log-expected-likelihood loss. This is a biased estimate of the log-likelihood.
 # Keywords
 - `num_samples::Integer`: Number of samples.
 - `batch_size::Integer=1024`: Batch size to use in sampling.
-- `importance_weighted::Bool=true`: Do an importance-weighted estimate.
+- `importance_weighted::Bool=false`: Do an importance-weighted estimate.
 - `fixed_σ::Float32=1f-2`: Hold the observation noise fixed to this value initially.
 - `fixed_σ_epochs::Integer=0`: Number of iterations to hold the observation noise fixed for.
 - `kws...`: Further keywords to pass on.
@@ -85,7 +85,7 @@ function loglik(
     yt::AA;
     num_samples::Integer,
     batch_size::Integer=1024,
-    importance_weighted::Bool=true,
+    importance_weighted::Bool=false,
     fixed_σ::Float32=1f-2,
     fixed_σ_epochs::Integer=0,
     kws...
