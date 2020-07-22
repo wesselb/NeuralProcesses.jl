@@ -7,8 +7,8 @@ NeuralProcesses.jl is a framework for composing
 [Flux.jl](https://github.com/FluxML/Flux.jl).
 
 **Important:**
-NeuralProcesses.jl requires CUDA.jl at commit `8ce07c8` or later, which is
-newer than v1.2.0.
+NeuralProcesses.jl requires [CUDA.jl](https://github.com/JuliaGPU/CUDA.jl)
+at commit `8ce07c8` or later, which is newer than v1.2.0.
 
 ## Example: The Convolutional Conditional Neural Process
 
