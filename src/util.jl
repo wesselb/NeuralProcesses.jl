@@ -10,6 +10,8 @@ struct Fixed
     x
 end
 
+CUDA.cu(x::Fixed) = Fixed(CUDA.cu(x.x))
+
 """
     unwrap(x::Fixed)
 
