@@ -10,7 +10,9 @@ struct Fixed
     x
 end
 
+# Make `Fixed` compatible with Flux's mechanisms of moving things to and from the GPU.
 CUDA.cu(x::Fixed) = Fixed(CUDA.cu(x.x))
+Flux.adapt_storage(T::Type{<:Array}, x::Fixed) = Fixed(adapt(T, x.x))
 
 """
     unwrap(x::Fixed)
