@@ -183,7 +183,7 @@ function plot_task(
     end
 end
 
-make_plot_true(process) = (plt, xc, yc, xt, σ²) -> nothing
+make_plot_true(process) = (xc, yc, xt, σ²) -> nothing
 
 function make_plot_true(process::GP)
     function plot_true(xc, yc, xt, σ²)
