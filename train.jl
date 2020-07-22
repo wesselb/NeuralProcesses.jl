@@ -389,7 +389,7 @@ else
             model = convnp_1d(
                 receptive_field=receptive_field,
                 num_encoder_layers=8,
-                num_decoder_layers=8,
+                num_decoder_layers=6,
                 num_encoder_channels=num_channels,
                 num_decoder_channels=num_channels,
                 num_latent_channels=16,
