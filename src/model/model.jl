@@ -18,7 +18,7 @@ function (model::Model)(xc::AA, yc::AA, xt::AA; num_samples::Integer=1, kws...)
     size(xc, 1) == 0 && (xc = yc = nothing)  # Handle empty set case.
     xz, pz = code(model.encoder, xc, yc, xt; kws...)
     z = sample(pz, num_samples=num_samples)
-    _, d = code(model.decoder, _match_sample_dim(xz, z), z, _match_sample_dim(xt, z))
+    _, d = code(model.decoder, xz, z, xt)
     return d
 end
 
