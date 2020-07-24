@@ -70,14 +70,16 @@ function code(layer::SetConv, xz::AA, z::AA, x::AA; kws...)
     sampled = num_samples > 1
     if sampled
         z = permutedims(z, (1, 4, 2, 3))
-        z = reshape(z, :, size(z)[3:4]...)
     end
     weights = _compute_weights(x, xz, _get_scales(layer))
     layer.density && (z = _prepend_density_channel(z))
-    z = with_dummy(c -> batched_mul(weights, c), z)
+    if sampled
+        z = batched_mul(weights, z)
+    else
+        z = with_dummy(c -> batched_mul(weights, c), z)
+    end
     layer.density && (z = _normalise_by_first_channel(z))
     if sampled
-        z = reshape(z, :, num_samples, size(z)[3:4]...)
         z = permutedims(z, (1, 3, 4, 2))
     end
     return x, z
