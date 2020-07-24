@@ -7,7 +7,7 @@ NeuralProcesses.jl is a framework for composing
 [Flux.jl](https://github.com/FluxML/Flux.jl).
 
 **Important:**
-NeuralProcesses.jl requires [CUDA.jl](https://github.com/JuliaGPU/CUDA.jl)
+NeuralProcesses.jl requires [CUDA.jl](https://github.com/JuliaGPU/CUDA.jl) at
 a version newer than v1.2.0.
 Currently, this means that `master` is required for
 [CUDA.jl](https://github.com/JuliaGPU/CUDA.jl) and
