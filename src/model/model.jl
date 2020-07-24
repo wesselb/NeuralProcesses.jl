@@ -132,7 +132,7 @@ function loglik(
         end
 
         # Perform decoding.
-        _, d = code(model.decoder, _match_sample_dim(xz, z), z, _match_sample_dim(xt, z))
+        _, d = code(model.decoder, xz, z, xt)
 
         # Fix the noise for the early epochs to force the model to fit.
         if epoch <= fixed_σ_epochs
