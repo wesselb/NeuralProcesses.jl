@@ -8,9 +8,15 @@ NeuralProcesses.jl is a framework for composing
 
 **Important:**
 NeuralProcesses.jl requires [CUDA.jl](https://github.com/JuliaGPU/CUDA.jl)
-at commit `8ce07c8` or later, which is newer than v1.2.0.
+a version newer than v1.2.0.
+Currently, this means that `master` is required for
+[CUDA.jl](https://github.com/JuliaGPU/CUDA.jl) and
+[GPUArrays.jl](https://github.com/JuliaGPU/GPUArrays.jl): `]dev CUDA` and
+`]dev GPUArrays`.
 
-## Example: The Convolutional Conditional Neural Process
+## Introduction
+
+### Example: The Convolutional Conditional Neural Process
 
 As an example, below is an implementation of the
 [Convolutional Conditional Neural Process](https://openreview.net/forum?id=Skey4eBYPS):
@@ -50,6 +56,16 @@ means, lowers, uppers, samples = predict(
     randn(10)   # Random target inputs
 )
 ```
+
+## Manual
+
+
+### Building Blocks
+
+| `Chain` | Chain things. |
+
+
+## State of the Package
 
 ## Implementation Details
 
