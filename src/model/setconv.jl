@@ -66,22 +66,18 @@ function _normalise_by_first_channel(z)
 end
 
 function code(layer::SetConv, xz::AA, z::AA, x::AA; kws...)
-    num_samples = size(z, 4)
-    sampled = num_samples > 1
-    if sampled
-        z = permutedims(z, (1, 4, 2, 3))
-    end
     weights = _compute_weights(x, xz, _get_scales(layer))
     layer.density && (z = _prepend_density_channel(z))
-    if sampled
+    if ndims(z) == 4
+        z = permutedims(z, (1, 4, 2, 3))
         z = batched_mul(weights, z)
-    else
+        z = permutedims(z, (1, 3, 4, 2))
+    elseif ndims(z) == 3
         z = with_dummy(c -> batched_mul(weights, c), z)
+    else
+        error("Cannot deal with inputs of rank $(ndims(z)).")
     end
     layer.density && (z = _normalise_by_first_channel(z))
-    if sampled
-        z = permutedims(z, (1, 3, 4, 2))
-    end
     return x, z
 end
 

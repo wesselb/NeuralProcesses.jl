@@ -22,22 +22,6 @@ function (model::Model)(xc::AA, yc::AA, xt::AA; num_samples::Integer=1, kws...)
     return d
 end
 
-_num_samples(x::AA) = size(x, 4)
-_num_samples(x::Nothing) = 0
-_num_samples(p::Parallel) = maximum(_num_samples.(p.xs))
-
-_repeat_samples(x::AA; num_samples::Integer) = repeat_gpu(x, size(x)..., num_samples)
-_repeat_samples(x::Nothing; num_samples::Integer) = nothing
-_repeat_samples(p::Parallel; num_samples::Integer) =
-    Parallel(_repeat_samples.(p.xs; num_samples=num_samples)...)
-
-function _match_sample_dim(x, z)
-    num_samples = _num_samples(z)
-    num_samples > 1 && (x = _repeat_samples(x, num_samples=num_samples))
-    return x
-end
-
-
 """
     loglik(
         model::Model,
@@ -214,7 +198,7 @@ function elbo(
 
     # Sample latent variable and perform decoding.
     z = sample(qz, num_samples=num_samples)
-    _, d = code(model.decoder, _match_sample_dim(xz, z), z, _match_sample_dim(x_all, z))
+    _, d = code(model.decoder, xz, z, x_all)
 
     # Fix the noise for the early epochs to force the model to fit.
     if epoch <= fixed_σ_epochs

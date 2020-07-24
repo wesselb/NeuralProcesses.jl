@@ -1,3 +1,9 @@
+if CUDA.functional()
+    _cuda_log = CUDA.log
+else
+    _cuda_log = log
+end
+
 """
     Fixed
 
@@ -137,7 +143,7 @@ One-dimensional Gaussian log-pdf.
 function gaussian_logpdf(x::AA, μ::AA, σ::AA)
     # We unroll the computation to avoid loop fusion, which causes GPU issues.
     logconst = 1.837877f0
-    logdet = CUDA.log.(σ)
+    logdet = _cuda_log.(σ)
     logdet = 2 .* logdet
     z = (x .- μ) ./ σ
     quad = z .* z
@@ -170,7 +176,7 @@ function _gaussian_logpdf(x, μ, Σ)
     logconst = 1.837877f0
     # Taking the diagonal of L = U' causes indexing on GPU, which is why we equivalently
     # take the diagonal of U.
-    logpdf = -(n * logconst + 2sum(CUDA.log.(diag(U))) + dot(z, z)) / 2
+    logpdf = -(n * logconst + 2sum(_cuda_log.(diag(U))) + dot(z, z)) / 2
 
     return logpdf, n, L, U, z
 end
@@ -203,7 +209,7 @@ Kullback--Leibler divergence between one-dimensional Gaussian distributions.
 """
 function kl(μ₁::AA, σ₁::AA, μ₂::AA, σ₂::AA)
     # We unroll the computation to avoid loop fusion, which causes GPU issues.
-    logdet = CUDA.log.(σ₂ ./ σ₁)
+    logdet = _cuda_log.(σ₂ ./ σ₁)
     logdet = 2 .* logdet
     z = μ₁ .- μ₂
     σ₁², σ₂² = σ₁.^2, σ₂.^2
@@ -304,7 +310,7 @@ function logsumexp(x::AA; dims=:)
     u = maximum(Tracker.data(x), dims=dims)  # Do not track the maximum!
     # We unroll the computation to avoid loop fusion, which causes GPU issues.
     z = sum(exp.(x .- u), dims=dims)
-    z = CUDA.log.(z)
+    z = _cuda_log.(z)
     return u .+ z
 end
 
@@ -350,7 +356,7 @@ Safe softplus.
 function softplus(x::AA)
     # We unroll the computation to avoid loop fusion, which causes GPU issues.
     z = 1 .+ exp.(-abs.(x))
-    z = CUDA.log.(z)
+    z = _cuda_log.(z)
     return z .+ max.(x, 0)
 end
 
