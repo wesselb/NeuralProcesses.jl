@@ -35,6 +35,8 @@ const MaybeAV = Union{Nothing, AbstractVector}
 const MaybeAM = Union{Nothing, AbstractMatrix}
 const MaybeAA = Union{Nothing, AbstractArray}
 
+export Chain
+
 include("util.jl")
 include("data.jl")
 include("conv.jl")
