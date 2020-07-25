@@ -15,7 +15,6 @@ Currently, this means that `master` is required for
 `]dev GPUArrays`.
 
 Contents:
-
 - [Introduction](#introduction)
 - [Manual](#manual)
 - [State of the Package](#state-of-the-package)
@@ -58,9 +57,9 @@ We can then make predictions as follows:
 ```julia
 means, lowers, uppers, samples = predict(
     convcnp,
-    randn(10),  # Random context inputs
-    randn(10),  # Random context outputs
-    randn(10)   # Random target inputs
+    randn(Float32, 10),  # Random context inputs
+    randn(Float32, 10),  # Random context outputs
+    randn(Float32, 10)   # Random target inputs
 )
 ```
 
