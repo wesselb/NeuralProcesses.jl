@@ -14,6 +14,13 @@ Currently, this means that `master` is required for
 [GPUArrays.jl](https://github.com/JuliaGPU/GPUArrays.jl): `]dev CUDA` and
 `]dev GPUArrays`.
 
+Contents:
+
+- [Introduction](#introduction)
+- [Manual](#manual)
+- [State of the Package](#state-of-the-package)
+- [Implementation Details](#implementation-details)
+
 ## Introduction
 
 ### Example: The Convolutional Conditional Neural Process
@@ -59,13 +66,70 @@ means, lowers, uppers, samples = predict(
 
 ## Manual
 
+### Models
+
+### Coding
 
 ### Building Blocks
 
-| `Chain` | Chain things. |
+This section contains an overview of the building blocks that the package
+provides.
+For some building blocks, there is constructor function available that can be
+used to more easily construct the block.
+
+#### Glue
+
+| Type | Constructor | Description |
+| :- | :- | :- |
+| `Chain` | | Put things in sequence. |
+| `Parallel` | | Put things in parallel. |
+
+####  Basic Blocks
+
+| Type | Constructor | Description |
+| :- | :- | :- |
+| `BatchedMLP` | `batched_mlp` | Batched MLP. |
+| `BatchedConv` | `build_conv` | Batched CNN. |
+| `Splitter` | | Split off a given number of channels. |
+| `LayerNorm` | | Layer normalisation. |
+| `MeanPooling` | | Mean pooling. |
+| `SumPooling` | | Sum pooling. |
+
+#### Advanced Blocks
+
+| Type | Constructor | Description |
+| :- | :- | :- |
+| `Attention` | `attention` | Attentive mechanism. |
+| `SetConv` | `set_conv` | Set convolution. |
+
+#### Likelihoods
+
+| Type | Constructor | Description |
+| :- | :- | :- |
+| `Deterministic` | | Deterministic output. |
+| `FixedGaussian` | | Gaussian likelihood with a fixed variance. |
+| `AmortisedGaussian` | | Gaussian likelihood with a fixed variance that is calculated from split-off channels. |
+| `HeterogeneousGaussian` | | Gaussian likelihood with input-dependent variance. |
+
+#### Coders
+
+| Type | Constructor | Description |
+| :- | :- | :- |
+| `Materialise` | | Materialise a sample. |
+| `FunctionalCoder` | | Code into a function space: make the target inputs a discretisation. |
+| `UniformDiscretisation1D` | | Discretise uniformly at a given density of points. |
+| `InputsCoder` | | Code with the target inputs. |
+| `MLPCoder` | | Rho-sum-phi coder.|
+
+
+### Data Generators
+
+
+### Training
 
 
 ## State of the Package
+
 
 ## Implementation Details
 
