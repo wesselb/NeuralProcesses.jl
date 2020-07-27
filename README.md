@@ -352,6 +352,8 @@ In addition, the package exports the following processes:
 
 ### Training and Evaluation
 
+Experimentation functionality is exported by `NeuralProcesses.Experiment`.
+
 #### Running Models
 
 A model can be run forward by calling it with three arguments:
@@ -383,8 +385,6 @@ means, lowers, uppers, samples = predict(
 ```
 
 #### Training
-
-Experimentation functionality is exported by `NeuralProcesses.Experiment`.
 
 To train a model, use `train!`, which, amongst other things, requires a
 loss function and optimiser.
