@@ -16,7 +16,24 @@ import StatsBase: std
 
 include("checkpoint.jl")
 
-function eval_model(model, loss, data_gen, epoch; num_batches=256)
+"""
+    eval_model(model, loss, data_gen, epoch::Integer; num_batches::Integer=256)
+
+Evaluate model.
+
+# Arguments
+- `model`: Model to evaluate.
+- `loss`: Loss function.
+- `data_gen`: Data generator.
+- `epoch::Integer`: Current epoch.
+
+# Keywords
+- `num_batches::Integer=256`: Number of batches to use.
+
+# Returns
+- `Tuple{Float32, Float32}`: Loss value and error.
+"""
+function eval_model(model, loss, data_gen, epoch::Integer; num_batches::Integer=256)
     model = NeuralProcesses.untrack(model)
     @time tuples = map(x -> loss(model, epoch, gpu.(x)...), data_gen(num_batches))
     values = map(x -> x[1], tuples)
@@ -53,7 +70,7 @@ _mean_error(xs) = (mean(xs), 2std(xs) / sqrt(length(xs)))
 
 _nanreport = Flux.throttle(() -> println("Encountered NaN loss! Returning zero."), 1)
 
-function nansafe(loss, xs...)
+function _nansafe(loss, xs...)
     value, value_size = loss(xs...)
     if isnan(value)
         _nanreport()
@@ -63,15 +80,44 @@ function nansafe(loss, xs...)
     end
 end
 
+"""
+    train!(
+        model,
+        loss,
+        data_gen,
+        opt;
+        bson=nothing,
+        starting_epoch::Integer=1,
+        epochs::Integer=100,
+        tasks_per_epoch::Integer=1000,
+        path="output"
+    )
+
+Train a model.
+
+# Arguments
+- `model`: Model to train.
+- `loss`: Loss function.
+- `data_gen`: Data generator.
+- `opt`: Optimiser. See `Flux.Optimiser`.
+
+# Keywords
+- `bson`: Name of file to save model to. Set to `nothing` to not save the model.
+- `starting_epoch::Integer=1`: Epoch to start training at.
+- `epochs::Integer=100`: Number of epochs to train for.
+- `tasks_per_epoch::Integer=1000`: Number of tasks to draw in each poch.
+- `path="output"`: The model will be tested after every epochs, which produces plots. This
+    specifies the directory to write plots to.
+"""
 function train!(
     model,
     loss,
     data_gen,
     opt;
     bson=nothing,
-    starting_epoch=1,
-    epochs=100,
-    tasks_per_epoch=1000,
+    starting_epoch::Integer=1,
+    epochs::Integer=100,
+    tasks_per_epoch::Integer=1000,
     path="output"
 )
     CUDA.GPUArrays.allowscalar(false)
@@ -96,7 +142,7 @@ function train!(
             ps = Flux.Params(Flux.params(model))
             for d in data_gen(batches_per_epoch)
                 gs = Tracker.gradient(ps) do
-                    first(nansafe(loss, model, epoch, gpu.(d)...))
+                    first(_nansafe(loss, model, epoch, gpu.(d)...))
                 end
                 for p in ps
                     Tracker.update!(p, -Flux.Optimise.apply!(opt, p, Tracker.data(gs[p])))
@@ -113,11 +159,11 @@ function train!(
         )
 
         # Plot model.
-        plot_task(
+        _plot_task(
             NeuralProcesses.untrack(model),
             data_gen,
             epoch,
-            make_plot_true(data_gen.process),
+            _make_plot_true(data_gen.process),
             path=path
         )
 
@@ -133,11 +179,20 @@ function train!(
         end
     end
 end
+
+"""
+    report_num_params(model)
+
+Report the number of parameters of a model.
+
+# Arguments
+- `model`: Model to report the number of parameters of.
+"""
 function report_num_params(model)
     @printf("Number of parameters: %-6d\n", sum(map(length, Flux.params(model))))
 end
 
-function plot_task(
+function _plot_task(
     model,
     data_gen,
     epoch,
@@ -183,9 +238,9 @@ function plot_task(
     end
 end
 
-make_plot_true(process) = (xc, yc, xt, σ²) -> nothing
+_make_plot_true(process) = (xc, yc, xt, σ²) -> nothing
 
-function make_plot_true(process::GP)
+function _make_plot_true(process::GP)
     function plot_true(xc, yc, xt, σ²)
         xc, yc, xt = Float64.(xc), Float64.(yc), Float64.(xt)
         posterior = process | Obs(process(xc, σ²) ← yc)
