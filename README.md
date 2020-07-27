@@ -27,6 +27,71 @@ with learning a map directly from data sets to predictive distributions.
 Neural processes are a powerful class of parametrisations of this map based on
 an _encoding_ of the data.
 
+### Predefined Experimental Setup: `train.jl`
+
+Eager to get started?!
+The file `train.jl` contains an pre-defined experimental setup that gets
+you going immediately!
+Example:
+
+```
+$ julia train.jl --model convcnp --data matern52 --loss loglik --epochs 20
+```
+
+Here's what it can do:
+
+```
+$ julia train.jl --help
+usage: train.jl --data DATA --model MODEL [--num-samples NUM-SAMPLES]
+                [--batch-size BATCH-SIZE] --loss LOSS
+                [--starting-epoch STARTING-EPOCH] [--epochs EPOCHS]
+                [--evaluate] [--evaluate-iw] [--evaluate-no-iw]
+                [--evaluate-num-samples EVALUATE-NUM-SAMPLES]
+                [--evaluate-only-within] [--models-dir MODELS-DIR]
+                [--bson BSON] [-h]
+
+optional arguments:
+  --data DATA           Data set: eq-small, eq, matern52,
+                        noisy-mixture, weakly-periodic, sawtooth, or
+                        mixture. Append "-noisy" to a data set to make
+                        it noisy.
+  --model MODEL         Model: conv[c]np, a[c]np, or [c]np. Append
+                        "-global-{mean,sum}" to introduce a global
+                        latent variable. Append
+                        "-amortised-{mean,sum}" to use amortised
+                        observation noise. Append "-het" to use
+                        heterogeneous observation noise.
+  --num-samples NUM-SAMPLES
+                        Number of samples to estimate the training
+                        loss. Defaults to 20 for "loglik" and 5 for
+                        "elbo". (type: Int64)
+  --batch-size BATCH-SIZE
+                        Batch size. (type: Int64, default: 16)
+  --loss LOSS           Loss: loglik, loglik-iw, or elbo.
+  --starting-epoch STARTING-EPOCH
+                        Set to a number greater than one to continue
+                        training. (type: Int64, default: 1)
+  --epochs EPOCHS       Number of epochs to training for. (type:
+                        Int64, default: 20)
+  --evaluate            Evaluate model.
+  --evaluate-iw         Force to use importance weighting for the
+                        evaluation objective.
+  --evaluate-no-iw      Force to NOT use importance weighting for the
+                        evaluation objective.
+  --evaluate-num-samples EVALUATE-NUM-SAMPLES
+                        Number of samples to estimate the evaluation
+                        loss. (type: Int64, default: 4096)
+  --evaluate-only-within
+                        Evaluate with only the task of interpolation
+                        within training range.
+  --models-dir MODELS-DIR
+                        Directory to store models in. (default:
+                        "models")
+  --bson BSON           Directly specify the file to save the model to
+                        and load it from.
+  -h, --help            show this help message and exit
+```
+
 ### Example: The Convolutional Conditional Neural Process
 
 As an example, below is an implementation of the
@@ -89,19 +154,25 @@ means, lowers, uppers, samples = predict(
 )
 ```
 
+
 ## Manual
 
-### Models and Coding
+### Principles
+
+#### Models
 
 In NeuralProcesses.jl, models consists of an _encoder_ and a _decoder_.
+
+```julia
+model = Model(encoder, decoder)
+```
+
 An encoder takes in the data and produces an abstract representation of the
 data.
 A decoder then takes in this representation and produces a prediction at target
 inputs.
 
-```julia
-model = Model(encoder, decoder)
-```
+#### Functional Representations and Coding
 
 In the package, the three objects — the data, encoding, and prediction —
 have a common representation. In particular, everything is represented as a
@@ -127,6 +198,8 @@ Encoders and decoders are complete coders.
 However, encoders and decoders are often composed from simpler coders, and these
 coders could be partial.
 
+#### Compositional Coder Design
+
 Coders can be composed using `Chain`:
 
 ```julia
@@ -144,8 +217,7 @@ e.g. in a multi-headed architecture:
 ```julia
 encoder = Chain(
     ...,
-    # Split the output of `coder1` into two parts, which can then be processed
-    # by two heads.
+    # Split the output into two parts, which can then be processed by two heads.
     Splitter(...),
     Parallel(
         ...,  # Head 1
@@ -154,25 +226,27 @@ encoder = Chain(
 )
 ```
 
-An encoder should output either a _deterministic_ encoding or a _stochastic_
-encoding, which can be achieved by appending a _likelihood_:
+#### Coder Likelihoods
+
+A coder should output either a _deterministic_ coding or a _stochastic_
+coding, which can be achieved by appending a _likelihood_:
 
 ```julia
-deterministic_encoder = Chain(
+deterministic_coder = Chain(
     ...,
     Deterministic()
 )
 
-stochastic_encoder = Chain(
+stochastic_coder = Chain(
     ...,
     HeterogeneousGaussian()
 )
 ```
 
-When a model is run, the output of the encoder is _sampled_.
-The resulting sample will be fed to the decoder.
+When a model is run, the output of the _encoder_ is _sampled_.
+The resulting sample is then fed to the _decoder_.
 In scenarios where the encoder outputs multiple encodings in parallel, it may be
-desirable to concatenate those encodings into one big tensors, which can then
+desirable to concatenate those encodings into one big tensor which can then
 be processed by the decoder.
 This is achieved by prepending `Materialise()` to the decoder:
 
@@ -207,6 +281,8 @@ The package provides various building blocks that can be used to compose
 encoders and decoders.
 For some building blocks, there is constructor function available that can be
 used to more easily construct the block.
+More information about a block can be obtained by using the built-in help
+function, e.g. `?LayerNorm`.
 
 #### Glue
 
@@ -252,16 +328,126 @@ used to more easily construct the block.
 | `InputsCoder` | | Code with the target inputs. |
 | `MLPCoder` | | Rho-sum-phi coder. |
 
-
-
 ### Data Generators
 
+Models can be trained with data generators.
+Data generators are callables that take in an integer (number of tasks) and give
+back an iterator that generates four tuples: context inputs, context outputs,
+target inputs, and target outputs.
+All tensors should be of rank three where the first dimension is the data
+dimension, the second dimension is the feature dimension, and the third
+dimension is the batch dimension.
 
-### Training
+Data generators can be constructed with `DataGenerator` which takes in an
+underlying _stochastic process_.
+[Stheno.jl](https://github.com/willtebbutt/Stheno.jl) can be used to build
+Gaussian processes.
+In addition, the package exports the following processes:
+
+| Type | Description |
+| :- | :- |
+| `Sawtooth` | Sawtooth process.  |
+| `BayesianConvNP` | A Convolutional Neural Process with a prior on the weights. |
+| `Mixture` | A mixture of processes. |
+
+### Training and Evaluation
+
+#### Running Models
+
+A model can be run forward by calling it with three arguments:
+context inputs, context outputs, and target inputs.
+All arguments to models should be tensors of rank three where the first
+dimension is the data dimension, the second dimension is the feature dimension,
+and the third dimension is the batch dimension.
+
+```julia
+convcnp(
+    # Use a batch size of 16.
+    randn(Float32, 10, 1, 16),  # Random context inputs
+    randn(Float32, 10, 1, 16),  # Random context outputs
+    randn(Float32, 15, 1, 16)   # Random target inputs
+)
+```
+
+For convenience, the package also exports the function `predict`, which
+runs a model from inputs of type `Vector` and produces predictive means,
+lower and upper credible bounds, and predictive samples.
+
+```julia
+means, lowers, uppers, samples = predict(
+    convcnp,
+    randn(Float32, 10),  # Random context inputs
+    randn(Float32, 10),  # Random context outputs
+    randn(Float32, 10)   # Random target inputs
+)
+```
+
+#### Training
+
+Experimentation functionality is exported by `NeuralProcesses.Experiment`.
+
+To train a model, use `train!`, which, amongst other things, requires a
+loss function and optimiser.
+Loss functions are described below, and
+optimisers can be found in `Flux.Optimiser`;
+for most applications, `ADAM(5e-4)` probably suffices.
+After training, a model can be evaluated with `eval_model`.
+
+See `train.jl` for an example of `train!`.
+
+#### Losses
+
+The following loss functions are exported:
+
+| Function | Description |
+| :- | :- |
+| `loglik` | Biased estimate of the log-expected-likelihood. Exact for models with a deterministic encoder. |
+| `elbo` | Neural process ELBO-style loss. |
+
+Examples:
+
+```julia
+# 1-sample log-EL loss. This is exact for models with a deterministic encoder.
+loss(xs...) = loglik(xs..., num_samples=1)   
+
+# 20-sample log-EL loss. This is probably what you want if you are training
+# a model with a stochastic encoder.
+loss(xs...) = loglik(xs..., num_samples=20)
+
+# 20-sample ELBO loss. This is an alternative to `loglik`.
+loss(xs...) = elbo(xs..., num_samples=20)    
+```
+
+See `train.jl` for more examples.
+
+#### Saving and Loading
+
+After every epoch, the current model and top five best models are saved.
+To file to which the model is written is determined by the keyword `bson`
+of `train!`.
+After training, the best model can be loaded with `best_model(path)`.
 
 
 ## State of the Package
 
+The package is currently mostly a port from academic code.
+There are a still a number of important things to do:
+
+- **Support for 2D data:**
+    The package is currently built around 1D tasks.
+    We plan to add support for 2D data, e.g. images.
+    This should not require big changes, but it should be implemented carefully.
+
+- **Tests:**
+    The important components of the package are tested, but test coverage is
+    nowhere near where it should be.
+
+- **Regression tests:**
+    For the package, GPU performance is crucial, so regression tests are
+    necessary.
+
+- **Documentation:**
+    Documentation needs to be improved.
 
 ## Implementation Details
 
