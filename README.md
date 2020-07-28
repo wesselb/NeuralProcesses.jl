@@ -16,7 +16,14 @@ Currently, this means that `master` is required for
 
 Contents:
 - [Introduction](#introduction)
+    - [Predefined Experimental Setup: `train.jl`](#predefined-experimental-setup-trainjl)
+    - [Example: The Convolutional Conditional Neural Process](#example-the-convolutional-conditional-neural-process)
 - [Manual](#manual)
+    - [Principles](#principles)
+    - [Available Models for 1D Regression](#available-models-for-1d-regression)
+    - [Building Blocks](#building-blocks)
+    - [Data Generators](#data-generators)
+    - [Training and Evaluation](#training-and-evaluation)
 - [State of the Package](#state-of-the-package)
 - [Implementation Details](#implementation-details)
 
@@ -30,7 +37,7 @@ an _encoding_ of the data.
 ### Predefined Experimental Setup: `train.jl`
 
 Eager to get started?!
-The file `train.jl` contains an pre-defined experimental setup that gets
+The file `train.jl` contains an predefined experimental setup that gets
 you going immediately!
 Example:
 
