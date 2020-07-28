@@ -258,8 +258,8 @@ decoder = Chain(
 )
 ```
 
-The decoder outputs the prediction for the data, so, as illustrated above, a
-decoder should also have a likelihood.
+The decoder outputs the prediction for the data.
+In the above example, `decoder` produces means and variances at test inputs.
 
 ### Available Models for 1D Regression
 
