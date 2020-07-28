@@ -331,7 +331,7 @@ function, e.g. `?LayerNorm`.
 ### Data Generators
 
 Models can be trained with data generators.
-Data generators are callables that take in an integer (number of tasks) and give
+Data generators are callables that take in an integer (number of batches) and give
 back an iterator that generates four tuples: context inputs, context outputs,
 target inputs, and target outputs.
 All tensors should be of rank three where the first dimension is the data
