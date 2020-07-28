@@ -348,7 +348,7 @@ In addition, the package exports the following processes:
 | :- | :- |
 | `Sawtooth` | Sawtooth process.  |
 | `BayesianConvNP` | A Convolutional Neural Process with a prior on the weights. |
-| `Mixture` | A mixture of processes. |
+| `Mixture` | Mixture of processes. |
 
 ### Training and Evaluation
 
