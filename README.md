@@ -35,7 +35,7 @@ you going immediately!
 Example:
 
 ```
-$ julia train.jl --model convcnp --data matern52 --loss loglik --epochs 20
+$ julia --project=. train.jl --model convcnp --data matern52 --loss loglik --epochs 20
 ```
 
 Here's what it can do:
