@@ -41,7 +41,7 @@ $ julia --project=. train.jl --model convcnp --data matern52 --loss loglik --epo
 Here's what it can do:
 
 ```
-$ julia train.jl --help
+$ julia --project=. train.jl --help
 usage: train.jl --data DATA --model MODEL [--num-samples NUM-SAMPLES]
                 [--batch-size BATCH-SIZE] --loss LOSS
                 [--starting-epoch STARTING-EPOCH] [--epochs EPOCHS]
