@@ -23,7 +23,7 @@ Contents:
 ## Introduction
 
 The setting of NeuralProcesses.jl is _meta-learning_. Meta-learning is concerned
-with learning a map directly from data sets to predictive distributions.
+with learning a map from data sets directly to predictive distributions.
 Neural processes are a powerful class of parametrisations of this map based on
 an _encoding_ of the data.
 
