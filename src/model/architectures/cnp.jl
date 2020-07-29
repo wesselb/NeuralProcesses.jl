@@ -44,23 +44,6 @@ function cnp_1d(;
                     )
                 ),
                 Deterministic()
-            ),
-            Chain(
-                MLPCoder(
-                    batched_mlp(
-                        dim_in    =dim_x + dim_y,
-                        dim_hidden=dim_embedding,
-                        dim_out   =dim_embedding,
-                        num_layers=num_encoder_layers
-                    ),
-                    batched_mlp(
-                        dim_in    =dim_embedding,
-                        dim_hidden=dim_embedding,
-                        dim_out   =2dim_embedding,
-                        num_layers=num_encoder_layers
-                    )
-                ),
-                HeterogeneousGaussian()
             )
         ),
         Chain(
