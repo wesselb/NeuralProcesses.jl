@@ -100,6 +100,9 @@ optional arguments:
   -h, --help            show this help message and exit
 ```
 
+## Manual
+
+### Principles
 
 #### Functional Representations and Coding
 
@@ -419,7 +422,6 @@ means, lowers, uppers, samples = predict(
     randn(Float32, 10)   # Random target inputs
 )
 ```
-
 
 ## State of the Package
 
