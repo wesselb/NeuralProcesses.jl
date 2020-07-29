@@ -17,13 +17,14 @@ Currently, this means that `master` is required for
 Contents:
 - [Introduction](#introduction)
     - [Predefined Experimental Setup: `train.jl`](#predefined-experimental-setup-trainjl)
-    - [Example: The Convolutional Conditional Neural Process](#example-the-convolutional-conditional-neural-process)
 - [Manual](#manual)
     - [Principles](#principles)
     - [Available Models for 1D Regression](#available-models-for-1d-regression)
     - [Building Blocks](#building-blocks)
     - [Data Generators](#data-generators)
     - [Training and Evaluation](#training-and-evaluation)
+- [Examples](#examples)
+    - [The Convolutional Conditional Neural Process](#the-convolutional-conditional-neural-process)
 - [State of the Package](#state-of-the-package)
 - [Implementation Details](#implementation-details)
 
@@ -99,85 +100,6 @@ optional arguments:
   -h, --help            show this help message and exit
 ```
 
-### Example: The Convolutional Conditional Neural Process
-
-As an example, below is an implementation of the
-[Convolutional Conditional Neural Process](https://openreview.net/forum?id=Skey4eBYPS):
-
-```julia
-# The encoder maps into a function space, which is what `FunctionalCoder`
-# indicates.
-encoder = FunctionalCoder(
-    # We cannot exactly represent a function, so we represent a discretisation
-    # of the function instead. We use a discretisation of 64 points per unit.
-    # The discretisation will span from the minimal context or target input
-    # to the maximal context or target input with a margin of 1 on either side.
-    UniformDiscretisation1D(64f0, 1f0),
-    Chain(
-        # The encoder is given by a so-called set convolution, which directly
-        # maps the data set to the discretised functional representation. The
-        # data consists of one channel. We also specify a length scale of
-        # twice the inter-point spacing of the discretisation. The function
-        # space that we map into is a reproducing kernel Hilbert space (RKHS),
-        # and the length scale corresponds to the length scale of the kernel of
-        # the RKHS. We also append a density channel, which ensures that the
-        # encoder is injective.
-        set_conv(1, 2 / 64f0; density=true),
-        # The encoding will be deterministic. We could also use a stochastic
-        # encoding.
-        Deterministic()
-    )
-)
-
-decoder = Chain(
-    # The decoder first transforms the functional representation with a CNN.
-    build_conv(
-        1f0,  # Receptive field size
-        10,   # Number of layers
-        64,   # Number of channels
-        points_per_unit =64f0,  # Density of the discretisation
-        dimensionality  =1,     # This is a 1D model.
-        num_in_channels =2,     # Account for density channel.
-        num_out_channels=2      # Produce a mean and standard deviation.
-    ),
-    # Use another set convolution to map back from the space of the encoding
-    # to the space of the data.
-    set_conv(2, 2 / 64f0),
-    # Predict means and variances.
-    HeterogeneousGaussian()
-)
-
-convcnp = Model(encoder, decoder)
-```
-
-Then, after training, we can make predictions as follows:
-
-```julia
-means, lowers, uppers, samples = predict(
-    convcnp,
-    randn(Float32, 10),  # Random context inputs
-    randn(Float32, 10),  # Random context outputs
-    randn(Float32, 10)   # Random target inputs
-)
-```
-
-
-## Manual
-
-### Principles
-
-#### Models
-
-In NeuralProcesses.jl, models consists of an _encoder_ and a _decoder_.
-
-```julia
-model = Model(encoder, decoder)
-```
-
-An encoder takes in the data and produces an abstract representation of the
-data.
-A decoder then takes in this representation and produces a prediction at target
-inputs.
 
 #### Functional Representations and Coding
 
@@ -433,6 +355,70 @@ After every epoch, the current model and top five best models are saved.
 To file to which the model is written is determined by the keyword `bson`
 of `train!`.
 After training, the best model can be loaded with `best_model(path)`.
+
+## Examples
+
+### The Convolutional Conditional Neural Process
+
+Below is an implementation of the
+[Convolutional Conditional Neural Process](https://openreview.net/forum?id=Skey4eBYPS):
+
+```julia
+# The encoder maps into a function space, which is what `FunctionalCoder`
+# indicates.
+encoder = FunctionalCoder(
+    # We cannot exactly represent a function, so we represent a discretisation
+    # of the function instead. We use a discretisation of 64 points per unit.
+    # The discretisation will span from the minimal context or target input
+    # to the maximal context or target input with a margin of 1 on either side.
+    UniformDiscretisation1D(64f0, 1f0),
+    Chain(
+        # The encoder is given by a so-called set convolution, which directly
+        # maps the data set to the discretised functional representation. The
+        # data consists of one channel. We also specify a length scale of
+        # twice the inter-point spacing of the discretisation. The function
+        # space that we map into is a reproducing kernel Hilbert space (RKHS),
+        # and the length scale corresponds to the length scale of the kernel of
+        # the RKHS. We also append a density channel, which ensures that the
+        # encoder is injective.
+        set_conv(1, 2 / 64f0; density=true),
+        # The encoding will be deterministic. We could also use a stochastic
+        # encoding.
+        Deterministic()
+    )
+)
+
+decoder = Chain(
+    # The decoder first transforms the functional representation with a CNN.
+    build_conv(
+        1f0,  # Receptive field size
+        10,   # Number of layers
+        64,   # Number of channels
+        points_per_unit =64f0,  # Density of the discretisation
+        dimensionality  =1,     # This is a 1D model.
+        num_in_channels =2,     # Account for density channel.
+        num_out_channels=2      # Produce a mean and standard deviation.
+    ),
+    # Use another set convolution to map back from the space of the encoding
+    # to the space of the data.
+    set_conv(2, 2 / 64f0),
+    # Predict means and variances.
+    HeterogeneousGaussian()
+)
+
+convcnp = Model(encoder, decoder)
+```
+
+Then, after training, we can make predictions as follows:
+
+```julia
+means, lowers, uppers, samples = predict(
+    convcnp,
+    randn(Float32, 10),  # Random context inputs
+    randn(Float32, 10),  # Random context outputs
+    randn(Float32, 10)   # Random target inputs
+)
+```
 
 
 ## State of the Package
