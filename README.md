@@ -24,6 +24,9 @@ Contents:
     - [Data Generators](#data-generators)
     - [Training and Evaluation](#training-and-evaluation)
 - [Examples](#examples)
+    - [The Conditional Neural Process](#the-conditional-neural-process)
+    - [The Neural Process](#the-neural-process)
+    - [The Attentive Neural Process](#the-attentive-neural-process)
     - [The Convolutional Conditional Neural Process](#the-convolutional-conditional-neural-process)
 - [State of the Package](#state-of-the-package)
 - [Implementation Details](#implementation-details)
@@ -171,6 +174,8 @@ encoder = Chain(
 )
 ```
 
+By default, parallel representations are combined with concatenation along the channel dimension, but this is readily extended to additional designs!
+
 #### Coder Likelihoods
 
 A coder should output either a _deterministic_ coding or a _stochastic_
@@ -215,16 +220,16 @@ literature.
 | :- | :- | :- |
 | Conditional Neural Process | `cnp_1d` | [Garnelo, Rosenbaum, et al. (2018)](https://arxiv.org/abs/1807.01613) |
 | Neural Process | `np_1d` | [Garnelo, Schwarz, et al. (2018)](https://arxiv.org/abs/1807.01622) |
-| Attentive Conditional Neural Process | `acnp_1d` | [Kim et al. (2019)](https://arxiv.org/abs/1807.01622) |
-| Attentive Neural Process | `anp_1d` | [Kim et al. (2019)](https://arxiv.org/abs/1807.01622) |
-| Convolutional Conditional Neural Process | `convcnp_1d` | [Gordon et al. (2020)](https://openreview.net/forum?id=Skey4eBYPS) |
-| Convolutional Neural Process | `convnp_1d` | [Foong et al. (2020)](https://arxiv.org/abs/2007.01332) |
+| Attentive Conditional Neural Process | `acnp_1d` | [Kim, Mnih, et al. (2019)](https://arxiv.org/abs/1807.01622) |
+| Attentive Neural Process | `anp_1d` | [Kim, Mnih, et al. (2019)](https://arxiv.org/abs/1807.01622) |
+| Convolutional Conditional Neural Process | `convcnp_1d` | [Gordon, Bruinsma, et al. (2020)](https://openreview.net/forum?id=Skey4eBYPS) |
+| Convolutional Neural Process | `convnp_1d` | [Foong, Bruinsma, et al. (2020)](https://arxiv.org/abs/2007.01332) |
 
 ### Building Blocks
 
 The package provides various building blocks that can be used to compose
 encoders and decoders.
-For some building blocks, there is constructor function available that can be
+For some building blocks, there is a constructor function available that can be
 used to more easily construct the block.
 More information about a block can be obtained by using the built-in help
 function, e.g. `?LayerNorm`.
@@ -374,8 +379,209 @@ After training, the best model can be loaded with `best_model(path)`.
 
 ## Examples
 
+### The Conditional Neural Process
+
+Perhaps the simplest member of the NP family is the [Conditional Neural Process](http://proceedings.mlr.press/v80/garnelo18a.html) (CNP).
+CNPs employ a deterministic MLP-based encoder, and an MLP based decoder.
+As a first example, we provide an implementation of a simple CNP in the framework:
+
+```julia
+# The encoder maps into a finite-dimensional vector space, and
+# produces a global (deterministic) representation, which is then
+# concatenated to every test point. We use a `Parallel` object to
+# achieve this!
+encoder = Parallel(
+    # The `InputsEncoder` simply outputs the target locations. We `Chain` this
+    # with a `Deterministic` likelihood to form a complete Coder.
+    Chain(
+        InputsCoder(),
+        Deterministic()
+    ),
+    Chain(
+        # The representation is given by a  `DeepSet` network, which is
+        # implemented with the `MLPCoder` object. This object receives two MLPs
+        # upon construction: a pre-pooling network and post-pooling network,
+        # and produces a vector representation for each context set in the batch.
+        MLPCoder(
+            batched_mlp(
+                dim_in    =dim_x + dim_y,
+                dim_hidden=dim_embedding,
+                dim_out   =dim_embedding,
+                num_layers=num_encoder_layers
+            ),
+            batched_mlp(
+                dim_in    =dim_embedding,
+                dim_hidden=dim_embedding,
+                dim_out   =dim_embedding,
+                num_layers=num_encoder_layers
+            )
+        ),
+        # The resulting representation is also chained with a `Deterministic`
+        # likelihood as we are interested in a conditional model.
+        Deterministic()
+    )
+)
+
+# The CNP decoder is also MLP based. it first `materialises` the encoder output
+# (concatenates the target inputs and context set representation), and then passes
+# these through an MLP that outputs a mean and standard deviation at every
+# target location.
+decoder = Chain(
+        # First, concatenate target inputs and context set representation. By default,
+        # the `Materialise` object uses concatenation to combine the different representations
+        # in a `Parallel` object, but alternative designs (e.g., summation or multiplicative
+        # flows) could also be considered in NeuralProcesses.jl.
+        Materialise(),
+        # Pass the resulting representations through an MLP-based decoder. Input
+        # is the dimension of the target inputs plus the dimension of the representation.
+        # The output dimension is 2 * output dimension, since we require a mean
+        # and standard deviation for every location.
+        batched_mlp(
+            dim_in    =dim_x + dim_embedding,
+            dim_hidden=dim_embedding,
+            dim_out   =2dim_y,
+            num_layers=num_decoder_layers
+        ),
+        # The `HeterogeneousGaussian` likelihood automatically splits its inputs
+        # in two along the feature dimension, and treats the first half as the mean
+        # and second half as the (log) standard deviation of a Gaussian distribution.
+        HeterogeneousGaussian()
+    )
+
+cnp = Model(encoder, decoder)
+```
+Then, after training, we can make predictions as follows:
+
+```julia
+means, lowers, uppers, samples = predict(
+    convcnp,
+    randn(Float32, 10),  # Random context inputs
+    randn(Float32, 10),  # Random context outputs
+    randn(Float32, 10)   # Random target inputs
+)
+```
+
+### The Neural Process
+
+[Neural Processes](https://arxiv.org/abs/1807.01622) (NP) extend CNPs by adding a latent variable to the model.
+This enables NPs to capture joint, non-Gaussian marginal distributions for target sets, which in turn allows producing coherent samples.
+Extending CNPs to NPs in NeuralProcceses.jl is extremely easy: we simply replace the `Deterministic` component of the `MLPCoder` with a `HeterogenousGaussian`, and adjust the output dimension of the encoder to produce both means and variances!
+
+```julia
+# The only change to the encoder is replacing the `Deterministic` following the `MLPCoder`
+# With a `HeterogenousGaussian`!
+encoder = Parallel(
+    Chain(
+        InputsCoder(),
+        Deterministic()
+    ),
+    Chain(
+        MLPCoder(
+            batched_mlp(
+                dim_in    =dim_x + dim_y,
+                dim_hidden=dim_embedding,
+                dim_out   =dim_embedding,
+                num_layers=num_encoder_layers
+            ),
+            batched_mlp(
+                dim_in    =dim_embedding,
+                dim_hidden=dim_embedding,
+                # Since `HeterogenousGaussian` splits its inputs along the channel
+                # dimension, we increase the output dimension of the set encoder
+                # accordingly.
+                dim_out   =2dim_embedding,
+                num_layers=num_encoder_layers
+            )
+        ),
+        # This is the main change required to switch between a CNP and an NP.
+        HeterogeneousGaussian()
+    )
+)
+
+# We can then reuse the previously defined decoder as is!
+np = Model(encoder, decoder)
+```
+
+Note that typical NPs consider both a deterministic and latent representation.
+This is easily achieved in NeuralProcesses.jl by adding an additional encoder to the `Parallel` object (with a `Deterministic` likelihood), and increasing the decoder `dim_in` accordingly.
+In this repo, the built-in NP model uses this form.
+This example does not include a deterministic path to emphasise the ease of switching between conditional and latent-variable models in NeuralProcesses.jl.
+
+### The Attentive Neural Processes
+
+Next, we consider a more complicated model, and demonstrate how easy it is to implement with NeuralProcesses.jl!
+[Attentive Neural Processes](https://openreview.net/forum?id=SkE6PjC9KX) (ANPs) extend NPs by considering an attentive mechanism for the deterministic representation.
+Attention comes built-in with NeuralProcesses.jl, and so we can deploy it within a `Chain` or `Parallel` like other building blocks.
+Below is a n example implementation of an ANP with a deterministic attentive representation, and a stochastic (Gaussian) global representation:
+
+```julia
+# The encoder now aggregates three separate representations: (i) the target inputs
+# (similarly to the C / NP), (ii) a deterministic attentive representation, and (iii)
+# a stochastic global representation.
+encoder = Parallel(
+    # First, include the `InputsCoder` to represent the target set inputs.
+    Chain(
+        InputsCoder(),
+        Deterministic()
+    ),
+    Chain(
+    # NeuralProcesses.jl uses a transformer-style multi-head architecture for attention.
+    # It first embeds the inputs and outputs into a finite-dimensional vector space with
+    # an MLP, and applies the attention in the embedding space. The constructor requires
+    # the dimensionalities of the inputs / outputs, desired dimensionality of the embedding,
+    # number of heads to employ (each head will use a `dim_embedding // num_heads` dimensional
+    # embedding), and number of layers in the embedding MLPs. As ANPs employ attention for
+    # the deterministic representations, this is chained with a `Deterministic` likelihood.
+        attention(
+            dim_x             =dim_x,
+            dim_y             =dim_y,
+            dim_embedding     =dim_embedding,
+            num_heads         =num_encoder_heads,
+            num_encoder_layers=num_encoder_layers
+        ),
+        Deterministic()
+    ),
+    Chain(
+    # The latent path uses the same form as for the NP.
+        MLPCoder(
+            batched_mlp(
+                dim_in    =dim_x + dim_y,
+                dim_hidden=dim_embedding,
+                dim_out   =dim_embedding,
+                num_layers=num_encoder_layers
+            ),
+            batched_mlp(
+                dim_in    =dim_embedding,
+                dim_hidden=dim_embedding,
+                dim_out   =2dim_embedding,
+                num_layers=num_encoder_layers
+            )
+        ),
+        HeterogeneousGaussian()
+    )
+)
+
+# The decoder for the ANP is again MLP-based, and so has the same form as the (C)NP decoder.
+# The only required change is to account for the dimensionality of the latent representation.
+decoder = Chain(
+    Materialise(),
+    batched_mlp(
+        dim_in    =dim_x + 2dim_embedding,
+        dim_hidden=dim_embedding,
+        dim_out   =num_noise_channels,
+        num_layers=num_decoder_layers
+    ),
+    noise
+)
+
+anp = Model(encoder, decoder)
+```
+
 ### The Convolutional Conditional Neural Process
 
+As a final example, we consider the [Convolutional Conditional Neural Process](https://openreview.net/forum?id=Skey4eBYPS) (ConvCNP).
+The key difference between the ConvCNP and other NPs in terms of implementation is that it encodes the data into a space of functions, rather than finite-dimensional vectors.
+This is handled in NeuralPRocesses.jl with `FunctionalCoders`, which, in addition to complete coders, also expect `Discretisation` objects on construction.
 Below is an implementation of the
 [Convolutional Conditional Neural Process](https://openreview.net/forum?id=Skey4eBYPS):
 
@@ -423,17 +629,6 @@ decoder = Chain(
 )
 
 convcnp = Model(encoder, decoder)
-```
-
-Then, after training, we can make predictions as follows:
-
-```julia
-means, lowers, uppers, samples = predict(
-    convcnp,
-    randn(Float32, 10),  # Random context inputs
-    randn(Float32, 10),  # Random context outputs
-    randn(Float32, 10)   # Random target inputs
-)
 ```
 
 ## State of the Package
