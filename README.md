@@ -104,6 +104,19 @@ optional arguments:
 
 ### Principles
 
+#### Models
+
+In NeuralProcesses.jl, models consists of an _encoder_ and a _decoder_.
+
+```julia
+model = Model(encoder, decoder)
+```
+
+An encoder takes in the data and produces an abstract representation of the
+data.
+A decoder then takes in this representation and produces a prediction at target
+inputs.
+
 #### Functional Representations and Coding
 
 In the package, the three objects — the data, encoding, and prediction —
