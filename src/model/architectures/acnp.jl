@@ -45,7 +45,7 @@ function acnp_1d(;
         Chain(
             Materialise(),
             batched_mlp(
-                dim_in    =dim_x + 2dim_embedding,
+                dim_in    =dim_x + dim_embedding,
                 dim_hidden=dim_embedding,
                 dim_out   =2dim_y,
                 num_layers=num_decoder_layers,
