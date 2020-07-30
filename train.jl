@@ -121,7 +121,7 @@ elseif trimmed_data_name == "noisy-mixture"
     dim_embedding = 128
     num_context_eval = DiscreteUniform(0, 10)
 elseif trimmed_data_name == "weakly-periodic"
-    process = GP(stretch(eq(), 1 / 0.5) * stretch(Stheno.PerEQ(), 1 / 0.25), GPC())
+    process = GP(stretch(EQ(), 1 / 0.5) * stretch(Stheno.PerEQ(1), 1 / 0.25), GPC())
     receptive_field = 4f0
     points_per_unit = 64f0
     num_context = DiscreteUniform(0, 50)
@@ -143,7 +143,7 @@ elseif trimmed_data_name == "mixture"
         GP(stretch(EQ(), 1 / 0.25), GPC()),
         GP(stretch(Matern52(), 1 / 0.25), GPC()),
         GP(stretch(EQ(), 1 / 0.25) + EQ() + 1e-3 * Stheno.Noise(), GPC()),
-        GP(stretch(EQ(), 1 / 0.5) * stretch(Stheno.PerEQ(), 1 / 0.25), GPC()),
+        GP(stretch(EQ(), 1 / 0.5) * stretch(Stheno.PerEQ(1), 1 / 0.25), GPC()),
         Sawtooth()
     )
     receptive_field = 16f0
