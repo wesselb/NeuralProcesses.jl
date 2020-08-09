@@ -227,6 +227,41 @@ literature.
 | Convolutional Conditional Neural Process | `convcnp_1d` | [Gordon, Bruinsma, et al. (2020)](https://openreview.net/forum?id=Skey4eBYPS) |
 | Convolutional Neural Process | `convnp_1d` | [Foong, Bruinsma, et al. (2020)](https://arxiv.org/abs/2007.01332) |
 
+Pretrained models can be downloaded below.
+The sets of models are versioned by release date.
+
+* [2020-09-08](https://www.dropbox.com/s/bt3rit0sa150msr/2020-09-08-models.tar.gz?dl=1)
+
+The instructions below illustrate how a pretrained model can be downloaded and
+run:
+
+1. Download the [most recent release of pretrained models](https://www.dropbox.com/s/bt3rit0sa150msr/2020-09-08-models.tar.gz?dl=1).
+
+2. Extract the models:
+
+```bash
+$ tar -xzvf 2020-09-08-models.tar.gz
+```
+
+3. Open Julia and load the model:
+
+```julia
+using NeuralProcesses, NeuralProcesses.Experiment, Flux
+
+convnp = best_model("models/convnp-het/loglik/matern52.bson")
+```
+
+4. Run the model:
+
+```julia
+means, lowers, uppers, samples = predict(
+    convnp,
+    randn(Float32, 10),  # Random context inputs
+    randn(Float32, 10),  # Random context outputs
+    randn(Float32, 10)   # Random target inputs
+)
+```
+
 ### Building Blocks
 
 The package provides various building blocks that can be used to compose
