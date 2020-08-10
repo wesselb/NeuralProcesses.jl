@@ -43,7 +43,7 @@ struct AmortisedGaussian <: Noise
     offset
 end
 
-AmortisedGaussian() = AmortisedGaussian(0)
+AmortisedGaussian() = AmortisedGaussian(5)
 
 @Flux.functor AmortisedGaussian
 
@@ -60,7 +60,7 @@ struct HeterogeneousGaussian <: Noise
     offset
 end
 
-HeterogeneousGaussian() = HeterogeneousGaussian(0)
+HeterogeneousGaussian() = HeterogeneousGaussian(5)
 
 @Flux.functor HeterogeneousGaussian
 
