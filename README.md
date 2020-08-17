@@ -230,17 +230,17 @@ literature.
 Pretrained models can be downloaded below.
 The sets of models are versioned by release date.
 
-* [2020-09-08](https://www.dropbox.com/s/bt3rit0sa150msr/2020-09-08-models.tar.gz?dl=1)
+* [2020-08-17](https://www.dropbox.com/s/xrcztc3m0mbq7vm/2020-08-17-models.tar.gz?dl=1)
 
 The instructions below illustrate how a pretrained model can be downloaded and
 run:
 
-1. Download the [most recent release of pretrained models](https://www.dropbox.com/s/bt3rit0sa150msr/2020-09-08-models.tar.gz?dl=1).
+1. Download the [most recent release of pretrained models](https://www.dropbox.com/s/xrcztc3m0mbq7vm/2020-08-17-models.tar.gz?dl=1).
 
 2. Extract the models:
 
 ```bash
-$ tar -xzvf 2020-09-08-models.tar.gz
+$ tar -xzvf 2020-08-17-models.tar.gz
 ```
 
 3. Open Julia and load the model:
