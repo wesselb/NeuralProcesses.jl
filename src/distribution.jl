@@ -11,7 +11,7 @@ struct Normal
 end
 
 sample(d::Normal; num_samples::Integer) =
-    d.μ .+ d.σ .* randn_gpu(eltype(d.μ), size(d.μ)..., num_samples)
+    d.μ .+ d.σ .* randn_gpu(data_eltype(d.μ), size(d.μ)..., num_samples)
 
 Statistics.mean(d::Normal) = d.μ
 Statistics.std(d::Normal) = d.σ

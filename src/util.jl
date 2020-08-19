@@ -575,3 +575,17 @@ Get the second element of `x`. This function complements `first`.
 - Second element of `x`.
 """
 second(x) = x[2]
+
+
+"""
+    data_eltype(x)
+
+Get the element type of the data of `x`. This removes any tracking from Tracker.
+
+# Arguments
+- `x`: Container to get element type of.
+
+# Returns
+- Type of the elements of `x` with all tracking removed.
+"""
+data_eltype(x) = eltype(Tracker.data(x))

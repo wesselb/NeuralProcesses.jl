@@ -48,7 +48,7 @@ end
 
 function _prepend_density_channel(z)
     n, _, batch_size = size(z)
-    density = ones_gpu(eltype(z), n, 1, batch_size)
+    density = ones_gpu(data_eltype(z), n, 1, batch_size)
     return cat(density, z, dims=2)
 end
 
@@ -83,7 +83,7 @@ end
 
 function code(layer::SetConv, xz::Nothing, z::Nothing, x::AA; kws...)
     return x, zeros_gpu(
-        eltype(x),
+        data_eltype(x),
         size(x, 1),               # Size of encoding
         length(layer.log_scales), # Number of z, including the density channel
         size(x, 3)                # Batch size
@@ -107,7 +107,7 @@ end
 
 function encode_pd(layer::SetConv, xz::Nothing, z::Nothing, x::AA; kws...)
     z = zeros_gpu(
-        eltype(x),
+        data_eltype(x),
         size(x, 1),               # Size of encoding
         size(x, 1),               # Again size of encoding: encoding is square
         length(layer.log_scales), # Number of z, including the density channel

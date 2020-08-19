@@ -256,4 +256,9 @@ end
     @testset "second" begin
         @test NeuralProcesses.second((1, 2, 3)) == 2
     end
+
+    @testset "data_eltype" begin
+        @test NeuralProcesses.data_eltype(randn(5)) == Float64
+        @test NeuralProcesses.data_eltype(Tracker.track(identity, randn(5))) == Float64
+    end
 end
