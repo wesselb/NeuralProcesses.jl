@@ -389,7 +389,7 @@ else
             model = convnp_1d(
                 receptive_field=receptive_field,
                 num_encoder_layers=8,
-                num_decoder_layers=8,
+                num_decoder_layers=6,
                 num_encoder_channels=num_channels,
                 num_decoder_channels=num_channels,
                 num_latent_channels=16,
@@ -486,7 +486,7 @@ else
         model,
         loss,
         data_gen,
-        ADAM(1e-4),
+        ADAM(3e-4),
         bson=bson,
         starting_epoch=args["starting-epoch"],
         tasks_per_epoch=2^14,
