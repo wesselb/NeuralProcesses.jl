@@ -138,6 +138,7 @@ function train!(
     for epoch in starting_epoch:(starting_epoch + epochs - 1)
         # Perform epoch.
         println("Epoch: $epoch")
+        CUDA.reclaim()  # This should not be necessary!
         @time begin
             ps = Flux.Params(Flux.params(model))
             for d in data_gen(batches_per_epoch)
@@ -151,6 +152,7 @@ function train!(
         end
 
         # Evalute model.
+        CUDA.reclaim()  # This should not be necessary!
         loss_value, loss_error = eval_model(
             NeuralProcesses.untrack(model),
             loss,
