@@ -152,6 +152,7 @@ elseif trimmed_data_name == "mixture"
     num_target = DiscreteUniform(100, 100)
     num_channels = 64
     dim_embedding = 128
+    num_context_eval = DiscreteUniform(0, 10)
 else
     error("Unknown data \"" * args["data"] * "\".")
 end
