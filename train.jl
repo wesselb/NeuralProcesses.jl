@@ -164,7 +164,7 @@ if args["model"] in ["convcnp", "acnp", "cnp"]
         # Use a single sample: there is nothing random.
         loss(xs...) = NeuralProcesses.loglik(xs..., num_samples=1)
     elseif args["loss"] in ["elbo", "loglik-iw"]
-        error("Losses \"elbo\" and \"loglik-iw\" not applicable to the ConvCNP.")
+        error("Losses \"elbo\" and \"loglik-iw\" not applicable conditional models.")
     else
         error("Unknown loss \"" * args["loss"] * "\".")
     end
