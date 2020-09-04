@@ -227,20 +227,16 @@ literature.
 | Convolutional Conditional Neural Process | `convcnp_1d` | [Gordon, Bruinsma, et al. (2020)](https://openreview.net/forum?id=Skey4eBYPS) |
 | Convolutional Neural Process | `convnp_1d` | [Foong, Bruinsma, et al. (2020)](https://arxiv.org/abs/2007.01332) |
 
-Pretrained models can be downloaded below.
-The sets of models are versioned by release date.
-
-* [2020-08-17](https://www.dropbox.com/s/xrcztc3m0mbq7vm/2020-08-17-models.tar.gz?dl=1)
-
+Pretrained models can be downloaded [here](https://www.dropbox.com/s/j82wcbb0trg1aro/models.tar.gz?dl=1).
 The instructions below illustrate how a pretrained model can be downloaded and
 run:
 
-1. Download the [most recent release of pretrained models](https://www.dropbox.com/s/xrcztc3m0mbq7vm/2020-08-17-models.tar.gz?dl=1).
+1. Download the [pretrained models](https://www.dropbox.com/s/j82wcbb0trg1aro/models.tar.gz?dl=1).
 
 2. Extract the models:
 
 ```bash
-$ tar -xzvf 2020-08-17-models.tar.gz
+$ tar -xzvf models.tar.gz
 ```
 
 3. Open Julia and load the model:
@@ -261,6 +257,35 @@ means, lowers, uppers, samples = predict(
     randn(Float32, 10)   # Random target inputs
 )
 ```
+
+Interpolation results for the pretrained models are as follows:
+
+#### `loglik`
+
+| Model | `eq` | `matern52` | `noisy-mixture` | `weakly-periodic` | `sawtooth` | `mixture` |
+|-|:-:|:-:|:-:|:-:|:-:|:-:|
+| `cnp` | -1.09 | -1.17 | -1.28 | -1.34 | -0.16 | -1.17 |
+| `acnp` | -0.83 | -0.93 | -1.00 | -1.29 | -0.17 | -1.09 |
+| `convcnp` | -0.69 | -0.88 | -0.93 | -1.19 | 1.09 | -0.94 |
+| `np-het` | -0.76 | -0.90 | -0.94 | -1.23 | -0.16 | -0.88 |
+| `anp-het` | -0.53 | -0.74 | -0.66 | -1.17 | -0.10 | -0.63 |
+| `convnp-het` | -0.34 | -0.61 | -0.59 | -1.01 | 2.24 | -0.40 |
+
+#### `elbo`
+
+| Model | `eq` | `matern52` | `noisy-mixture` | `weakly-periodic` | `sawtooth` | `mixture` |
+|-|:-:|:-:|:-:|:-:|:-:|:-:|
+| `np-het` | -0.34 | -0.66 | -0.66 | -1.21 | -0.12 | -0.71 |
+| `anp-het` | -0.71 | -0.88 | -0.80 | -1.27 | -0.00 | -0.86 |
+| `convnp-het` | -0.61 | -0.59 | -2.19 | -1.07 | 2.40 | -1.27 |
+
+#### `loglik-iw`
+
+| Model | `eq` | `matern52` | `noisy-mixture` | `weakly-periodic` | `sawtooth` | `mixture` |
+|-|:-:|:-:|:-:|:-:|:-:|:-:|
+| `np-het` | -0.28 | -0.57 | -0.47 | -1.20 | 0.32 | -0.59 |
+| `anp-het` | -0.45 | -0.67 | -0.57 | -1.19 | -0.16 | -0.61 |
+| `convnp-het` | -0.09 | -0.29 | -0.34 | -0.98 | 2.39 | -0.31 |
 
 ### Building Blocks
 
