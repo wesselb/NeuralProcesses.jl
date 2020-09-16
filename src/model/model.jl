@@ -133,16 +133,21 @@ function loglik(
         logpdfs = _accumulate_logsumexp(logpdfs, batch_logpdfs, dims=4)
 
         # Keep track of moments of weights.
-        num_weights += size(weights, 3) * size(weights, 4)
-        weights_m1 = _accumulate_logsumexp(weights_m1, weights, dims=(3, 4))
-        weights_m2 = _accumulate_logsumexp(weights_m2, 2 .* weights, dims=(3, 4))
+        num_weights += size(weights, 4)
+        weights_m1 = _accumulate_logsumexp(weights_m1, weights, dims=4)
+        weights_m2 = _accumulate_logsumexp(weights_m2, 2 .* weights, dims=4)
     end
 
     # Turn log-sum-exp into a log-mean-exp.
     logpdfs = logpdfs .- Float32(log(num_samples))
-    weights_m1 = exp(weights_m1[1] - Float32(log(num_weights)))
-    weights_m2 = exp(weights_m2[1] - Float32(log(num_weights)))
-    println("Average weight variance: ", weights_m2 - weights_m1^2)
+
+    # Print weight variance.
+    num_weights *= size(weights_m1, 3)
+    weights_m1 = logsumexp(weights_m1, dims=3)
+    weights_m2 = logsumexp(weights_m2, dims=3)
+    weights_m1 = exp(cpu(weights_m1)[1] - Float32(log(num_weights)))
+    weights_m2 = exp(cpu(weights_m2)[1] - Float32(log(num_weights)))
+    println("Weight variance: ", weights_m2 - weights_m1^2)
 
     # Return average over batches and the "size" of the loss.
     return -mean(logpdfs), size(xt, 1)
