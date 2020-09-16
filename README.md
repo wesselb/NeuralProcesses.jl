@@ -227,11 +227,11 @@ literature.
 | Convolutional Conditional Neural Process | `convcnp_1d` | [Gordon, Bruinsma, et al. (2020)](https://openreview.net/forum?id=Skey4eBYPS) |
 | Convolutional Neural Process | `convnp_1d` | [Foong, Bruinsma, et al. (2020)](https://arxiv.org/abs/2007.01332) |
 
-Pretrained models can be downloaded [here](https://www.dropbox.com/s/j82wcbb0trg1aro/models.tar.gz?dl=1).
+Pretrained models can be downloaded [here](https://www.dropbox.com/s/ua40uc9ttzq9t18/models.tar.gz?dl=1).
 The instructions below illustrate how a pretrained model can be downloaded and
 run:
 
-1. Download the [pretrained models](https://www.dropbox.com/s/j82wcbb0trg1aro/models.tar.gz?dl=1).
+1. Download the [pretrained models](https://www.dropbox.com/s/ua40uc9ttzq9t18/models.tar.gz?dl=1).
 
 2. Extract the models:
 
