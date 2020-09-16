@@ -79,8 +79,11 @@ function loglik(
     batches = Int[batch_size for _ = 1:num_batches]
     batch_size_last > 0 && push!(batches, batch_size_last)
 
-    # Initialise variable that accumulates the log-pdfs.
+    # Initialise variable that accumulates the log-pdfs and weights.
     logpdfs = nothing
+    num_weights = 0
+    weights_m1 = nothing
+    weights_m2 = nothing
 
     # Concatenate inputs for IW estimate.
     if importance_weighted
@@ -127,16 +130,26 @@ function loglik(
         batch_logpdfs = weights .+ sum(logpdf(d, yt), dims=(1, 2))
 
         # Accumulate sum.
-        logpdfs = isnothing(logpdfs) ? batch_logpdfs : cat(logpdfs, batch_logpdfs, dims=4)
-        logpdfs = logsumexp(logpdfs, dims=4)
+        logpdfs = _accumulate_logsumexp(logpdfs, batch_logpdfs, dims=4)
+
+        # Keep track of moments of weights.
+        num_weights += size(weights, 3) * size(weights, 4)
+        weights_m1 = _accumulate_logsumexp(weights_m1, weights, dims=(3, 4))
+        weights_m2 = _accumulate_logsumexp(weights_m2, 2 .* weights, dims=(3, 4))
     end
 
     # Turn log-sum-exp into a log-mean-exp.
     logpdfs = logpdfs .- Float32(log(num_samples))
+    weights_m1 = exp(weights_m1[1] - Float32(log(num_weights)))
+    weights_m2 = exp(weights_m2[1] - Float32(log(num_weights)))
+    println("Average weight variance: ", weights_m2 - weights_m1^2)
 
     # Return average over batches and the "size" of the loss.
     return -mean(logpdfs), size(xt, 1)
 end
+
+_accumulate_logsumexp(xs::Nothing, x; dims) = logsumexp(x, dims=dims)
+_accumulate_logsumexp(xs, x; dims) = logsumexp(cat(xs, x, dims=dims), dims=dims)
 
 """
     elbo(
