@@ -6,6 +6,8 @@ NeuralProcesses.jl is a framework for composing
 [Neural Processes](https://arxiv.org/abs/1807.01622) built on top of
 [Flux.jl](https://github.com/FluxML/Flux.jl).
 
+[NeuralProcesses.jl was presented at JuliaCon 2020 [link to video (7:41)].](https://www.youtube.com/watch?v=nq6X-w5xgLo)
+
 **Important:**
 NeuralProcesses.jl requires [CUDA.jl](https://github.com/JuliaGPU/CUDA.jl) at
 a version newer than v1.2.0.
