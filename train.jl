@@ -195,7 +195,7 @@ elseif args["model"] in [
             xs...,
             num_samples=num_samples,
             importance_weighted=false,
-            fixed_σ_epochs=20
+            fixed_σ_epochs=3
         )
         eval_importance_weighted = false  # Encoder is not suited for IW.
     elseif args["loss"] == "loglik-iw"
@@ -209,7 +209,7 @@ elseif args["model"] in [
             xs...,
             num_samples=num_samples,
             importance_weighted=true,
-            fixed_σ_epochs=20
+            fixed_σ_epochs=3
         )
         eval_importance_weighted = true  # Encoder is suited for IW!
     elseif args["loss"] == "elbo"
@@ -222,7 +222,7 @@ elseif args["model"] in [
         loss(xs...) = NeuralProcesses.elbo(
             xs...,
             num_samples=num_samples,
-            fixed_σ_epochs=20
+            fixed_σ_epochs=3
         )
         eval_importance_weighted = true  # Encoder is suited for IW!
     else
@@ -390,7 +390,7 @@ else
             model = convnp_1d(
                 receptive_field=receptive_field,
                 num_encoder_layers=8,
-                num_decoder_layers=6,
+                num_decoder_layers=8,
                 num_encoder_channels=num_channels,
                 num_decoder_channels=num_channels,
                 num_latent_channels=16,
