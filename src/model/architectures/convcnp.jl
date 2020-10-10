@@ -17,6 +17,8 @@ Construct a ConvCNP for one-dimensional data.
     and final pointwise convolutional layer to change the number of channels
     appropriately.
 - `num_channels::Integer`: Number of channels of the CNN.
+- `points_per_unit::Float32`: Points per unit for the discretisation. See
+    `UniformDiscretisation1D`.
 - `margin::Float32=receptive_field`: Margin for the discretisation. See
     `UniformDiscretisation1D`.
 """

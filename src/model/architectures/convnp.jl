@@ -29,6 +29,8 @@ export convnp_1d
 - `num_latent_channels::Integer`: Number of channels of the latent variable.
 - `num_global_channels::Integer`: Number of channels of a global latent variable. Set to
     `0` to not use a global latent variable.
+- `points_per_unit::Float32`: Points per unit for the discretisation. See
+    `UniformDiscretisation1D`.
 - `margin::Float32=receptive_field`: Margin for the discretisation. See
     `UniformDiscretisation1D`.
 - `noise_type::String="het"`: Type of noise model. Must be "fixed", "amortised", or "het".
