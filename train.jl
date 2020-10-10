@@ -353,7 +353,7 @@ else
                 points_per_unit=points_per_unit,
                 margin=1f0
             ) |> gpu
-        if args["model"] == "corconvcnp"
+        elif args["model"] == "corconvcnp"
             model = corconvcnp_1d(
                 receptive_field=receptive_field,
                 num_layers=8,
