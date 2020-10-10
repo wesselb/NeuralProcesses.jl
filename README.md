@@ -6,6 +6,8 @@ NeuralProcesses.jl is a framework for composing
 [Neural Processes](https://arxiv.org/abs/1807.01622) built on top of
 [Flux.jl](https://github.com/FluxML/Flux.jl).
 
+[NeuralProcesses.jl was presented at JuliaCon 2020 [link to video (7:41)].](https://www.youtube.com/watch?v=nq6X-w5xgLo)
+
 **Important:**
 NeuralProcesses.jl requires [CUDA.jl](https://github.com/JuliaGPU/CUDA.jl) at
 a version newer than v1.2.0.
@@ -227,11 +229,11 @@ literature.
 | Convolutional Conditional Neural Process | `convcnp_1d` | [Gordon, Bruinsma, et al. (2020)](https://openreview.net/forum?id=Skey4eBYPS) |
 | Convolutional Neural Process | `convnp_1d` | [Foong, Bruinsma, et al. (2020)](https://arxiv.org/abs/2007.01332) |
 
-Pretrained models can be downloaded [here](https://www.dropbox.com/s/j82wcbb0trg1aro/models.tar.gz?dl=1).
+Pretrained models can be downloaded [here](https://www.dropbox.com/s/ua40uc9ttzq9t18/models.tar.gz?dl=1).
 The instructions below illustrate how a pretrained model can be downloaded and
 run:
 
-1. Download the [pretrained models](https://www.dropbox.com/s/j82wcbb0trg1aro/models.tar.gz?dl=1).
+1. Download the [pretrained models](https://www.dropbox.com/s/ua40uc9ttzq9t18/models.tar.gz?dl=1).
 
 2. Extract the models:
 
