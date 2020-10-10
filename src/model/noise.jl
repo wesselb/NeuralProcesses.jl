@@ -70,6 +70,15 @@ function (noise::HeterogeneousGaussian)(x::AA)
 end
 
 """
+    struct CorrelatedGaussian <: Noise
+"""
+struct CorrelatedGaussian <: Noise end
+
+@Flux.functor CorrelatedGaussian
+
+(noise::CorrelatedGaussian)(x::Parallel{2}) = CorrelatedNormal(x[1], x[2])
+
+"""
     build_noise_model(
         build_local_transform=n -> identity;
         dim_y::Integer=1,

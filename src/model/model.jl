@@ -74,6 +74,8 @@ function loglik(
     fixed_σ_epochs::Integer=0,
     kws...
 )
+    n_target = size(xt, 1)
+
     # Determine batches.
     num_batches, batch_size_last = divrem(num_samples, batch_size)
     batches = Int[batch_size for _ = 1:num_batches]
@@ -123,6 +125,9 @@ function loglik(
             d = Normal(mean(d), [fixed_σ] |> gpu)
         end
 
+        # Add a diagonal to correlated covariances to help the Cholesky decompositions.
+        _regularise_correlated_normal(d, n_target)
+
         # Perform Monte Carlo estimate.
         batch_logpdfs = weights .+ sum(logpdf(d, yt), dims=(1, 2))
 
@@ -137,6 +142,14 @@ function loglik(
     # Return average over batches and the "size" of the loss.
     return -mean(logpdfs), size(xt, 1)
 end
+
+_regularise_correlated_normal(d) = d
+function _regularise_correlated_normal(d::CorrelatedNormal, n_target)
+    ridge = Matrix(_epoch_to_reg(epoch) * I, n_target, n_target) |> gpu
+    return CorrelatedNormal(mean(d), var(d) .+ ridge)
+end
+
+_epoch_to_reg(epoch) = 10^(-min(1 + Float32(epoch), 5))
 
 """
     elbo(

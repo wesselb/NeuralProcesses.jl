@@ -47,3 +47,64 @@ Base.map(f, d::Dirac) = Dirac(f(d.x))
 
 # We need to help `sum` to work with scalars and the keyword argument `dims`.
 Base.sum(x::Real; dims=nothing) = x
+
+"""
+    struct CorrelatedNormal
+
+# Fields
+- `μ`: Mean.
+- `Σ`: Covariance matrix.
+"""
+struct CorrelatedNormal
+    μ
+    Σ
+end
+
+function sample(d::CorrelatedNormal; num_samples::Integer)
+    n, num_channels, batch_size = size(d.μ)
+
+    μ = d.μ
+    Σ = d.Σ
+
+    samples_channels = []
+    for c = 1:num_channels
+        samples_batches = []
+        for b = 1:batch_size
+            ε = cholesky(Σ[:, :, c, b]).U' * randn_gpu(data_eltype(d.μ), n, num_samples)
+            push!(samples_batches, μ[:, c:c, b:b] .+ reshape(ε, n, 1, 1, num_samples))
+        end
+        push!(samples_channels, cat(samples_batches..., dims=3))
+    end
+    sample = cat(samples_channels..., dims=2)
+
+    return sample
+end
+
+Statistics.mean(d::CorrelatedNormal) = d.μ
+function Statistics.std(d::CorrelatedNormal)
+    Σ = d.Σ
+    n = size(Σ, 1)
+    return sqrt.(cat([Σ[i, i:i, :, :] for i = 1:n]..., dims=1))
+end
+Statistics.var(d::CorrelatedNormal) = d.Σ
+
+function logpdf(d::CorrelatedNormal, x)
+    _, num_channels, batch_size = size(x)
+
+    μ = d.μ
+    Σ = d.Σ
+
+    logpdfs_channels = []
+    for c = 1:num_channels
+        logpdfs_batches = []
+        for b = 1:batch_size
+            push!(logpdfs_batches, gaussian_logpdf(x[:, c, b], μ[:, c, b], Σ[:, :, c, b]))
+        end
+        push!(logpdfs_channels, cat(logpdfs_batches..., dims=3))
+    end
+    logpdfs = cat(logpdfs_channels..., dims=2)
+
+    return logpdfs
+end
+
+Base.map(f, d::CorrelatedNormal) = Normal(f(d.μ), f(d.Σ))

@@ -17,6 +17,22 @@ end
 @Flux.functor SetConv
 
 """
+    SetConvPD{T<:AV{<:Real}}
+
+A set convolution layer for positive-definite-matrix outputs.
+
+# Fields
+- `log_scales::T`: Natural logarithm of the length scales of every input channel.
+- `density::Bool`: Include the density channel.
+"""
+struct SetConvPD{T<:AV{<:Real}}
+    log_scales::T
+    density::Bool
+end
+
+@Flux.functor SetConvPD
+
+"""
     set_conv(num_channels::Integer, scale::Float32; density::Bool=false)
 
 Construct a set convolution layer.
@@ -27,14 +43,20 @@ Construct a set convolution layer.
 
 # Keywords
 - `density::Bool=false`: Include the density channel.
+- `pd::Bool=false`: Generate positive-definite matrices as outputs.
 
 # Returns
 - `SetConv`: Corresponding set convolution layer.
 """
-function set_conv(num_channels::Integer, scale::Float32; density::Bool=false)
+function set_conv(
+    num_channels::Integer,
+    scale::Float32;
+    density::Bool=false,
+    pd::Bool=false
+)
     density && (num_channels += 1)
     scales = scale .* ones(Float32, num_channels)
-    return SetConv(log.(scales), density)
+    return (pd ? SetConvPD : SetConv)(log.(scales), density)
 end
 
 _get_scales(layer) = reshape(exp.(layer.log_scales), 1, 1, length(layer.log_scales), 1)
@@ -90,7 +112,7 @@ function code(layer::SetConv, xz::Nothing, z::Nothing, x::AA; kws...)
     )
 end
 
-function encode_pd(layer::SetConv, xz::AA, z::AA, x::AA; kws...)
+function code(layer::SetConvPD, xz::AA, z::AA, x::AA; kws...)
     weights = _compute_weights(x, xz, _get_scales(layer))
     # TODO: Disengtangle the below.
     if layer.density
@@ -105,7 +127,7 @@ function encode_pd(layer::SetConv, xz::AA, z::AA, x::AA; kws...)
     return x, z
 end
 
-function encode_pd(layer::SetConv, xz::Nothing, z::Nothing, x::AA; kws...)
+function code(layer::SetConvPD, xz::Nothing, z::Nothing, x::AA; kws...)
     z = zeros_gpu(
         data_eltype(x),
         size(x, 1),               # Size of encoding

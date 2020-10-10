@@ -57,8 +57,8 @@ include("model/architectures/np.jl")
 include("model/architectures/acnp.jl")
 include("model/architectures/anp.jl")
 include("model/architectures/convcnp.jl")
+include("model/architectures/corconvcnp.jl")
 include("model/architectures/convnp.jl")
-# include("model/architectures/correlatedconvcnp.jl")
 
 include("experiment/experiment.jl")
 
