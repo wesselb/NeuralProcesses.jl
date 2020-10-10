@@ -14,7 +14,7 @@ parser = ArgParseSettings()
         required = true
     "--model"
         help =
-            "Model: conv[c]np, a[c]np, or [c]np. " *
+            "Model: conv[c]np, corconvcnp, a[c]np, or [c]np. " *
             "Append \"-global-{mean,sum}\" to introduce a global latent variable. " *
             "Append \"-amortised-{mean,sum}\" to use amortised observation noise. " *
             "Append \"-het\" to use heterogeneous observation noise."
@@ -158,7 +158,7 @@ else
 end
 
 # Set the loss.
-if args["model"] in ["convcnp", "acnp", "cnp"]
+if args["model"] in ["convcnp", "corconvcnp", "acnp", "cnp"]
     # Determine training loss.
     if args["loss"] == "loglik"
         # Use a single sample: there is nothing random.
@@ -351,6 +351,15 @@ else
                 num_layers=8,
                 num_channels=num_channels,
                 points_per_unit=points_per_unit,
+                margin=1f0
+            ) |> gpu
+        if args["model"] == "corconvcnp"
+            model = corconvcnp_1d(
+                receptive_field=receptive_field,
+                num_layers=8,
+                num_channels=num_channels,
+                points_per_unit_μ=points_per_unit,
+                points_per_unit_Σ=points_per_unit / 4,
                 margin=1f0
             ) |> gpu
         elseif args["model"] in [
