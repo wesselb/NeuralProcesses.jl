@@ -126,7 +126,7 @@ function loglik(
         end
 
         # Add a diagonal to correlated covariances to help the Cholesky decompositions.
-        _regularise_correlated_normal(d, n_target)
+        d = _regularise_correlated_normal(d, n_target, epoch)
 
         # Perform Monte Carlo estimate.
         batch_logpdfs = weights .+ sum(logpdf(d, yt), dims=(1, 2))
@@ -143,13 +143,13 @@ function loglik(
     return -mean(logpdfs), size(xt, 1)
 end
 
-_regularise_correlated_normal(d) = d
-function _regularise_correlated_normal(d::CorrelatedNormal, n_target)
+_regularise_correlated_normal(d, n_target, epoch) = d
+function _regularise_correlated_normal(d::CorrelatedNormal, n_target, epoch)
     ridge = Matrix(_epoch_to_reg(epoch) * I, n_target, n_target) |> gpu
     return CorrelatedNormal(mean(d), var(d) .+ ridge)
 end
 
-_epoch_to_reg(epoch) = 10^(-min(1 + Float32(epoch), 5))
+_epoch_to_reg(epoch) = 10^(-min(Float32(epoch), 6))
 
 """
     elbo(
