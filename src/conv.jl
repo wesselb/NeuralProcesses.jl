@@ -7,10 +7,7 @@ end
 
 _compute_padding(kernel_size) = Integer(floor(kernel_size / 2))
 
-# TODO: The implementation of `glorot_normal` of Flux changed w.r.t v0.9. The old
-# implementation seems to work a lot better (below), so we'll use that one. We should
-# figure out what is going on.
-_glorot_normal(dims...) = randn(Float32, dims...) .* sqrt(2f0 / sum(dims))
+_glorot_normal(dims...) = randn(Float32, dims...) .* sqrt(2f0 / sum(dims[1:2]) / dims[3])
 
 _init_conv_fixed_bias(k, ch) =
     (_glorot_normal(k..., ch...), fill(1f-3, ch[2]))
