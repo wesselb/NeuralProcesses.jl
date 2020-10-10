@@ -255,6 +255,8 @@ function predict(model::Model, xc::AV, yc::AV, xt::AV; num_samples::Integer=10, 
 
     if size(μ, 2) >= num_samples
         samples = μ[:, 1:num_samples]
+    elseif d isa CorrelatedNormal
+        samples = sample(d, num_samples=num_samples)[:, 1, 1, :] |> cpu
     else
         # There are no samples.
         samples = nothing
