@@ -8,14 +8,6 @@ NeuralProcesses.jl is a framework for composing
 
 [NeuralProcesses.jl was presented at JuliaCon 2020 [link to video (7:41)].](https://www.youtube.com/watch?v=nq6X-w5xgLo)
 
-**Important:**
-NeuralProcesses.jl requires [CUDA.jl](https://github.com/JuliaGPU/CUDA.jl) at
-a version newer than v1.2.0.
-Currently, this means that `master` is required for
-[CUDA.jl](https://github.com/JuliaGPU/CUDA.jl) and
-[GPUArrays.jl](https://github.com/JuliaGPU/GPUArrays.jl): `]dev CUDA` and
-`]dev GPUArrays`.
-
 Contents:
 - [Introduction](#introduction)
     - [Predefined Experimental Setup: `train.jl`](#predefined-experimental-setup-trainjl)
