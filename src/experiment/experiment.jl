@@ -138,7 +138,7 @@ function train!(
     for epoch in starting_epoch:(starting_epoch + epochs - 1)
         # Perform epoch.
         println("Epoch: $epoch")
-        CUDA.reclaim()  # This should not be necessary!
+        CUDA.reclaim()
         @time begin
             ps = Flux.Params(Flux.params(model))
             for d in data_gen(batches_per_epoch)
@@ -152,7 +152,7 @@ function train!(
         end
 
         # Evalute model.
-        CUDA.reclaim()  # This should not be necessary!
+        CUDA.reclaim()
         loss_value, loss_error = eval_model(
             NeuralProcesses.untrack(model),
             loss,
@@ -161,6 +161,7 @@ function train!(
         )
 
         # Plot model.
+        CUDA.reclaim()
         _plot_task(
             NeuralProcesses.untrack(model),
             data_gen,
@@ -207,7 +208,7 @@ function _plot_task(
 
         # Predict on a task.
         xc, yc, xt, yt = map(x -> x[:, 1, 1], data_gen(1)[1])
-        μ, lower, upper, samples = predict(model, xc, yc, x)
+        μ, lower, upper, samples = predict(model, xc, yc, x, epoch=epoch)
 
         figure(figsize=(8, 4))
 

@@ -359,7 +359,7 @@ else
                 num_layers=8,
                 num_channels=num_channels,
                 points_per_unit_μ=points_per_unit,
-                points_per_unit_Σ=points_per_unit / 4,
+                points_per_unit_Σ=10f0,
                 margin=1f0
             ) |> gpu
         elseif args["model"] in [

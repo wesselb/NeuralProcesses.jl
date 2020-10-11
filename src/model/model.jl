@@ -145,11 +145,12 @@ end
 
 _regularise_correlated_normal(d, n_target, epoch) = d
 function _regularise_correlated_normal(d::CorrelatedNormal, n_target, epoch)
-    ridge = Matrix(_epoch_to_reg(epoch) * I, n_target, n_target) |> gpu
+    σ²_max = maximum(Tracker.data(std(d)))^2
+    ridge = Matrix(_epoch_to_reg(epoch) * σ²_max * I, n_target, n_target) |> gpu
     return CorrelatedNormal(mean(d), var(d) .+ ridge)
 end
 
-_epoch_to_reg(epoch) = 10^(-min(Float32(epoch), 6))
+_epoch_to_reg(epoch) = 10^(max(-Float32(epoch), -4))
 
 """
     elbo(
@@ -236,13 +237,22 @@ end
 
 # Keywords
 - `num_samples::Integer=10`: Number of posterior samples.
+- `epoch::Integer=100`: Current epoch.
 - `kw...`: Further keywords to pass on.
 
 # Returns
 - `Tuple`:  Tuple containing means, lower and upper 95% central credible bounds, and
     `num_samples` posterior samples.
 """
-function predict(model::Model, xc::AV, yc::AV, xt::AV; num_samples::Integer=10, kws...)
+function predict(
+    model::Model,
+    xc::AV,
+    yc::AV,
+    xt::AV;
+    num_samples::Integer=10,
+    epoch::Integer=100,
+    kws...
+)
     # Run model.
     d = model(
         expand_gpu.((xc, yc, xt))...;
@@ -256,7 +266,9 @@ function predict(model::Model, xc::AV, yc::AV, xt::AV; num_samples::Integer=10, 
     if size(μ, 2) >= num_samples
         samples = μ[:, 1:num_samples]
     elseif d isa CorrelatedNormal
-        samples = sample(d, num_samples=num_samples)[:, 1, 1, :] |> cpu
+        # Regularise, because the covariance can still be unstable.
+        d_reg = _regularise_correlated_normal(d, length(xt), epoch)
+        samples = sample(d_reg, num_samples=num_samples)[:, 1, 1, :] |> cpu
     else
         # There are no samples.
         samples = nothing
