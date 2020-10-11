@@ -19,11 +19,25 @@ Checkpoints() = Checkpoints(missing, Vector{Checkpoint}(), 3)
 
 Base.isless(c1::Checkpoint, c2::Checkpoint) = isless(c1.loss_value, c2.loss_value)
 
+function _repeated_load(bson)
+    i = 0
+    e = nothing
+    while i < 10
+        try
+            return BSON.load(bson)
+        catch e
+            @warn("Loading BSON failed. Trying again. Exception: $e")
+            i += 1
+        end
+    end
+    throw(e)
+end
+
 function load_checkpoints(bson)
     if !isfile(bson)
         return Checkpoints()
     else
-        content = BSON.load(bson)
+        content = _repeated_load(bson)
         return haskey(content, :checkpoints) ? content[:checkpoints] : Checkpoints()
     end
 end
