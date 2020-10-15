@@ -357,7 +357,7 @@ else
         elseif args["model"] == "corconvcnp"
             model = corconvcnp_1d(
                 receptive_field_μ=receptive_field,
-                receptive_field_Σ=receptive_field,
+                receptive_field_Σ=min(receptive_field, 8f0),
                 num_layers=8,
                 num_channels=num_channels,
                 points_per_unit_μ=points_per_unit,
