@@ -145,7 +145,8 @@ end
 
 _regularise_correlated_normal(d, n_target, epoch) = d
 function _regularise_correlated_normal(d::CorrelatedNormal, n_target, epoch)
-    σ²_max = maximum(Tracker.data(std(d)))^2
+    # For the first epoch, really make sure it doesn't fail.
+    σ²_max = (epoch == 1 ? maximum(Tracker.data(std(d)))^2 : 1f0)
     ridge = Matrix(_epoch_to_reg(epoch) * σ²_max * I, n_target, n_target) |> gpu
     return CorrelatedNormal(mean(d), var(d) .+ ridge)
 end
