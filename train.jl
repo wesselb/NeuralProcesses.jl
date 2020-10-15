@@ -345,22 +345,24 @@ else
         # Instantiate a new model to start training. Ideally, the margin should be the
         # receptive field size, but that creates large memory requirements for models with
         # large receptive field.
+        margin = 0f1
         if args["model"] == "convcnp"
             model = convcnp_1d(
                 receptive_field=receptive_field,
                 num_layers=8,
                 num_channels=num_channels,
                 points_per_unit=points_per_unit,
-                margin=1f0
+                margin=margin
             ) |> gpu
         elseif args["model"] == "corconvcnp"
             model = corconvcnp_1d(
-                receptive_field=receptive_field,
+                receptive_field_μ=receptive_field,
+                receptive_field_Σ=receptive_field,
                 num_layers=8,
                 num_channels=num_channels,
                 points_per_unit_μ=points_per_unit,
-                points_per_unit_Σ=15f0,
-                margin=1f0
+                points_per_unit_Σ=points_per_unit / 4,
+                margin=margin
             ) |> gpu
         elseif args["model"] in [
             "convnp",
@@ -496,7 +498,7 @@ else
         model,
         loss,
         data_gen,
-        ADAM(3e-4),
+        ADAM(5e-4),
         bson=bson,
         starting_epoch=args["starting-epoch"],
         tasks_per_epoch=2^14,
