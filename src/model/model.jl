@@ -126,7 +126,7 @@ function loglik(
         end
 
         # Add a diagonal to correlated covariances to help the Cholesky decompositions.
-        d = _regularise_correlated_normal(d, n_target, epoch)
+        # d = _regularise_correlated_normal(d, epoch)
 
         # Perform Monte Carlo estimate.
         batch_logpdfs = weights .+ sum(logpdf(d, yt), dims=(1, 2))
@@ -143,15 +143,19 @@ function loglik(
     return -mean(logpdfs), size(xt, 1)
 end
 
-_regularise_correlated_normal(d, n_target, epoch) = d
-function _regularise_correlated_normal(d::CorrelatedNormal, n_target, epoch)
-    # For the first epoch, really make sure it doesn't fail.
+_regularise_correlated_normal(d, epoch) = d
+function _regularise_correlated_normal(d::CorrelatedNormal, epoch)
+    n = size(mean(d), 1)
     σ²_max = (epoch == 1 ? maximum(Tracker.data(std(d)))^2 : 1f0)
-    ridge = Matrix(_epoch_to_reg(epoch) * σ²_max * I, n_target, n_target) |> gpu
+    ridge = Matrix(_epoch_to_reg(epoch) * σ²_max * I, n, n) |> gpu
     return CorrelatedNormal(mean(d), var(d) .+ ridge)
 end
-
-_epoch_to_reg(epoch) = 10^(max(-Float32(epoch), -4))
+function _epoch_to_reg(epoch)
+    epoch == 1 && (return 1f-1)
+    epoch <= 5 && (return 1f-2)
+    epoch <= 20 && (return 1f-3)
+    return 1f-4
+end
 
 """
     elbo(
@@ -267,8 +271,8 @@ function predict(
     if size(μ, 2) >= num_samples
         samples = μ[:, 1:num_samples]
     elseif d isa CorrelatedNormal
-        # Regularise, because the covariance can still be unstable.
-        d_reg = _regularise_correlated_normal(d, length(xt), epoch)
+        # Regularise, because the covariance can be unstable.
+        # d_reg = _regularise_correlated_normal(d, epoch)
         samples = sample(d_reg, num_samples=num_samples)[:, 1, 1, :] |> cpu
     else
         # There are no samples.
