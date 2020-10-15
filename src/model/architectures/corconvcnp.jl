@@ -2,7 +2,8 @@ export corconvcnp_1d
 
 """
     corconvcnp_1d(;
-        receptive_field::Float32,
+        receptive_field_μ::Float32,
+        receptive_field_Σ::Float32,
         num_layers::Integer,
         num_channels::Integer,
         points_per_unit_μ::Float32,
@@ -13,7 +14,8 @@ export corconvcnp_1d
 Construct a CorrelatedConvCNP for one-dimensional data.
 
 # Keywords
-- `receptive_field::Float32`: Width of the receptive field.
+- `receptive_field_μ::Float32`: Width of the receptive field for the mean.
+- `receptive_field_Σ::Float32`: Width of the receptive field for the kernel.
 - `num_layers::Integer`: Number of layers of the CNN, excluding an initial
     and final pointwise convolutional layer to change the number of channels
     appropriately.
@@ -26,7 +28,8 @@ Construct a CorrelatedConvCNP for one-dimensional data.
     `UniformDiscretisation1D`.
 """
 function corconvcnp_1d(;
-    receptive_field::Float32,
+    receptive_field_μ::Float32,
+    receptive_field_Σ::Float32,
     num_layers::Integer,
     num_channels::Integer,
     points_per_unit_μ::Float32,
@@ -58,7 +61,7 @@ function corconvcnp_1d(;
             Parallel(
                 Chain(
                     build_conv(
-                        receptive_field,
+                        receptive_field_μ,
                         num_layers,
                         num_channels,
                         points_per_unit =points_per_unit_μ,
@@ -70,7 +73,7 @@ function corconvcnp_1d(;
                 ),
                 Chain(
                     build_conv(
-                        receptive_field,
+                        receptive_field_Σ,
                         num_layers,
                         num_channels,
                         points_per_unit =points_per_unit_Σ,
