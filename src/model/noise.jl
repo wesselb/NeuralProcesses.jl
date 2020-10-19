@@ -72,11 +72,21 @@ end
 """
     struct CorrelatedGaussian <: Noise
 """
-struct CorrelatedGaussian <: Noise end
+struct CorrelatedGaussian <: Noise
+    log_σ
+end
+
+CorrelatedGaussian() = CorrelatedGaussian([log(1f0)])
 
 @Flux.functor CorrelatedGaussian
 
-(noise::CorrelatedGaussian)(x::Parallel{2}) = CorrelatedNormal(x[1], x[2])
+function (noise::CorrelatedGaussian)(x::Parallel{2})
+    μ = x[1]
+    Σ = x[2]
+    n = size(Σ, 1)
+    eye = gpu(Matrix(I, n, n))
+    return CorrelatedNormal(μ, Σ .+ exp.(noise.log_σ) .* eye)
+end
 
 """
     build_noise_model(

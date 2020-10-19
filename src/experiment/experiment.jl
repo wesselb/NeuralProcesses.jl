@@ -9,6 +9,7 @@ using CUDA
 using Flux
 using PyPlot
 using Printf
+using ProgressMeter
 using Stheno
 using Tracker
 
@@ -137,11 +138,10 @@ function train!(
 
     for epoch in starting_epoch:(starting_epoch + epochs - 1)
         # Perform epoch.
-        println("Epoch: $epoch")
         CUDA.reclaim()
         @time begin
             ps = Flux.Params(Flux.params(model))
-            for d in data_gen(batches_per_epoch)
+            @showprogress "Epoch $epoch: " for d in data_gen(batches_per_epoch)
                 gs = Tracker.gradient(ps) do
                     first(_nansafe(loss, model, epoch, gpu.(d)...))
                 end
