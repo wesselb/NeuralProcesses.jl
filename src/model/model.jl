@@ -272,7 +272,7 @@ function predict(
         samples = μ[:, 1:num_samples]
     elseif d isa CorrelatedNormal
         # Regularise, because the covariance can be unstable.
-        # d_reg = _regularise_correlated_normal(d, epoch)
+        d_reg = _regularise_correlated_normal(d, epoch)
         samples = sample(d_reg, num_samples=num_samples)[:, 1, 1, :] |> cpu
     else
         # There are no samples.
