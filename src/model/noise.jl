@@ -76,7 +76,7 @@ struct CorrelatedGaussian <: Noise
     log_σ
 end
 
-CorrelatedGaussian() = CorrelatedGaussian([log(0f1)])
+CorrelatedGaussian() = CorrelatedGaussian([log(1f-1)])
 
 @Flux.functor CorrelatedGaussian
 
