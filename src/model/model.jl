@@ -146,13 +146,9 @@ end
 _regularise_correlated_normal(d, epoch) = d
 function _regularise_correlated_normal(d::CorrelatedNormal, epoch)
     n = size(mean(d), 1)
-    σ²_max = (epoch == 1 ? maximum(Tracker.data(std(d)))^2 : 1f0)
-    ridge = Matrix(_epoch_to_reg(epoch) * σ²_max * I, n, n) |> gpu
+    σ² = (epoch == 1 ? 1f-1 * maximum(Tracker.data(std(d)))^2 : 1f-5)
+    ridge = Matrix(σ² * I, n, n) |> gpu
     return CorrelatedNormal(mean(d), var(d) .+ ridge)
-end
-function _epoch_to_reg(epoch)
-    epoch == 1 && (return 1f-1)
-    return 1f-5
 end
 
 """
@@ -270,8 +266,8 @@ function predict(
         samples = μ[:, 1:num_samples]
     elseif d isa CorrelatedNormal
         # Regularise, because the covariance can be unstable.
-        d_reg = _regularise_correlated_normal(d, epoch)
-        samples = sample(d_reg, num_samples=num_samples)[:, 1, 1, :] |> cpu
+        d = _regularise_correlated_normal(d, epoch)
+        samples = sample(d, num_samples=num_samples)[:, 1, 1, :] |> cpu
     else
         # There are no samples.
         samples = nothing
