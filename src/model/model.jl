@@ -144,11 +144,19 @@ function loglik(
 end
 
 _regularise_correlated_normal(d, epoch) = d
-function _regularise_correlated_normal(d::CorrelatedNormal, epoch)
-    n = size(mean(d), 1)
-    σ² = (epoch == 1 ? 1f-1 * maximum(Tracker.data(std(d)))^2 : 1f-5)
-    ridge = Matrix(σ² * I, n, n) |> gpu
-    return CorrelatedNormal(mean(d), var(d) .+ ridge)
+function _regularise_correlated_normal(d::CorrelatedNormal, epoch; σ²=nothing)
+    if isnothing(σ²)
+        if epoch == 1
+            σ² = 1f-1 * maximum(Tracker.data(std(d)))^2
+        end
+    end
+    if !isnothing(σ²)
+        n = size(mean(d), 1)
+        ridge = Matrix(σ² * I, n, n) |> gpu
+        return CorrelatedNormal(mean(d), var(d) .+ ridge)
+    else
+        return d
+    end
 end
 
 """
@@ -266,7 +274,7 @@ function predict(
         samples = μ[:, 1:num_samples]
     elseif d isa CorrelatedNormal
         # Regularise, because the covariance can be unstable.
-        d = _regularise_correlated_normal(d, epoch)
+        d = _regularise_correlated_normal(d, epoch; σ²=1f-4)
         samples = sample(d, num_samples=num_samples)[:, 1, 1, :] |> cpu
     else
         # There are no samples.
