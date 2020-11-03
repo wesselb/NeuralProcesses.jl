@@ -4,7 +4,7 @@ set -e
 
 JULIA="${JULIA:-julia}"
 
-EPOCHS_TOTAL="${EPOCHS_TOTAL:-200}"
+EPOCHS_TOTAL="${EPOCHS_TOTAL:-100}"
 EPOCHS_INC="${EPOCHS_INC:-${EPOCHS_TOTAL}}"
 
 echo "Epochs total:     $EPOCHS_TOTAL"
