@@ -8,7 +8,7 @@ NeuralProcesses.jl is a framework for composing
 
 [NeuralProcesses.jl was presented at JuliaCon 2020 [link to video (7:41)].](https://www.youtube.com/watch?v=nq6X-w5xgLo)
 
-See the [Neural Process Family](https://github.com/YannDubs/Neural-Process-Family) for code to reproduce the experiments from [Convolutional Conditional Neural Processes (Gordon et al., 2020)](https://openreview.net/forum?id=Skey4eBYPS).
+See the [Neural Process Family](https://github.com/YannDubs/Neural-Process-Family) for code to reproduce the image experiments from [Convolutional Conditional Neural Processes (Gordon et al., 2020)](https://openreview.net/forum?id=Skey4eBYPS).
 
 Contents:
 - [Introduction](#introduction)
