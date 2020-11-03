@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+mkdir -p logs
+
 for loss in loglik elbo loglik-iw; do
     for model in cnp acnp convcnp np-het anp-het convnp-het; do
         for data in eq matern52 noisy-mixture weakly-periodic sawtooth mixture; do

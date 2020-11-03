@@ -77,7 +77,7 @@ using Tracker
 # Determine the noise level.
 if endswith(args["data"], "-noisy")
     trimmed_data_name = args["data"][1:end - length("-noisy")]
-    noise = 0.05^2  # This matches the fixed noise of the NP models!
+    noise = 0.05^2  # Use a total error of 0.05.
 else
     trimmed_data_name = args["data"]
     noise = 1e-8  # Use very little noise, but still some for regularisation.
