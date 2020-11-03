@@ -43,7 +43,7 @@ struct AmortisedGaussian <: Noise
     offset
 end
 
-AmortisedGaussian() = AmortisedGaussian(5)
+AmortisedGaussian() = AmortisedGaussian(2)
 
 @Flux.functor AmortisedGaussian
 
@@ -60,7 +60,7 @@ struct HeterogeneousGaussian <: Noise
     offset
 end
 
-HeterogeneousGaussian() = HeterogeneousGaussian(5)
+HeterogeneousGaussian() = HeterogeneousGaussian(2)
 
 @Flux.functor HeterogeneousGaussian
 
@@ -161,7 +161,7 @@ function build_noise_model(
                     )
                 )
             ),
-            AmortisedGaussian(5)  # Use an offset of `5` to help initialisation.
+            AmortisedGaussian(2)  # Use an offset of `2` to help initialisation.
         )
 
     # Heterogeneous observation noise:
@@ -169,7 +169,7 @@ function build_noise_model(
         num_noise_channels = 2dim_y
         noise = Chain(
             build_local_transform(2dim_y),
-            HeterogeneousGaussian(5)  # Use an offset of `5` to help initialisation.
+            HeterogeneousGaussian(2)  # Use an offset of `2` to help initialisation.
         )
 
     else
