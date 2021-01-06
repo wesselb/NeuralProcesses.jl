@@ -286,7 +286,7 @@ Interpolation results for the pretrained models are as follows:
 | `anp-het` | -0.45 | -0.67 | -0.57 | -1.19 | -0.16 | -0.61 |
 | `convnp-het` | -0.09 | -0.29 | -0.34 | -0.98 | 2.39 | -0.31 |
 
-#### Pretrained Models for Bruinsma, Requeima, et al. (2021) (to appear in AABI 2021)
+#### Pretrained Models for Bruinsma, Requeima, et al. (2021) (to appear in [AABI 2021](http://approximateinference.org/))
 
 [Download link](https://www.dropbox.com/s/knlydai66aroorh/models.tar.gz?dl=1)
 
