@@ -8,8 +8,9 @@ parser = ArgParseSettings()
 @add_arg_table! parser begin
     "--data"
         help =
-            "Data set: eq-small, eq, matern52, noisy-mixture, weakly-periodic, sawtooth, " *
-            "or mixture. Append \"-noisy\" to a data set to make it noisy."
+            "Data set: eq-small, eq, matern52, eq-mixture, noisy-mixture, " *
+            "weakly-periodic, sawtooth, or mixture. " *
+            "Append \"-noisy\" to a data set to make it noisy."
         arg_type = String
         required = true
     "--model"
@@ -113,6 +114,15 @@ elseif trimmed_data_name == "matern52"
     num_context_eval = DiscreteUniform(0, 10)
 elseif trimmed_data_name == "noisy-mixture"
     process = GP(stretch(EQ(), 1 / 0.25) + EQ() + 1e-3 * Stheno.Noise(), GPC())
+    receptive_field = 4f0
+    points_per_unit = 64f0
+    num_context = DiscreteUniform(0, 50)
+    num_target = DiscreteUniform(50, 50)
+    num_channels = 64
+    dim_embedding = 128
+    num_context_eval = DiscreteUniform(0, 10)
+elseif trimmed_data_name == "eq-mixture"
+    process = GP(stretch(EQ(), 1 / 0.25) + EQ(), GPC())
     receptive_field = 4f0
     points_per_unit = 64f0
     num_context = DiscreteUniform(0, 50)

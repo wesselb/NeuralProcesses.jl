@@ -29,7 +29,7 @@ function acnp_1d(;
         Parallel(
             Chain(
                 InputsCoder(),
-                Deterministic()
+                DeterministicLikelihood()
             ),
             Chain(
                 attention(
@@ -39,7 +39,7 @@ function acnp_1d(;
                     num_heads         =num_encoder_heads,
                     num_encoder_layers=num_encoder_layers
                 ),
-                Deterministic()
+                DeterministicLikelihood()
             )
         ),
         Chain(
@@ -50,7 +50,7 @@ function acnp_1d(;
                 dim_out   =2dim_y,
                 num_layers=num_decoder_layers,
             ),
-            HeterogeneousGaussian()
+            HeterogeneousGaussianLikelihood()
         )
     )
 end

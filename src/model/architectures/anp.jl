@@ -48,7 +48,7 @@ function anp_1d(;
         Parallel(
             Chain(
                 InputsCoder(),
-                Deterministic()
+                DeterministicLikelihood()
             ),
             Chain(
                 attention(
@@ -58,7 +58,7 @@ function anp_1d(;
                     num_heads         =num_encoder_heads,
                     num_encoder_layers=num_encoder_layers
                 ),
-                Deterministic()
+                DeterministicLikelihood()
             ),
             Chain(
                 MLPCoder(
@@ -75,7 +75,7 @@ function anp_1d(;
                         num_layers=num_encoder_layers
                     )
                 ),
-                HeterogeneousGaussian()
+                HeterogeneousGaussianLikelihood()
             )
         ),
         Chain(

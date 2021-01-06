@@ -72,7 +72,7 @@ function convnp_1d(;
             num_in_channels =dim_y + 1,  # Account for density channel.
             num_out_channels=2num_latent_channels + 2num_global_channels,
         ),
-        HeterogeneousGaussian()
+        HeterogeneousGaussianLikelihood()
     )
     if num_global_channels > 0
         # There is a global variable. Split it off and pool instead.
@@ -87,7 +87,7 @@ function convnp_1d(;
             encoder[1:end - 1]...,  # Remove likelihood.
             Splitter(2num_global_channels),
             Parallel(
-                HeterogeneousGaussian(),
+                HeterogeneousGaussianLikelihood(),
                 Chain(
                     batched_mlp(
                         dim_in    =2num_global_channels,
@@ -102,7 +102,7 @@ function convnp_1d(;
                         dim_out   =2num_global_channels,
                         num_layers=3
                     ),
-                    HeterogeneousGaussian()
+                    HeterogeneousGaussianLikelihood()
                 )
             )
         )

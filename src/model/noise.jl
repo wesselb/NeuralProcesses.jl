@@ -1,4 +1,8 @@
-export Deterministic, FixedGaussian, AmortisedGaussian, HeterogeneousGaussian, build_noise_model
+export DeterministicLikelihood, FixedGaussianLikelihood, AmortisedGaussianLikelihood,
+    HeterogeneousGaussianLikelihood, CorrelatedGaussianLikelihood, build_noise_model
+# Deprecated:
+export Deterministic, FixedGaussian, AmortisedGaussian, HeterogeneousGaussian,
+    CorrelatedGaussian
 
 """
     abstract type Noise
@@ -6,32 +10,32 @@ export Deterministic, FixedGaussian, AmortisedGaussian, HeterogeneousGaussian, b
 abstract type Noise end
 
 """
-    struct Deterministic <: Noise
+    struct DeterministicLikelihood <: Noise
 """
-struct Deterministic <: Noise end
+struct DeterministicLikelihood <: Noise end
 
-@Flux.functor Deterministic
+@Flux.functor DeterministicLikelihood
 
-(noise::Deterministic)(x::AA) = Dirac(x)
+(noise::DeterministicLikelihood)(x::AA) = Dirac(x)
 
 """
-    struct FixedGaussian <: Noise
+    struct FixedGaussianLikelihood <: Noise
 
 Gaussian noise with a fixed standard deviation.
 
 # Fields
 - `log_σ`: Natural logarithm of the fixed standard deviation.
 """
-struct FixedGaussian <: Noise
+struct FixedGaussianLikelihood <: Noise
     log_σ
 end
 
-@Flux.functor FixedGaussian
+@Flux.functor FixedGaussianLikelihood
 
-(noise::FixedGaussian)(x::AA) = Normal(x, exp.(unwrap(noise.log_σ)))
+(noise::FixedGaussianLikelihood)(x::AA) = Gaussian(x, exp.(unwrap(noise.log_σ)))
 
 """
-    struct AmortisedGaussian <: Noise
+    struct AmortisedGaussianLikelihood <: Noise
 
 Gaussian noise with an amortised fixed standard deviation.
 
@@ -39,54 +43,65 @@ Gaussian noise with an amortised fixed standard deviation.
 - `offset`: Amount to subtract from the transformed standard deviation to help
     initialisation.
 """
-struct AmortisedGaussian <: Noise
+struct AmortisedGaussianLikelihood <: Noise
     offset
 end
 
-AmortisedGaussian() = AmortisedGaussian(2)
+AmortisedGaussianLikelihood() = AmortisedGaussianLikelihood(2)
 
-@Flux.functor AmortisedGaussian
+@Flux.functor AmortisedGaussianLikelihood
 
-(noise::AmortisedGaussian)(x::Parallel{2}) = Normal(x[1], softplus(x[2] .- noise.offset))
+(noise::AmortisedGaussianLikelihood)(x::Parallel{2}) =
+    Gaussian(x[1], softplus(x[2] .- noise.offset))
 
 """
-    struct HeterogeneousGaussian <: Noise
+    struct HeterogeneousGaussianLikelihood <: Noise
 
 # Fields
 - `offset`: Amount to subtract from the transformed standard deviation to help
     initialisation.
 """
-struct HeterogeneousGaussian <: Noise
+struct HeterogeneousGaussianLikelihood <: Noise
     offset
 end
 
-HeterogeneousGaussian() = HeterogeneousGaussian(2)
+HeterogeneousGaussianLikelihood() = HeterogeneousGaussianLikelihood(2)
 
-@Flux.functor HeterogeneousGaussian
+@Flux.functor HeterogeneousGaussianLikelihood
 
-function (noise::HeterogeneousGaussian)(x::AA)
+function (noise::HeterogeneousGaussianLikelihood)(x::AA)
     μ, σ_transformed = split(x, 2)
-    return Normal(μ, softplus(σ_transformed .- noise.offset))
+    return Gaussian(μ, softplus(σ_transformed .- noise.offset))
 end
 
 """
-    struct CorrelatedGaussian <: Noise
+    struct CorrelatedGaussianLikelihood <: Noise
+
+# Fields
+- `log_σ`: Natural logarithm of a fixed standard deviation to add.
 """
-struct CorrelatedGaussian <: Noise
+struct CorrelatedGaussianLikelihood <: Noise
     log_σ
 end
 
-CorrelatedGaussian() = CorrelatedGaussian([log(1f-1)])
+CorrelatedGaussianLikelihood() = ([log(1f-1)])
 
-@Flux.functor CorrelatedGaussian
+@Flux.functor CorrelatedGaussianLikelihood
 
-function (noise::CorrelatedGaussian)(x::Parallel{2})
+function (noise::CorrelatedGaussianLikelihood)(x::Parallel{2})
     μ = x[1]
     Σ = x[2]
     n = size(Σ, 1)
     eye = gpu(Matrix(I, n, n))
-    return CorrelatedNormal(μ, Σ .+ exp.(noise.log_σ) .* eye)
+    return MultivariateGaussian(μ, Σ .+ exp.(noise.log_σ) .* eye)
 end
+
+# Compatibility for old models:
+Deterministic = DeterministicLikelihood
+FixedGaussian = FixedGaussianLikelihood
+HeterogeneousGaussian = HeterogeneousGaussianLikelihood
+AmortisedGaussian = AmortisedGaussianLikelihood
+CorrelatedGaussian = CorrelatedGaussianLikelihood
 
 """
     build_noise_model(
@@ -128,7 +143,7 @@ function build_noise_model(
         num_noise_channels = dim_y
         noise = Chain(
             build_local_transform(dim_y),
-            FixedGaussian(learn_σ ? [log(σ)] : Fixed([log(σ)]))
+            FixedGaussianLikelihood(learn_σ ? [log(σ)] : Fixed([log(σ)]))
         )
 
     # Amortised observation noise:
@@ -161,7 +176,8 @@ function build_noise_model(
                     )
                 )
             ),
-            AmortisedGaussian(2)  # Use an offset of `2` to help initialisation.
+            # Use an offset of `2` to help initialisation.
+            AmortisedGaussianLikelihood(2)
         )
 
     # Heterogeneous observation noise:
@@ -169,7 +185,8 @@ function build_noise_model(
         num_noise_channels = 2dim_y
         noise = Chain(
             build_local_transform(2dim_y),
-            HeterogeneousGaussian(2)  # Use an offset of `2` to help initialisation.
+            # Use an offset of `2` to help initialisation.
+            HeterogeneousGaussianLikelihood(2)
         )
 
     else

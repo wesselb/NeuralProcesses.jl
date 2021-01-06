@@ -122,11 +122,11 @@ function loglik(
 
         # Fix the noise for the early epochs to force the model to fit.
         if epoch <= fixed_σ_epochs
-            d = Normal(mean(d), [fixed_σ] |> gpu)
+            d = Gaussian(mean(d), [fixed_σ] |> gpu)
         end
 
         # Add a diagonal to correlated covariances to help the Cholesky decompositions.
-        d = _regularise_correlated_normal(d, epoch)
+        d = _regularise_multivariate_gaussian(d, epoch)
 
         # Perform Monte Carlo estimate.
         batch_logpdfs = weights .+ sum(logpdf(d, yt), dims=(1, 2))
@@ -143,8 +143,8 @@ function loglik(
     return -mean(logpdfs), size(xt, 1)
 end
 
-_regularise_correlated_normal(d, epoch) = d
-function _regularise_correlated_normal(d::CorrelatedNormal, epoch; σ²=nothing)
+_regularise_multivariate_gaussian(d, epoch) = d
+function _regularise_multivariate_gaussian(d::MultivariateGaussian, epoch; σ²=nothing)
     if isnothing(σ²)
         if epoch == 1
             σ² = 1f-1 * maximum(Tracker.data(std(d)))^2
@@ -153,7 +153,7 @@ function _regularise_correlated_normal(d::CorrelatedNormal, epoch; σ²=nothing)
     if !isnothing(σ²)
         n = size(mean(d), 1)
         ridge = Matrix(σ² * I, n, n) |> gpu
-        return CorrelatedNormal(mean(d), var(d) .+ ridge)
+        return MultivariateGaussian(mean(d), var(d) .+ ridge)
     else
         return d
     end
@@ -223,7 +223,7 @@ function elbo(
 
     # Fix the noise for the early epochs to force the model to fit.
     if epoch <= fixed_σ_epochs
-        d = Normal(mean(d), [fixed_σ] |> gpu)
+        d = Gaussian(mean(d), [fixed_σ] |> gpu)
     end
 
     # Estimate ELBO from samples.
@@ -272,9 +272,9 @@ function predict(
 
     if size(μ, 2) >= num_samples
         samples = μ[:, 1:num_samples]
-    elseif d isa CorrelatedNormal
+    elseif d isa MultivariateGaussian
         # Regularise, because the covariance can be unstable.
-        d = _regularise_correlated_normal(d, epoch; σ²=1f-4)
+        d = _regularise_multivariate_gaussian(d, epoch; σ²=1f-4)
         samples = sample(d, num_samples=num_samples)[:, 1, 1, :] |> cpu
     else
         # There are no samples.

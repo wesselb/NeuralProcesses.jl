@@ -196,7 +196,7 @@ recode_stochastic(coder, coding, xc, yc, h; kws...) =
 _choose(new::Parallel{N}, old::Parallel{N}) where N =
     Parallel([_choose(newᵢ, oldᵢ) for (newᵢ, oldᵢ) in zip(new, old)]...)
 _choose(new::Dirac, old::Dirac) = old
-_choose(new::Normal, old::Normal) = new
+_choose(new::Gaussian, old::Gaussian) = new
 
 """
     struct Materialise

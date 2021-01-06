@@ -26,7 +26,7 @@ function cnp_1d(;
         Parallel(
             Chain(
                 InputsCoder(),
-                Deterministic()
+                DeterministicLikelihood()
             ),
             Chain(
                 MLPCoder(
@@ -43,7 +43,7 @@ function cnp_1d(;
                         num_layers=num_encoder_layers
                     )
                 ),
-                Deterministic()
+                DeterministicLikelihood()
             )
         ),
         Chain(
@@ -54,7 +54,7 @@ function cnp_1d(;
                 dim_out   =2dim_y,
                 num_layers=num_decoder_layers
             ),
-            HeterogeneousGaussian()
+            HeterogeneousGaussianLikelihood()
         )
     )
 end

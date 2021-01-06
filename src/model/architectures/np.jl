@@ -45,7 +45,7 @@ function np_1d(;
         Parallel(
             Chain(
                 InputsCoder(),
-                Deterministic()
+                DeterministicLikelihood()
             ),
             Chain(
                 MLPCoder(
@@ -62,7 +62,7 @@ function np_1d(;
                         num_layers=num_encoder_layers
                     )
                 ),
-                Deterministic()
+                DeterministicLikelihood()
             ),
             Chain(
                 MLPCoder(
@@ -79,7 +79,7 @@ function np_1d(;
                         num_layers=num_encoder_layers
                     )
                 ),
-                HeterogeneousGaussian()
+                HeterogeneousGaussianLikelihood()
             )
         ),
         Chain(

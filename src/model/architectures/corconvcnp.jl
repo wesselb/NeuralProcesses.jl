@@ -46,14 +46,14 @@ function corconvcnp_1d(;
                 UniformDiscretisation1D(points_per_unit_μ, margin),
                 Chain(
                     set_conv(dim_y, scale_μ; density=true),
-                    Deterministic()
+                    DeterministicLikelihood()
                 )
             ),
             FunctionalCoder(
                 UniformDiscretisation1D(points_per_unit_Σ, margin),
                 Chain(
                     set_conv(dim_y, scale_Σ; density=true, pd=true),
-                    Deterministic()
+                    DeterministicLikelihood()
                 )
             ),
         ),
@@ -85,7 +85,7 @@ function corconvcnp_1d(;
                     set_conv(dim_y, scale_Σ; pd=true)
                 )
             ),
-            CorrelatedGaussian()
+            CorrelatedGaussianLikelihood()
         )
     )
 end

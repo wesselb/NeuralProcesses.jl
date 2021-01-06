@@ -1,25 +1,25 @@
 """
-    struct Normal
+    struct Gaussian
 
 # Fields
 - `μ`: Mean.
 - `σ`: Standard deviation.
 """
-struct Normal
+struct Gaussian
     μ
     σ
 end
 
-sample(d::Normal; num_samples::Integer) =
+sample(d::Gaussian; num_samples::Integer) =
     d.μ .+ d.σ .* randn_gpu(data_eltype(d.μ), size(d.μ)..., num_samples)
 
-Statistics.mean(d::Normal) = d.μ
-Statistics.std(d::Normal) = d.σ
+Statistics.mean(d::Gaussian) = d.μ
+Statistics.std(d::Gaussian) = d.σ
 
-logpdf(d::Normal, x) = gaussian_logpdf(x, d.μ, d.σ)
-kl(p::Normal, q::Normal) = kl(p.μ, p.σ, q.μ, q.σ)
+logpdf(d::Gaussian, x) = gaussian_logpdf(x, d.μ, d.σ)
+kl(p::Gaussian, q::Gaussian) = kl(p.μ, p.σ, q.μ, q.σ)
 
-Base.map(f, d::Normal) = Normal(f(d.μ), f(d.σ))
+Base.map(f, d::Gaussian) = Gaussian(f(d.μ), f(d.σ))
 
 """
     struct Dirac
@@ -49,18 +49,18 @@ Base.map(f, d::Dirac) = Dirac(f(d.x))
 Base.sum(x::Real; dims=nothing) = x
 
 """
-    struct CorrelatedNormal
+    struct MultivariateGaussian
 
 # Fields
 - `μ`: Mean.
 - `Σ`: Covariance matrix.
 """
-struct CorrelatedNormal
+struct MultivariateGaussian
     μ
     Σ
 end
 
-function sample(d::CorrelatedNormal; num_samples::Integer)
+function sample(d::MultivariateGaussian; num_samples::Integer)
     n, num_channels, batch_size = size(d.μ)
 
     μ = d.μ
@@ -80,15 +80,15 @@ function sample(d::CorrelatedNormal; num_samples::Integer)
     return sample
 end
 
-Statistics.mean(d::CorrelatedNormal) = d.μ
-function Statistics.std(d::CorrelatedNormal)
+Statistics.mean(d::MultivariateGaussian) = d.μ
+function Statistics.std(d::MultivariateGaussian)
     Σ = d.Σ
     n = size(Σ, 1)
     return sqrt.(cat([Σ[i, i:i, :, :] for i = 1:n]..., dims=1))
 end
-Statistics.var(d::CorrelatedNormal) = d.Σ
+Statistics.var(d::MultivariateGaussian) = d.Σ
 
-function logpdf(d::CorrelatedNormal, x)
+function logpdf(d::MultivariateGaussian, x)
     _, num_channels, batch_size = size(x)
 
     μ = d.μ
@@ -107,4 +107,4 @@ function logpdf(d::CorrelatedNormal, x)
     return logpdfs
 end
 
-Base.map(f, d::CorrelatedNormal) = Normal(f(d.μ), f(d.Σ))
+Base.map(f, d::MultivariateGaussian) = Gaussian(f(d.μ), f(d.Σ))

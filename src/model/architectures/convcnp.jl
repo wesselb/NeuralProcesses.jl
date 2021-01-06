@@ -37,7 +37,7 @@ function convcnp_1d(;
             UniformDiscretisation1D(points_per_unit, margin),
             Chain(
                 set_conv(dim_y, scale; density=true),
-                Deterministic()
+                DeterministicLikelihood()
             )
         ),
         Chain(
@@ -51,7 +51,7 @@ function convcnp_1d(;
                 num_out_channels=2dim_y
             ),
             set_conv(2dim_y, scale),
-            HeterogeneousGaussian()
+            HeterogeneousGaussianLikelihood()
         )
     )
 end

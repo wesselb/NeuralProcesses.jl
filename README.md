@@ -57,7 +57,7 @@ usage: train.jl --data DATA --model MODEL [--num-samples NUM-SAMPLES]
                 [--bson BSON] [-h]
 
 optional arguments:
-  --data DATA           Data set: eq-small, eq, matern52,
+  --data DATA           Data set: eq-small, eq, matern52, eq-mixture,
                         noisy-mixture, weakly-periodic, sawtooth, or
                         mixture. Append "-noisy" to a data set to make
                         it noisy.
@@ -181,12 +181,12 @@ coding, which can be achieved by appending a _likelihood_:
 ```julia
 deterministic_coder = Chain(
     ...,
-    Deterministic()
+    DeterministicLikelihood()
 )
 
 stochastic_coder = Chain(
     ...,
-    HeterogeneousGaussian()
+    HeterogeneousGaussianLikelihood()
 )
 ```
 
@@ -226,7 +226,7 @@ literature.
 Download links for pretrained models are below.
 The instructions for how a pretrained model can be run are as follows:
 
-1. Download the [pretrained models](https://www.dropbox.com/s/ua40uc9ttzq9t18/models.tar.gz?dl=1).
+1. Download some [pretrained models](https://www.dropbox.com/s/ua40uc9ttzq9t18/models.tar.gz?dl=1).
 
 2. Extract the models:
 
@@ -334,15 +334,16 @@ function, e.g. `?LayerNorm`.
 | :- | :- | :- |
 | `Attention` | `attention` | Attentive mechanism. |
 | `SetConv` | `set_conv` | Set convolution. |
+| `SetConvPD` | `set_conv` | Set convolution for kernel functions. |
 
 #### Likelihoods
 
 | Type | Constructor | Description |
 | :- | :- | :- |
-| `Deterministic` | | Deterministic output. |
-| `FixedGaussian` | | Gaussian likelihood with a fixed variance. |
-| `AmortisedGaussian` | | Gaussian likelihood with a fixed variance that is calculated from split-off channels. |
-| `HeterogeneousGaussian` | | Gaussian likelihood with input-dependent variance. |
+| `DeterministicLikelihood` | | DeterministicLikelihood output. |
+| `FixedGaussianLikelihood` | | Gaussian likelihood with a fixed variance. |
+| `AmortisedGaussianLikelihood` | | Gaussian likelihood with a fixed variance that is calculated from split-off channels. |
+| `HeterogeneousGaussianLikelihood` | | Gaussian likelihood with input-dependent variance. |
 
 #### Coders
 
@@ -470,10 +471,10 @@ framework:
 # test point. We use a `Parallel` object to achieve this.
 encoder = Parallel(
     # The `InputsEncoder` simply outputs the target locations. We `Chain` this
-    # with a `Deterministic` likelihood to form a complete coder.
+    # with a `DeterministicLikelihood` to form a complete coder.
     Chain(
         InputsCoder(),
-        Deterministic()
+        DeterministicLikelihood()
     ),
     Chain(
         # The representation is given by a deep-set network, which is
@@ -495,9 +496,9 @@ encoder = Parallel(
                 num_layers=num_encoder_layers
             )
         ),
-        # The resulting representation is also chained with a `Deterministic`
-        # likelihood as we are interested in a conditional model.
-        Deterministic()
+        # The resulting representation is also chained with a
+        # `DeterministicLikelihood` as we are interested in a conditional model.
+        DeterministicLikelihood()
     )
 )
 
@@ -523,11 +524,11 @@ decoder = Chain(
             dim_out   =2dim_y,
             num_layers=num_decoder_layers
         ),
-        # The `HeterogeneousGaussian` likelihood automatically splits its inputs
+        # The `HeterogeneousGaussianLikelihood` automatically splits its inputs
         # in two along the feature dimension, and treats the first half as the
         # mean and second half as the standard deviation of a Gaussian
         # distribution.
-        HeterogeneousGaussian()
+        HeterogeneousGaussianLikelihood()
     )
 
 cnp = Model(encoder, decoder)
@@ -550,17 +551,17 @@ a latent variable to the model.
 This enables NPs to capture joint, non-Gaussian marginal distributions for
 target sets, which in turn allows producing coherent samples.
 Extending CNPs to NPs in NeuralProcceses.jl is extremely easy: we simply
-replace the `Deterministic` component of the `MLPCoder` with a
+replace the `DeterministicLikelihood` component of the `MLPCoder` with a
 `HeterogenousGaussian`, and adjust the output dimension of the encoder to
 produce both means and variances!
 
 ```julia
-# The only change to the encoder is replacing the `Deterministic` following the
-# `MLPCoder` with a `HeterogenousGaussian`!
+# The only change to the encoder is replacing the `DeterministicLikelihood`
+# following the `MLPCoder` with a `HeterogenousGaussian`!
 encoder = Parallel(
     Chain(
         InputsCoder(),
-        Deterministic()
+        DeterministicLikelihood()
     ),
     Chain(
         MLPCoder(
@@ -581,7 +582,7 @@ encoder = Parallel(
             )
         ),
         # This is the main change required to switch between a CNP and an NP.
-        HeterogeneousGaussian()
+        HeterogeneousGaussianLikelihood()
     )
 )
 
@@ -591,7 +592,7 @@ np = Model(encoder, decoder)
 
 Note that typical NPs consider both a deterministic and latent representation.
 This is easily achieved in NeuralProcesses.jl by adding an additional encoder to
-the `Parallel` object (with a `Deterministic` likelihood), and increasing the
+the `Parallel` object (with a `DeterministicLikelihood`), and increasing the
 decoder `dim_in` accordingly.
 In this repo, the built-in NP model uses this form.
 This example does not include a deterministic path to emphasise the ease of
@@ -618,7 +619,7 @@ encoder = Parallel(
     # First, include the `InputsCoder` to represent the target set inputs.
     Chain(
         InputsCoder(),
-        Deterministic()
+        DeterministicLikelihood()
     ),
     # NeuralProcesses.jl uses a transformer-style multi-head architecture for
     # attention. It first embeds the inputs and outputs into a
@@ -628,8 +629,8 @@ encoder = Parallel(
     # number of heads to employ (each head will use a
     # `div(dim_embedding, num_heads)`-dimensional embedding), and the number of
     # layers in the embedding MLPs. As ANPs employ attention for the
-    # deterministic representations, this is chained with a `Deterministic`
-    # likelihood.
+    # deterministic representations, this is chained with a
+    # `DeterministicLikelihood`.
     Chain(
         attention(
             dim_x             =dim_x,
@@ -638,7 +639,7 @@ encoder = Parallel(
             num_heads         =num_encoder_heads,
             num_encoder_layers=num_encoder_layers
         ),
-        Deterministic()
+        DeterministicLikelihood()
     ),
     # The latent path uses the same form as for the NP.
     Chain(
@@ -656,7 +657,7 @@ encoder = Parallel(
                 num_layers=num_encoder_layers
             )
         ),
-        HeterogeneousGaussian()
+        HeterogeneousGaussianLikelihood()
     )
 )
 
@@ -711,7 +712,7 @@ encoder = FunctionalCoder(
         set_conv(1, 2 / 64f0; density=true),
         # The encoding will be deterministic. We could also use a stochastic
         # encoding.
-        Deterministic()
+        DeterministicLikelihood()
     )
 )
 
@@ -730,7 +731,7 @@ decoder = Chain(
     # to the space of the data.
     set_conv(2, 2 / 64f0),
     # Predict means and variances.
-    HeterogeneousGaussian()
+    HeterogeneousGaussianLikelihood()
 )
 
 convcnp = Model(encoder, decoder)
