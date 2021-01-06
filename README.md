@@ -223,7 +223,7 @@ literature.
 | Convolutional Neural Process | `convnp_1d` | [Foong, Bruinsma, et al. (2020)](https://arxiv.org/abs/2007.01332) |
 | Gaussian Neural Process | `corconvcnp_1d` | Bruinsma, Requeima et al. (2021) (to appear in [AABI 2021](http://approximateinference.org/)) |
 
-Download links for pretrained models can are below.
+Download links for pretrained models are below.
 The instructions for how a pretrained model can be run are as follows:
 
 1. Download the [pretrained models](https://www.dropbox.com/s/ua40uc9ttzq9t18/models.tar.gz?dl=1).
@@ -255,7 +255,7 @@ means, lowers, uppers, samples = predict(
 
 #### Pretrained Models for [Foong, Bruinsma, et al. (2020)](https://arxiv.org/abs/2007.01332)
 
-[Download.](https://www.dropbox.com/s/ua40uc9ttzq9t18/models.tar.gz?dl=1)
+[Download link](https://www.dropbox.com/s/ua40uc9ttzq9t18/models.tar.gz?dl=1)
 
 Interpolation results for the pretrained models are as follows:
 
@@ -288,7 +288,7 @@ Interpolation results for the pretrained models are as follows:
 
 #### Pretrained Models for Bruinsma, Requeima, et al. (2021) (to appear in AABI 2021)
 
-[Download.](https://www.dropbox.com/s/knlydai66aroorh/models.tar.gz?dl=1)
+[Download link](https://www.dropbox.com/s/knlydai66aroorh/models.tar.gz?dl=1)
 
 Interpolation results for the pretrained models are as follows:
 
