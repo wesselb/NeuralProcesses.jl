@@ -48,7 +48,6 @@ $ julia --project=. train.jl --model convcnp --data matern52 --loss loglik --epo
 Here's what it can do:
 
 ```
-$ julia --project=. train.jl --help
 usage: train.jl --data DATA --model MODEL [--num-samples NUM-SAMPLES]
                 [--batch-size BATCH-SIZE] --loss LOSS
                 [--starting-epoch STARTING-EPOCH] [--epochs EPOCHS]
@@ -62,9 +61,9 @@ optional arguments:
                         noisy-mixture, weakly-periodic, sawtooth, or
                         mixture. Append "-noisy" to a data set to make
                         it noisy.
-  --model MODEL         Model: conv[c]np, a[c]np, or [c]np. Append
-                        "-global-{mean,sum}" to introduce a global
-                        latent variable. Append
+  --model MODEL         Model: conv[c]np, corconvcnp, a[c]np, or
+                        [c]np. Append "-global-{mean,sum}" to
+                        introduce a global latent variable. Append
                         "-amortised-{mean,sum}" to use amortised
                         observation noise. Append "-het" to use
                         heterogeneous observation noise.
@@ -222,10 +221,10 @@ literature.
 | Attentive Neural Process | `anp_1d` | [Kim, Mnih, et al. (2019)](https://arxiv.org/abs/1807.01622) |
 | Convolutional Conditional Neural Process | `convcnp_1d` | [Gordon, Bruinsma, et al. (2020)](https://openreview.net/forum?id=Skey4eBYPS) |
 | Convolutional Neural Process | `convnp_1d` | [Foong, Bruinsma, et al. (2020)](https://arxiv.org/abs/2007.01332) |
+| Gaussian Neural Process | `corconvcnp_1d` | Bruinsma, Requeima et al. (2021) (to appear in [AABI 2021](http://approximateinference.org/)) |
 
-Pretrained models can be downloaded [here](https://www.dropbox.com/s/ua40uc9ttzq9t18/models.tar.gz?dl=1).
-The instructions below illustrate how a pretrained model can be downloaded and
-run:
+Download links for pretrained models can are below.
+The instructions for how a pretrained model can be run are as follows:
 
 1. Download the [pretrained models](https://www.dropbox.com/s/ua40uc9ttzq9t18/models.tar.gz?dl=1).
 
@@ -254,9 +253,13 @@ means, lowers, uppers, samples = predict(
 )
 ```
 
+#### Pretrained Models for [Foong, Bruinsma, et al. (2020)](https://arxiv.org/abs/2007.01332)
+
+[Download.](https://www.dropbox.com/s/ua40uc9ttzq9t18/models.tar.gz?dl=1)
+
 Interpolation results for the pretrained models are as follows:
 
-#### `loglik`
+##### `loglik`
 
 | Model | `eq` | `matern52` | `noisy-mixture` | `weakly-periodic` | `sawtooth` | `mixture` |
 |-|:-:|:-:|:-:|:-:|:-:|:-:|
@@ -267,7 +270,7 @@ Interpolation results for the pretrained models are as follows:
 | `anp-het` | -0.53 | -0.74 | -0.66 | -1.17 | -0.10 | -0.63 |
 | `convnp-het` | -0.34 | -0.61 | -0.59 | -1.01 | 2.24 | -0.40 |
 
-#### `elbo`
+##### `elbo`
 
 | Model | `eq` | `matern52` | `noisy-mixture` | `weakly-periodic` | `sawtooth` | `mixture` |
 |-|:-:|:-:|:-:|:-:|:-:|:-:|
@@ -275,13 +278,28 @@ Interpolation results for the pretrained models are as follows:
 | `anp-het` | -0.71 | -0.88 | -0.80 | -1.27 | -0.00 | -0.86 |
 | `convnp-het` | -0.61 | -0.59 | -2.19 | -1.07 | 2.40 | -1.27 |
 
-#### `loglik-iw`
+##### `loglik-iw`
 
 | Model | `eq` | `matern52` | `noisy-mixture` | `weakly-periodic` | `sawtooth` | `mixture` |
 |-|:-:|:-:|:-:|:-:|:-:|:-:|
 | `np-het` | -0.28 | -0.57 | -0.47 | -1.20 | 0.32 | -0.59 |
 | `anp-het` | -0.45 | -0.67 | -0.57 | -1.19 | -0.16 | -0.61 |
 | `convnp-het` | -0.09 | -0.29 | -0.34 | -0.98 | 2.39 | -0.31 |
+
+#### Pretrained Models for Bruinsma, Requeima, et al. (2021) (to appear in AABI 2021)
+
+[Download.](https://www.dropbox.com/s/knlydai66aroorh/models.tar.gz?dl=1)
+
+Interpolation results for the pretrained models are as follows:
+
+##### `loglik`
+
+| Model | `eq-noisy` | `matern52-noisy` | `noisy-mixture` | `weakly-periodic-noisy` | `sawtooth-noisy` | `mixture-noisy` |
+|-|:-:|:-:|:-:|:-:|:-:|:-:|
+| `convcnp` | -0.80 | -0.95 | -0.95 | -1.20 | 0.55 | -0.93 |
+| `corconvcnp` | 0.70 | 0.30 | 0.96 | -0.47 | 0.42 | 0.10 |
+| `anp-het` | -0.61 | -0.75 | -0.73 | -1.19 | 0.34 | -0.69 |
+| `convnp-het` | -0.46 | -0.67 | -0.53 | -1.02 | 1.20 | -0.50 |
 
 ### Building Blocks
 
