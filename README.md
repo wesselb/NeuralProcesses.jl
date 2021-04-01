@@ -217,8 +217,8 @@ literature.
 | :- | :- | :- |
 | Conditional Neural Process | `cnp_1d` | [Garnelo, Rosenbaum, et al. (2018)](https://arxiv.org/abs/1807.01613) |
 | Neural Process | `np_1d` | [Garnelo, Schwarz, et al. (2018)](https://arxiv.org/abs/1807.01622) |
-| Attentive Conditional Neural Process | `acnp_1d` | [Kim, Mnih, et al. (2019)](https://arxiv.org/abs/1807.01622) |
-| Attentive Neural Process | `anp_1d` | [Kim, Mnih, et al. (2019)](https://arxiv.org/abs/1807.01622) |
+| Attentive Conditional Neural Process | `acnp_1d` | [Kim, Mnih, et al. (2019)](https://openreview.net/forum?id=SkE6PjC9KX) |
+| Attentive Neural Process | `anp_1d` | [Kim, Mnih, et al. (2019)](https://openreview.net/forum?id=SkE6PjC9KX) |
 | Convolutional Conditional Neural Process | `convcnp_1d` | [Gordon, Bruinsma, et al. (2020)](https://openreview.net/forum?id=Skey4eBYPS) |
 | Convolutional Neural Process | `convnp_1d` | [Foong, Bruinsma, et al. (2020)](https://arxiv.org/abs/2007.01332) |
 | Gaussian Neural Process | `corconvcnp_1d` | Bruinsma, Requeima et al. (2021) (to appear in [AABI 2021](http://approximateinference.org/)) |
