@@ -22,8 +22,9 @@ parser = ArgParseSettings()
         arg_type = String
         required = true
     "--num-samples"
-        help = "Number of samples to estimate the training loss. Defaults to 20 for " *
-        "\"loglik\" and 5 for \"elbo\"."
+        help =
+            "Number of samples to estimate the training loss. Defaults to 20 for " *
+            "\"loglik\" and 5 for \"elbo\"."
         arg_type = Int
     "--batch-size"
         help = "Batch size."
