@@ -221,7 +221,7 @@ literature.
 | Attentive Neural Process | `anp_1d` | [Kim, Mnih, et al. (2019)](https://openreview.net/forum?id=SkE6PjC9KX) |
 | Convolutional Conditional Neural Process | `convcnp_1d` | [Gordon, Bruinsma, et al. (2020)](https://openreview.net/forum?id=Skey4eBYPS) |
 | Convolutional Neural Process | `convnp_1d` | [Foong, Bruinsma, et al. (2020)](https://arxiv.org/abs/2007.01332) |
-| Gaussian Neural Process | `corconvcnp_1d` | Bruinsma, Requeima et al. (2021) (to appear in [AABI 2021](http://approximateinference.org/)) |
+| Gaussian Neural Process | `corconvcnp_1d` | [Bruinsma, Requeima et al. (2021)](https://openreview.net/forum?id=rzsDn7Vzxf) |
 
 Download links for pretrained models are below.
 The instructions for how a pretrained model can be run are as follows:
@@ -286,7 +286,7 @@ Interpolation results for the pretrained models are as follows:
 | `anp-het` | -0.45 | -0.67 | -0.57 | -1.19 | -0.16 | -0.61 |
 | `convnp-het` | -0.09 | -0.29 | -0.34 | -0.98 | 2.39 | -0.31 |
 
-#### Pretrained Models for Bruinsma, Requeima, et al. (2021) (to appear in [AABI 2021](http://approximateinference.org/))
+#### Pretrained Models for [Bruinsma, Requeima et al. (2021)](https://openreview.net/forum?id=rzsDn7Vzxf)
 
 [Download link](https://www.dropbox.com/s/knlydai66aroorh/models.tar.gz?dl=1)
 
